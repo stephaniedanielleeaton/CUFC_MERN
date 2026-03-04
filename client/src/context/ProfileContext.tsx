@@ -1,0 +1,73 @@
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
+import { useAuth0 } from '@auth0/auth0-react'
+import type { MemberProfileDTO, MemberProfileFormInput } from '@cufc/shared'
+
+type MemberProfileContextType = {
+  profile: MemberProfileFormInput | null
+  loading: boolean
+  error: string | null
+  refreshProfile: () => Promise<void>
+  setProfile: React.Dispatch<React.SetStateAction<MemberProfileFormInput | null>>
+}
+
+const MemberProfileContext = createContext<MemberProfileContextType | undefined>(undefined)
+
+export function useMemberProfile() {
+  const ctx = useContext(MemberProfileContext)
+  if (!ctx) throw new Error('useMemberProfile must be used within a MemberProfileProvider')
+  return ctx
+}
+
+function toFormInput(p: MemberProfileDTO): MemberProfileFormInput {
+  return { ...p, profileId: String(p._id) } as MemberProfileFormInput
+}
+
+export function MemberProfileProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently } = useAuth0()
+  const [profile, setProfile] = useState<MemberProfileFormInput | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchProfile = useCallback(async () => {
+    // Wait for auth to finish loading
+    if (authLoading) return
+    
+    if (!isAuthenticated) {
+      setProfile(null)
+      setLoading(false)
+      setError(null)
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const token = await getAccessTokenSilently()
+      const res = await fetch('/api/members/me', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+      if (!res.ok) throw new Error('Failed to fetch profile')
+      const data = await res.json()
+      const fetched: MemberProfileDTO | null = data.profile ?? null
+      setProfile(fetched ? toFormInput(fetched) : null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+      setProfile(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [isAuthenticated, authLoading, getAccessTokenSilently])
+
+  useEffect(() => {
+    fetchProfile()
+  }, [fetchProfile])
+
+  return (
+    <MemberProfileContext.Provider
+      value={{ profile, loading, error, refreshProfile: fetchProfile, setProfile }}
+    >
+      {children}
+    </MemberProfileContext.Provider>
+  )
+}

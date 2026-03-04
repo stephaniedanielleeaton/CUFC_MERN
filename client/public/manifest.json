@@ -1,0 +1,16 @@
+{
+    "name": "Columbus United Fencing Club",
+    "short_name": "CUFC",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "description": "Columbus United Fencing Club, an inclusive historical fencing club in Columbus, Ohio. Join us to learn, improve, and compete in Historical European Martial Arts.",
+    "icons": [
+      {
+        "src": "/LogoFullColourNavy.svg",
+        "type": "image/svg+xml",
+        "sizes": "512x512"
+      }
+    ]
+  }
+  
