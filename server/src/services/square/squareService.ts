@@ -173,8 +173,7 @@ export class SquareService {
 
   async getOrdersByMemberProfileId(memberProfileId: string): Promise<Square.Order[]> {
     try {
-      // Search for orders in the last 6 months to limit results
-      const sixMonthsAgo = new Date();
+        const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
       
       const response = await this.client.orders.search({
@@ -198,6 +197,69 @@ export class SquareService {
       this.logError(error as string);
       throw error;
     }
+  }
+
+  async getOrderById(orderId: string): Promise<Square.Order | null> {
+    try {
+      const response = await this.client.orders.get({
+        orderId,
+      });
+      return response.order ?? null;
+    } catch (error) {
+      this.logError(error as string);
+      throw error;
+    }
+  }
+
+  async getCustomerByEmail(email: string): Promise<Square.Customer | null> {
+    try {
+      const response = await this.client.customers.search({
+        query: {
+          filter: {
+            emailAddress: {
+              exact: email,
+            },
+          },
+        },
+      });
+      return response.customers?.[0] ?? null;
+    } catch (error) {
+      this.logError(error as string);
+      return null;
+    }
+  }
+
+  async createCustomer(params: {
+    email: string;
+    givenName?: string;
+    familyName?: string;
+    referenceId?: string;
+  }): Promise<Square.Customer | null> {
+    try {
+      const response = await this.client.customers.create({
+        emailAddress: params.email,
+        givenName: params.givenName,
+        familyName: params.familyName,
+        referenceId: params.referenceId,
+      });
+      return response.customer ?? null;
+    } catch (error) {
+      this.logError(error as string);
+      throw error;
+    }
+  }
+
+  async getOrCreateCustomer(params: {
+    email: string;
+    givenName?: string;
+    familyName?: string;
+    referenceId?: string;
+  }): Promise<Square.Customer | null> {
+    const existingCustomer = await this.getCustomerByEmail(params.email);
+    if (existingCustomer) {
+      return existingCustomer;
+    }
+    return this.createCustomer(params);
   }
 
   async getOrdersByCustomerId(customerId: string): Promise<Square.Order[]> {
@@ -235,13 +297,13 @@ export class SquareService {
               catalogObjectId,
               quantity: '1',
               metadata: {
-                'memberProfileId': memberProfileId
+                memberProfileId
               }
             }
           ]
         },
         checkoutOptions: {
-          redirectUrl: redirectUrl,
+          redirectUrl,
         }
       });
       return response.paymentLink?.url ?? '';

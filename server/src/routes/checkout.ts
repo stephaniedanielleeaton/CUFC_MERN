@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { checkJwt } from '../middleware/auth';
 import { SquareService } from '../services/square/squareService';
+import { getMemberProfileById } from '../services/memberProfileService';
 
 const router = Router();
 
-// POST /api/checkout/intro - Create checkout link for intro class
 router.post('/intro', checkJwt, async (req: Request, res: Response) => {
   try {
     const { catalogObjectId, memberProfileId, redirectUrl } = req.body;
@@ -15,11 +15,16 @@ router.post('/intro', checkJwt, async (req: Request, res: Response) => {
       });
     }
 
+    const profile = await getMemberProfileById(memberProfileId);
+    if (!profile) {
+      return res.status(404).json({ error: 'Member profile not found' });
+    }
+
     const squareService = new SquareService();
     const checkoutUrl = await squareService.getSingleVariantCheckout(
       catalogObjectId, 
       memberProfileId, 
-      undefined, 
+      profile.squareCustomerId || undefined, 
       redirectUrl
     );
 

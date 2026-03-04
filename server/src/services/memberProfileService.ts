@@ -2,9 +2,29 @@ import { HydratedDocument } from 'mongoose';
 import { MemberProfile, IMemberProfile } from '../models/MemberProfile';
 import { MemberProfileDTO, MemberUpdateData } from '@cufc/shared';
 import { dbConnect } from '../config/database';
+import { SquareService } from './square/squareService';
 
 function toISODateString(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+async function createSquareCustomerIfEmailProvided(
+  email: string | undefined,
+  profileData?: { displayFirstName?: string; displayLastName?: string }
+): Promise<string | undefined> {
+  if (!email) return undefined;
+  
+  try {
+    const squareService = new SquareService();
+    const customer = await squareService.getOrCreateCustomer({
+      email,
+      givenName: profileData?.displayFirstName,
+      familyName: profileData?.displayLastName,
+    });
+    return customer?.id;
+  } catch {
+    return undefined;
+  }
 }
 
 export function mapMemberDocToDTO(doc: HydratedDocument<IMemberProfile>): MemberProfileDTO {
@@ -99,7 +119,15 @@ export async function createProfileForUser(
   initialData?: { displayFirstName?: string; displayLastName?: string; personalInfo?: { email?: string }; guardian?: { firstName?: string; lastName?: string } }
 ): Promise<MemberProfileDTO> {
   await dbConnect();
-  const doc = await MemberProfile.create({ auth0Id, ...(initialData ?? {}) });
+  
+  const email = initialData?.personalInfo?.email;
+  const squareCustomerId = await createSquareCustomerIfEmailProvided(email, initialData);
+  
+  const doc = await MemberProfile.create({ 
+    auth0Id, 
+    ...(initialData ?? {}),
+    ...(squareCustomerId ? { squareCustomerId } : {})
+  });
   return mapMemberDocToDTO(doc);
 }
 

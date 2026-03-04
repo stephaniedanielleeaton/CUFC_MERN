@@ -17,7 +17,6 @@ async function startServer() {
   const adminRoutes = (await import('./routes/admin')).default;
   const introClassRoutes = (await import('./routes/introClass')).default;
   const checkoutRoutes = (await import('./routes/checkout')).default;
-  const webhookRoutes = (await import('./routes/webhooks')).default;
 
   const app = express();
   const PORT = process.env.PORT || 3000;
@@ -36,7 +35,6 @@ async function startServer() {
   app.use('/api/admin', adminRoutes);
   app.use('/api/intro-class-offerings', introClassRoutes);
   app.use('/api/checkout', checkoutRoutes);
-  app.use('/api/webhooks', webhookRoutes);
 
   // Health check
   app.get('/api/health', (_req, res) => {
