@@ -29,7 +29,7 @@ async function startServer() {
   app.use(express.json());
 
   // Serve static files from React app
-  app.use(express.static(path.join(__dirname, '../client/dist')));
+  app.use(express.static(path.join(__dirname, '../../client/dist')));
 
   // API Routes
   app.use('/api/attendance', attendanceRoutes);
@@ -41,7 +41,7 @@ async function startServer() {
 
   // Handle SPA routing - send all non-API routes to React app
   app.get('*', (_req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
   });
 
   // Health check
