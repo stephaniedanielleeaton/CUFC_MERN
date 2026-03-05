@@ -69,15 +69,45 @@ export class SquareService {
       });
       const customerIds = new Set<string>();
       for (const order of response.orders ?? []) {
-        const hasItem = order.lineItems?.some(
+        const hasDropInItem = order.lineItems?.some(
           (li) => li.catalogObjectId === catalogObjectId
         );
-        if (hasItem && order.customerId) customerIds.add(order.customerId);
+        if (hasDropInItem && order.customerId) {
+          customerIds.add(order.customerId);
+        }
       }
       return customerIds;
     } catch (error) {
       this.logError(error as string);
       throw error;
+    }
+  }
+
+  async checkCustomerHasTodayDropIn(customerId: string, catalogObjectId: string): Promise<boolean> {
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    try {
+      const response = await this.client.orders.search({
+        locationIds: [this.RETAIL_LOCATION_ID],
+        query: {
+          filter: {
+            customerFilter: { customerIds: [customerId] },
+            dateTimeFilter: {
+              createdAt: { startAt: startOfDay.toISOString() },
+            },
+          },
+        },
+      });
+      for (const order of response.orders ?? []) {
+        const hasDropInItem = order.lineItems?.some(
+          (li) => li.catalogObjectId === catalogObjectId
+        );
+        if (hasDropInItem) return true;
+      }
+      return false;
+    } catch (error) {
+      this.logError(error as string);
+      return false;
     }
   }
 

@@ -64,16 +64,47 @@ export async function getAllMembersSquareStatus(
   membersWithSquare: { memberId: string; squareCustomerId: string }[]
 ): Promise<AllMembersSquareStatusDTO> {
   const squareService = new SquareService();
-  const customerIds = membersWithSquare.map((m) => m.squareCustomerId);
   
-  const [activeCustomerIds, dropInCustomerIds] = await Promise.all([
-    squareService.getActiveSubscriptionsForCustomers(customerIds),
-    squareService.getTodayDropInCustomerIds(DROP_IN_CATALOG_OBJECT_ID),
-  ]);
+  const statusChecks = await Promise.all(
+    membersWithSquare.map(async (m) => {
+      let hasActiveSubscription = false;
+      let hasTodayDropIn = false;
+      
+      try {
+        const subscriptions = await squareService.getCustomerSubscriptions(m.squareCustomerId);
+        hasActiveSubscription = subscriptions.some((sub) => sub.status === 'ACTIVE');
+      } catch {
+        // Skip errors (e.g., invalid customer ID) to continue processing remaining members
+      }
+      
+      try {
+        hasTodayDropIn = await squareService.checkCustomerHasTodayDropIn(
+          m.squareCustomerId,
+          DROP_IN_CATALOG_OBJECT_ID
+        );
+      } catch {
+        // Skip errors to continue processing remaining members
+      }
+      
+      return {
+        squareCustomerId: m.squareCustomerId,
+        hasActiveSubscription,
+        hasTodayDropIn,
+      };
+    })
+  );
+  
+  const activeSubscribers = statusChecks
+    .filter((s) => s.hasActiveSubscription)
+    .map((s) => s.squareCustomerId);
+  
+  const dropIns = statusChecks
+    .filter((s) => s.hasTodayDropIn)
+    .map((s) => s.squareCustomerId);
   
   return {
-    activeSubscribers: Array.from(activeCustomerIds),
-    dropIns: Array.from(dropInCustomerIds),
+    activeSubscribers,
+    dropIns,
   };
 }
 

@@ -28,13 +28,21 @@ async function startServer() {
   }));
   app.use(express.json());
 
-  // Routes
+  // Serve static files from React app
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+
+  // API Routes
   app.use('/api/attendance', attendanceRoutes);
   app.use('/api/members', membersRoutes);
   app.use('/api/auth', authRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/intro-class-offerings', introClassRoutes);
   app.use('/api/checkout', checkoutRoutes);
+
+  // Handle SPA routing - send all non-API routes to React app
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
 
   // Health check
   app.get('/api/health', (_req, res) => {
