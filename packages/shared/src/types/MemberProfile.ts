@@ -38,6 +38,7 @@ export type MemberProfileDTO = {
   familyMembers?: FamilyMember[];
   isWaiverOnFile?: boolean;
   isPaymentWaived?: boolean;
+  isArchived?: boolean;
   notes?: string;
   lastAttendanceCheckIn?: string | null;
   profileComplete?: boolean;
@@ -60,6 +61,7 @@ export type MemberUpdateData = {
   profileComplete?: boolean;
   isWaiverOnFile?: boolean;
   isPaymentWaived?: boolean;
+  isArchived?: boolean;
   memberStatus?: string;
   squareCustomerId?: string;
   notes?: string;

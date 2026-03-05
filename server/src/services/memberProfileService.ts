@@ -53,6 +53,7 @@ export function mapMemberDocToDTO(doc: HydratedDocument<IMemberProfile>): Member
     })),
     isWaiverOnFile: doc.isWaiverOnFile,
     isPaymentWaived: doc.isPaymentWaived,
+    isArchived: doc.isArchived,
     notes: doc.notes,
     lastAttendanceCheckIn: doc.lastAttendanceCheckIn
       ? doc.lastAttendanceCheckIn.toISOString()
@@ -90,6 +91,7 @@ function buildMemberMongoUpdateSet(data: MemberUpdateData) {
     ...(data.profileComplete !== undefined && { profileComplete: data.profileComplete }),
     ...(data.isWaiverOnFile !== undefined && { isWaiverOnFile: data.isWaiverOnFile }),
     ...(data.isPaymentWaived !== undefined && { isPaymentWaived: data.isPaymentWaived }),
+    ...(data.isArchived !== undefined && { isArchived: data.isArchived }),
     ...(data.memberStatus !== undefined && { memberStatus: data.memberStatus }),
     ...(data.squareCustomerId !== undefined && { squareCustomerId: data.squareCustomerId }),
     ...(data.notes !== undefined && { notes: data.notes }),

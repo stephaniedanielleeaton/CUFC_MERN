@@ -66,6 +66,7 @@ export interface IMemberProfile extends Document {
   familyMembers?: IFamilyMember[];
   isWaiverOnFile?: boolean;
   isPaymentWaived?: boolean;
+  isArchived?: boolean;
   notes?: string;
   lastAttendanceCheckIn?: Date;
   profileComplete?: boolean;
@@ -84,6 +85,7 @@ const MemberProfileSchema = new Schema<IMemberProfile>({
   familyMembers: [FamilyMemberSchema],
   isWaiverOnFile: Boolean,
   isPaymentWaived: { type: Boolean, default: false },
+  isArchived: { type: Boolean, default: false },
   notes: String,
   lastAttendanceCheckIn: Date,
   memberStatus: { type: String, enum: ['New', 'Full'], default: 'New' },

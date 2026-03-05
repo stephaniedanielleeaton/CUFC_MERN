@@ -165,6 +165,7 @@ export default function MemberDetailsInline({ member, onSubmit, onDelete, saveSt
                 <Toggle label="Profile complete" name="profileComplete" defaultChecked={member.profileComplete ?? false} />
                 <Toggle label="Waiver on file" name="isWaiverOnFile" defaultChecked={member.isWaiverOnFile ?? false} />
                 <Toggle label="Payment waived" name="isPaymentWaived" defaultChecked={member.isPaymentWaived ?? false} />
+                <Toggle label="Archived" name="isArchived" defaultChecked={member.isArchived ?? false} />
               </div>
               <div className="space-y-4">
                 <Dropdown

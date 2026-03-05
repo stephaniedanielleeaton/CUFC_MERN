@@ -12,11 +12,14 @@ export interface RecentAttendanceDTO {
 
 export async function getMembersWithCheckInStatus(): Promise<MemberCheckIn[]> {
   await dbConnect();
-  const members = await MemberProfile.find({}, {
-    displayFirstName: 1,
-    displayLastName: 1,
-    _id: 1,
-  }).lean();
+  const members = await MemberProfile.find(
+    { isArchived: { $ne: true } },
+    {
+      displayFirstName: 1,
+      displayLastName: 1,
+      _id: 1,
+    }
+  ).lean();
 
   const membersWithDisplayNames = members as AttendanceScreenMember[];
 

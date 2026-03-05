@@ -10,6 +10,7 @@ export default function AdminMembersPage() {
   const { getAccessTokenSilently } = useAuth0()
   const [search, setSearch] = useState("")
   const [checkedInOnly, setCheckedInOnly] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle")
   
@@ -46,8 +47,13 @@ export default function AdminMembersPage() {
       setMembers(membersList)
       setLoading(false)
       
-      // Fetch Square status in background (slow)
-      fetchSquareStatus(token, membersList)
+      // Fetch Square status in background (slow) - only for non-archived members
+      const nonArchivedMembers = membersList.filter(m => !m.isArchived)
+      if (nonArchivedMembers.length > 0) {
+        fetchSquareStatus(token, nonArchivedMembers)
+      } else {
+        setSquareStatusLoading(false)
+      }
     } catch (err) {
       setError('Failed to load members')
       console.error(err)
@@ -93,9 +99,14 @@ export default function AdminMembersPage() {
       const lastCheckIn = lastCheckInMap[String(m._id)]
       const isCheckedInToday = !!lastCheckIn && new Date(lastCheckIn).toDateString() === todayDateString
       const matchesCheckedIn = !checkedInOnly || isCheckedInToday
-      return matchesSearch && matchesCheckedIn
+      
+      // Archive filter logic
+      const isArchived = m.isArchived ?? false
+      const matchesArchive = showArchived ? isArchived : !isArchived
+      
+      return matchesSearch && matchesCheckedIn && matchesArchive
     })
-  }, [members, search, checkedInOnly, lastCheckInMap, todayDateString])
+  }, [members, search, checkedInOnly, lastCheckInMap, todayDateString, showArchived])
 
   const handleToggle = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id))
@@ -111,11 +122,23 @@ export default function AdminMembersPage() {
       if (!res.ok) throw new Error()
       setExpandedId(null)
       
-      // Refetch members list only
-      const membersRes = await fetch('/api/admin/members', { 
-        headers: { Authorization: `Bearer ${token}` } 
-      })
+      // Refetch members list and attendance data
+      const headers = { Authorization: `Bearer ${token}` }
+      const [membersRes, attendanceRes] = await Promise.all([
+        fetch('/api/admin/members', { headers }),
+        fetch('/api/attendance/recent', { headers })
+      ])
       const membersData = await membersRes.json()
+      const attendanceData = await attendanceRes.json()
+      
+      // Update last check-in map
+      const checkInMap: Record<string, string | null> = {}
+      if (Array.isArray(attendanceData)) {
+        attendanceData.forEach((item: { memberId: string; lastCheckIn: string | null }) => {
+          checkInMap[item.memberId] = item.lastCheckIn
+        })
+      }
+      setLastCheckInMap(checkInMap)
       setMembers(membersData.members || [])
     } catch {
       alert("Failed to delete member. Please try again.")
@@ -150,6 +173,7 @@ export default function AdminMembersPage() {
       profileComplete: formData.get("profileComplete") === "on",
       isWaiverOnFile: formData.get("isWaiverOnFile") === "on",
       isPaymentWaived: formData.get("isPaymentWaived") === "on",
+      isArchived: formData.get("isArchived") === "on",
       memberStatus: formData.get("memberStatus"),
       squareCustomerId: formData.get("squareCustomerId"),
       notes: formData.get("notes"),
@@ -168,11 +192,23 @@ export default function AdminMembersPage() {
       })
       if (!res.ok) throw new Error()
       
-      // Only refetch members list, not Square status (which is slow)
-      const membersRes = await fetch('/api/admin/members', { 
-        headers: { Authorization: `Bearer ${token}` } 
-      })
+      // Only refetch members list and attendance data, not Square status (which is slow)
+      const headers = { Authorization: `Bearer ${token}` }
+      const [membersRes, attendanceRes] = await Promise.all([
+        fetch('/api/admin/members', { headers }),
+        fetch('/api/attendance/recent', { headers })
+      ])
       const membersData = await membersRes.json()
+      const attendanceData = await attendanceRes.json()
+      
+      // Update last check-in map
+      const checkInMap: Record<string, string | null> = {}
+      if (Array.isArray(attendanceData)) {
+        attendanceData.forEach((item: { memberId: string; lastCheckIn: string | null }) => {
+          checkInMap[item.memberId] = item.lastCheckIn
+        })
+      }
+      setLastCheckInMap(checkInMap)
       const membersList: MemberProfileDTO[] = membersData.members || []
       setMembers(membersList)
       
@@ -193,17 +229,30 @@ export default function AdminMembersPage() {
         <div className="flex-1">
           <SearchBox searchQuery={search} onSearchChange={(e) => setSearch(e.target.value)} />
         </div>
-        <button
-          onClick={() => setCheckedInOnly((prev) => !prev)}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border transition-colors whitespace-nowrap ${
-            checkedInOnly
-              ? "bg-gray-200 text-gray-700 border-gray-400"
-              : "bg-white text-gray-500 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-          }`}
-        >
-          {checkedInOnly && <span className="text-xs">✓</span>}
-          Show checked in
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowArchived((prev) => !prev)}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border transition-colors whitespace-nowrap ${
+              showArchived
+                ? 'bg-orange-100 text-orange-700 border-orange-400'
+                : 'bg-white text-gray-500 border-gray-300 hover:bg-gray-50 hover:border-gray-400'
+            }`}
+          >
+            {showArchived && <span className="text-xs">📦</span>}
+            Show Archived
+          </button>
+          <button
+            onClick={() => setCheckedInOnly((prev) => !prev)}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border transition-colors whitespace-nowrap ${
+              checkedInOnly
+                ? "bg-gray-200 text-gray-700 border-gray-400"
+                : "bg-white text-gray-500 border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+            }`}
+          >
+            {checkedInOnly && <span className="text-xs">✓</span>}
+            Show checked in
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
