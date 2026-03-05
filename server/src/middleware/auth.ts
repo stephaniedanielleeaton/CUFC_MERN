@@ -6,6 +6,12 @@ export const checkJwt = auth({
   issuerBaseURL: `https://${process.env.AUTH0_DOMAIN}/`,
 });
 
+// Debug logging - run when module loads
+console.log('=== AUTH0 CONFIG DEBUG ===');
+console.log('AUTH0_AUDIENCE:', process.env.AUTH0_AUDIENCE);
+console.log('AUTH0_DOMAIN:', process.env.AUTH0_DOMAIN);
+console.log('Constructed issuerBaseURL:', `https://${process.env.AUTH0_DOMAIN}/`);
+console.log('========================');
 
 export { requiredScopes };
 
