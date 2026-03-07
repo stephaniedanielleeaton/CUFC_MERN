@@ -5,3 +5,4 @@ export * from './types/MemberProfile';
 export * from './types/AttendanceScreenMember';
 export * from './types/IntroClassDTO';
 export * from './types/Transaction';
+export * from './types/Checkout';

@@ -6,6 +6,7 @@ import { ClassVariationItem } from './ClassVariationItem'
 import { EnrollButton } from './EnrollButton'
 import ProfileForm from '../profile/ProfileForm'
 import { RedirectingOverlay } from '../common/RedirectingOverlay'
+import { IntroClassCheckoutRequest, CheckoutResponse } from '@cufc/shared'
 
 type Step = "class" | "profile"
 
@@ -25,20 +26,30 @@ export const IntroClassOfferings: React.FC = () => {
       setIsProcessing(true)
       setCheckoutError(null)
       const token = await getAccessTokenSilently()
+      
+      const requestPayload: IntroClassCheckoutRequest = {
+        catalogObjectId: selectedVariationId,
+        memberProfileId: profile._id,
+        redirectUrl: `${window.location.origin}/dashboard`,
+      }
+      
       const response = await fetch('/api/checkout/intro', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          catalogObjectId: selectedVariationId,
-          memberProfileId: profile._id,
-          redirectUrl: `${window.location.origin}/dashboard`,
-        }),
+        body: JSON.stringify(requestPayload),
       })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Failed to create checkout')
+      
+      const data: CheckoutResponse = await response.json()
+      
+      if (!response.ok) {
+        // Handle error response
+        const errorData = data as any
+        throw new Error(errorData.error || 'Failed to create checkout')
+      }
+      
       setRedirecting(true)
       window.location.href = data.checkoutUrl
     } catch (err) {

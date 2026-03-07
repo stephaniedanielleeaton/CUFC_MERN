@@ -1,6 +1,6 @@
 import { SquareClient, Square, SquareEnvironment } from 'square';
 
-export class SquareService {
+class SquareService {
   private client: SquareClient;
   private readonly RETAIL_LOCATION_ID = process.env.SQUARE_RETAIL_LOCATION_ID || '';
 
@@ -343,3 +343,6 @@ export class SquareService {
     }
   }
 }
+
+export { SquareService };
+export const squareService = new SquareService();
