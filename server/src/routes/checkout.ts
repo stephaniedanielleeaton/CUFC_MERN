@@ -40,7 +40,7 @@ router.post('/intro', checkJwt, async (req: Request<{}, {}, IntroClassCheckoutRe
   }
 });
 
-router.post('/single', checkJwt, async (req: Request<{}, {}, SingleClassCheckoutRequest>, res: Response<CheckoutResponse | ErrorResponse>) => {
+router.post('/dropin', checkJwt, async (req: Request<{}, {}, SingleClassCheckoutRequest>, res: Response<CheckoutResponse | ErrorResponse>) => {
   const { memberProfileId, redirectUrl } = req.body;
 
   if (!memberProfileId) {

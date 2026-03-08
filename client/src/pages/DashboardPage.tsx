@@ -10,6 +10,7 @@ import { CreateProfileModal } from '../components/dashboard/CreateProfileModal'
 import { IntroClassOfferings } from '../components/intro-classes/IntroClassOfferings'
 import { useIntroEnrollment } from '../hooks/useIntroEnrollment'
 import { MemberStatus } from '@cufc/shared'
+import { useAuth0 } from '@auth0/auth0-react'
 
 export default function DashboardPage() {
   const { profile, loading, error } = useMemberProfile()
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const [showCreateProfile, setShowCreateProfile] = useState(false)
   const [showIntroClasses, setShowIntroClasses] = useState(false)
   const [introClassFlow, setIntroClassFlow] = useState(false)
+  const { getAccessTokenSilently } = useAuth0()
 
   if (loading) return <div className="p-6">Loading...</div>
   if (error) return <div className="p-6 text-red-600">{error}</div>
@@ -59,6 +61,33 @@ export default function DashboardPage() {
     setShowIntroClasses(false)
     setIntroClassFlow(false)
   }
+
+  const handleDropInCheckout = async () => {
+
+  try {
+    const token = await getAccessTokenSilently()
+    const response = await fetch('/api/checkout/dropin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        memberProfileId: profile._id,
+        redirectUrl: `${window.location.origin}/dashboard`
+      })
+    })
+ 
+    const data = await response.json()
+    if (response.ok) {
+      window.location.href = data.checkoutUrl
+    } else {
+      alert(data.error || 'Failed to create checkout')
+    }
+  } catch (error) {
+    alert('An error occurred while creating checkout')
+  }
+}
 
   if (showIntroClasses) {
     return (
@@ -115,6 +144,7 @@ export default function DashboardPage() {
               icon="dollar-sign"
               disabled={dropInDisabled}
               disabledReason={dropInDisabledReason}
+              onClick={handleDropInCheckout}
             />
             <DashboardToolCard label="My Payments" icon="credit-card" />
             <DashboardToolCard label="My Attendance" icon="calendar-check" />
