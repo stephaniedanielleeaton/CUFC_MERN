@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const { enrollment, loading: enrollmentLoading } = useIntroEnrollment(profile?._id)
   const [showCreateProfile, setShowCreateProfile] = useState(false)
   const [showIntroClasses, setShowIntroClasses] = useState(false)
+  const [introClassFlow, setIntroClassFlow] = useState(false)
 
   if (loading) return <div className="p-6">Loading...</div>
   if (error) return <div className="p-6 text-red-600">{error}</div>
@@ -50,8 +51,14 @@ export default function DashboardPage() {
     ? "Complete an intro course or contact a coach to unlock"
     : undefined
 
-  const handleShowIntroClasses = () => setShowIntroClasses(true)
-  const handleBackToDashboard = () => setShowIntroClasses(false)
+  const handleShowIntroClasses = () => {
+    setIntroClassFlow(true)
+    setShowIntroClasses(true)
+  }
+  const handleBackToDashboard = () => {
+    setShowIntroClasses(false)
+    setIntroClassFlow(false)
+  }
 
   if (showIntroClasses) {
     return (
@@ -66,7 +73,7 @@ export default function DashboardPage() {
             </svg>
             Back to Dashboard
           </button>
-          <IntroClassOfferings />
+          <IntroClassOfferings introClassFlow={introClassFlow} />
         </div>
       </div>
     )

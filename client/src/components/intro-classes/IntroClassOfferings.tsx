@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useIntroClassOfferings } from '../../hooks/useIntroClassOfferings'
 import { useMemberProfile } from '../../context/ProfileContext'
 import { useAuth0 } from '@auth0/auth0-react'
@@ -10,7 +10,7 @@ import { IntroClassCheckoutRequest, CheckoutResponse } from '@cufc/shared'
 
 type Step = "class" | "profile"
 
-export const IntroClassOfferings: React.FC = () => {
+export const IntroClassOfferings: React.FC<{ introClassFlow?: boolean }> = ({ introClassFlow = false }) => {
   const { introClassData, isLoading, error } = useIntroClassOfferings()
   const { isAuthenticated, isLoading: userLoading, getAccessTokenSilently } = useAuth0()
   const { profile, loading: profileLoading } = useMemberProfile()
@@ -19,8 +19,9 @@ export const IntroClassOfferings: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [profileJustCompleted, setProfileJustCompleted] = useState(false)
 
-  const proceedToCheckout = async () => {
+  const proceedToCheckout = useCallback(async () => {
     if (!selectedVariationId || !profile?._id) return
     try {
       setIsProcessing(true)
@@ -56,7 +57,7 @@ export const IntroClassOfferings: React.FC = () => {
       setIsProcessing(false)
       setCheckoutError(err instanceof Error ? err.message : 'An error occurred')
     }
-  }
+  }, [selectedVariationId, profile?._id, getAccessTokenSilently])
 
   const handleContinue = () => {
     if (!selectedVariationId) return
@@ -66,6 +67,20 @@ export const IntroClassOfferings: React.FC = () => {
       setStep("profile")
     }
   }
+
+  // Auto-redirect to checkout if profile is completed and we're in intro class flow
+  useEffect(() => {
+    if (introClassFlow && profile?.profileComplete && selectedVariationId) {
+      proceedToCheckout()
+    }
+  }, [introClassFlow, profile?.profileComplete, selectedVariationId, profileJustCompleted, proceedToCheckout])
+
+  // Track when profile gets completed
+  useEffect(() => {
+    if (profile?.profileComplete && !profileJustCompleted) {
+      setProfileJustCompleted(true)
+    }
+  }, [profile?.profileComplete, profileJustCompleted])
 
   if (isLoading || userLoading || profileLoading) {
     return (
@@ -114,7 +129,13 @@ export const IntroClassOfferings: React.FC = () => {
           </button>
           <p className="text-sm text-gray-600">Complete your profile below to finish enrolling.</p>
         </div>
-        <ProfileForm member={profile} onSaved={proceedToCheckout} />
+        <ProfileForm 
+          member={profile} 
+          onSaved={() => {
+            setProfileJustCompleted(true)
+            proceedToCheckout()
+          }} 
+        />
       </div>
     )
   }
