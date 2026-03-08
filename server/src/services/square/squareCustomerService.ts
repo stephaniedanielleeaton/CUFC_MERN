@@ -1,15 +1,14 @@
 import { SquareClient, Square, SquareEnvironment } from 'square';
+import { env } from '../../config/env';
 
 export class SquareCustomerService {
   private client: SquareClient;
-  private readonly RETAIL_LOCATION_ID = process.env.SQUARE_RETAIL_LOCATION_ID || '';
+  private readonly RETAIL_LOCATION_ID = env.SQUARE_RETAIL_LOCATION_ID;
 
   constructor() {
     this.client = new SquareClient({
-      token: process.env.SQUARE_ACCESS_TOKEN,
-      environment: process.env.NODE_ENV === 'production' 
-        ? SquareEnvironment.Production 
-        : SquareEnvironment.Sandbox,
+      token: env.SQUARE_ACCESS_TOKEN,
+      environment: env.SQUARE_ENVIRONMENT,
     });
   }
 

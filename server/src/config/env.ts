@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { SquareEnvironment } from 'square';
 dotenv.config();
 
 const getRequiredEnvironmentVariable = (environmentVariableName: string): string => {
@@ -28,7 +29,7 @@ export const env = {
 
   SQUARE_ACCESS_TOKEN: getRequiredEnvironmentVariable('SQUARE_ACCESS_TOKEN'),
   SQUARE_RETAIL_LOCATION_ID: getRequiredEnvironmentVariable('SQUARE_RETAIL_LOCATION_ID'),
-  SQUARE_ENVIRONMENT: getRequiredEnvironmentVariable('SQUARE_ENVIRONMENT'),
+  SQUARE_ENVIRONMENT: process.env.SQUARE_ENVIRONMENT === 'sandbox' ? SquareEnvironment.Sandbox : SquareEnvironment.Production,
   INTRO_CLASS_CATALOG_OBJECT_ID: getRequiredEnvironmentVariable('INTRO_CLASS_CATALOG_OBJECT_ID'),
   DROP_IN_CATALOG_OBJECT_ID: getRequiredEnvironmentVariable('DROP_IN_CATALOG_OBJECT_ID'),
 };

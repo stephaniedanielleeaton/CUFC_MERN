@@ -3,8 +3,6 @@ import { SquareCustomerService } from './squareCustomerService';
 import type { CatalogObject, Order } from 'square';
 import { Transaction, TransactionLineItem } from '@cufc/shared';
 import { DROP_IN_CATALOG_OBJECT_ID } from '../../config/constants';
-import { IntroClassOfferingsService } from './introClassOfferingsService';
-import type { VariationDTO } from '@cufc/shared';
 
 interface SubscriptionPlanVariationData {
   name?: string;
