@@ -3,6 +3,7 @@ import { MemberProfile, IMemberProfile } from '../models/MemberProfile';
 import { MemberProfileDTO, MemberUpdateData } from '@cufc/shared';
 import { dbConnect } from '../config/database';
 import { SquareService } from './square/squareService';
+import { SquareCustomerService } from './square/squareCustomerService';
 
 function toISODateString(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -15,8 +16,8 @@ async function createSquareCustomerIfEmailProvided(
   if (!email) return undefined;
   
   try {
-    const squareService = new SquareService();
-    const customer = await squareService.getOrCreateCustomer({
+    const squareCustomerService = new SquareCustomerService();
+    const customer = await squareCustomerService.getOrCreateCustomer({
       email,
       givenName: profileData?.displayFirstName,
       familyName: profileData?.displayLastName,

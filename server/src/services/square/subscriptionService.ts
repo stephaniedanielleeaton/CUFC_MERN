@@ -1,4 +1,5 @@
 import { SquareService } from './squareService';
+import { SquareCustomerService } from './squareCustomerService';
 import type { CatalogObject, Order } from 'square';
 import { Transaction, TransactionLineItem } from '@cufc/shared';
 import { DROP_IN_CATALOG_OBJECT_ID } from '../../config/constants';
@@ -47,8 +48,8 @@ function formatDate(dateStr: string | null | undefined): string | null {
 }
 
 export async function checkMemberHasActiveSubscription(squareCustomerId: string): Promise<boolean> {
-  const squareService = new SquareService();
-  const subscriptions = await squareService.getCustomerSubscriptions(squareCustomerId);
+  const squareCustomerService = new SquareCustomerService();
+  const subscriptions = await squareCustomerService.getCustomerSubscriptions(squareCustomerId);
   return subscriptions.some((sub) => sub.status === "ACTIVE");
 }
 
@@ -63,7 +64,7 @@ export async function getMemberSubscriptionStatus(squareCustomerId: string | nul
 export async function getAllMembersSquareStatus(
   membersWithSquare: { memberId: string; squareCustomerId: string }[]
 ): Promise<AllMembersSquareStatusDTO> {
-  const squareService = new SquareService();
+  const squareCustomerService = new SquareCustomerService();
   
   const statusChecks = await Promise.all(
     membersWithSquare.map(async (m) => {
@@ -71,14 +72,14 @@ export async function getAllMembersSquareStatus(
       let hasTodayDropIn = false;
       
       try {
-        const subscriptions = await squareService.getCustomerSubscriptions(m.squareCustomerId);
-        hasActiveSubscription = subscriptions.some((sub) => sub.status === 'ACTIVE');
+        const subscriptions = await squareCustomerService.getCustomerSubscriptions(m.squareCustomerId);
+        hasActiveSubscription = subscriptions.some((sub) => sub.status === "ACTIVE");
       } catch {
         // Skip errors (e.g., invalid customer ID) to continue processing remaining members
       }
       
       try {
-        hasTodayDropIn = await squareService.checkCustomerHasTodayDropIn(
+        hasTodayDropIn = await squareCustomerService.checkCustomerHasTodayDropIn(
           m.squareCustomerId,
           DROP_IN_CATALOG_OBJECT_ID
         );
@@ -109,8 +110,8 @@ export async function getAllMembersSquareStatus(
 }
 
 export async function getMemberTransactions(squareCustomerId: string): Promise<Transaction[]> {
-  const squareService = new SquareService();
-  const orders: Order[] = await squareService.getOrdersByCustomerId(squareCustomerId);
+  const squareCustomerService = new SquareCustomerService();
+  const orders: Order[] = await squareCustomerService.getOrdersByCustomerId(squareCustomerId);
   
   return orders.slice(0, 20).map((order: Order): Transaction => {
     const orderMoney = order.totalMoney?.amount != null 
@@ -148,8 +149,8 @@ export async function getMemberIntroEnrollment(squareCustomerId: string | null):
     return null;
   }
 
-  const squareService = new SquareService();
-  const orders = await squareService.getOrdersByCustomerId(squareCustomerId);
+  const squareCustomerService = new SquareCustomerService();
+  const orders = await squareCustomerService.getOrdersByCustomerId(squareCustomerId);
 
   if (orders.length === 0) {
     return null;
@@ -174,8 +175,8 @@ export async function getMemberIntroEnrollment(squareCustomerId: string | null):
 }
 
 export async function getMemberSubscriptions(squareCustomerId: string): Promise<MemberSubscriptionDTO[]> {
-  const squareService = new SquareService();
-  const subscriptions = await squareService.getCustomerSubscriptions(squareCustomerId);
+  const squareCustomerService = new SquareCustomerService();
+  const subscriptions = await squareCustomerService.getCustomerSubscriptions(squareCustomerId);
 
   const activeSubscriptions = subscriptions.filter(
     (sub) => sub.status === "ACTIVE" || sub.status === "PAUSED"
@@ -189,6 +190,7 @@ export async function getMemberSubscriptions(squareCustomerId: string): Promise<
 
     if (sub.planVariationId) {
       try {
+        const squareService = new SquareService();
         const planVariation = await squareService.getSubscriptionPlanVariation(sub.planVariationId);
         const catalogObj = planVariation as CatalogObject & { subscriptionPlanVariationData?: SubscriptionPlanVariationData };
         const planData = catalogObj?.subscriptionPlanVariationData;
@@ -202,6 +204,7 @@ export async function getMemberSubscriptions(squareCustomerId: string): Promise<
     const mostRecentInvoiceId = invoiceIds[invoiceIds.length - 1];
     if (mostRecentInvoiceId) {
       try {
+        const squareService = new SquareService();
         const invoice = await squareService.getInvoiceById(mostRecentInvoiceId);
         const money = invoice?.paymentRequests?.[0]?.computedAmountMoney;
         priceFormatted = formatMoney(money?.amount ?? undefined, money?.currency ?? undefined);
