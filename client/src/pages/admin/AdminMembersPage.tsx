@@ -1,10 +1,17 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
-import type { MemberProfileDTO } from '@cufc/shared'
+import type { MemberProfileDTO, MemberStatus } from '@cufc/shared'
 import MemberCard from '../../components/admin/members/MemberCard'
 import MemberDetailsInline from '../../components/admin/members/MemberDetailsInline'
 import SearchBox from '../../components/admin/members/SearchBox'
 import { SaveStatus } from '../../components/common/SaveButton'
+import {
+  fetchAllMembersWithAttendance,
+  fetchSquareSubscriptionStatus,
+  enrichMembersWithSquareStatus,
+  deleteMemberById,
+  updateMemberById,
+} from '../../services/adminMembersService'
 
 export default function AdminMembersPage() {
   const { getAccessTokenSilently } = useAuth0()
@@ -20,37 +27,18 @@ export default function AdminMembersPage() {
   const [lastCheckInMap, setLastCheckInMap] = useState<Record<string, string | null>>({})
   const [squareStatusLoading, setSquareStatusLoading] = useState(true)
 
-  const fetchMembersAndAttendance = async () => {
+  const loadMembersAndAttendance = async () => {
     try {
       const token = await getAccessTokenSilently()
-      const headers = { Authorization: `Bearer ${token}` }
+      const { members: membersList, lastCheckInMap: checkInMap } = await fetchAllMembersWithAttendance(token)
       
-      // Fetch members and attendance first (fast)
-      const [membersRes, attendanceRes] = await Promise.all([
-        fetch('/api/admin/members', { headers }),
-        fetch('/api/attendance/recent', { headers }),
-      ])
-      
-      const membersData = await membersRes.json()
-      const attendanceData = await attendanceRes.json()
-      
-      const membersList: MemberProfileDTO[] = membersData.members || []
-      
-      // Build last check-in map
-      const checkInMap: Record<string, string | null> = {}
-      if (Array.isArray(attendanceData)) {
-        attendanceData.forEach((item: { memberId: string; lastCheckIn: string | null }) => {
-          checkInMap[item.memberId] = item.lastCheckIn
-        })
-      }
       setLastCheckInMap(checkInMap)
       setMembers(membersList)
       setLoading(false)
       
-      // Fetch Square status in background (slow) - only for non-archived members
-      const nonArchivedMembers = membersList.filter(m => !m.isArchived)
+      const nonArchivedMembers = membersList.filter(member => !member.isArchived)
       if (nonArchivedMembers.length > 0) {
-        fetchSquareStatus(token, nonArchivedMembers)
+        loadSquareStatusForMembers(token, nonArchivedMembers)
       } else {
         setSquareStatusLoading(false)
       }
@@ -61,22 +49,11 @@ export default function AdminMembersPage() {
     }
   }
 
-  const fetchSquareStatus = async (token: string, membersList: MemberProfileDTO[]) => {
+  const loadSquareStatusForMembers = async (token: string, membersList: MemberProfileDTO[]) => {
     try {
-      const headers = { Authorization: `Bearer ${token}` }
-      const squareRes = await fetch('/api/admin/members/square-status', { headers })
-      const squareData = await squareRes.json()
-      
-      // Enrich members with Square status
-      const activeSubs = new Set<string>(squareData.activeSubscribers ?? [])
-      const dropIns = new Set<string>(squareData.dropIns ?? [])
-      const enriched = membersList.map((m) => ({
-        ...m,
-        isSubscriptionActive: !!m.squareCustomerId && activeSubs.has(m.squareCustomerId),
-        hasPaidDropInToday: !!m.squareCustomerId && dropIns.has(m.squareCustomerId),
-      }))
-      
-      setMembers(enriched)
+      const { activeSubscriberIds, dropInCustomerIds } = await fetchSquareSubscriptionStatus(token)
+      const enrichedMembers = enrichMembersWithSquareStatus(membersList, activeSubscriberIds, dropInCustomerIds)
+      setMembers(enrichedMembers)
     } catch (err) {
       console.error('Failed to load Square status:', err)
     } finally {
@@ -85,7 +62,7 @@ export default function AdminMembersPage() {
   }
 
   useEffect(() => {
-    fetchMembersAndAttendance()
+    loadMembersAndAttendance()
   }, [getAccessTokenSilently])
 
   const todayDateString = new Date().toDateString()
@@ -96,11 +73,11 @@ export default function AdminMembersPage() {
       const firstName = m.displayFirstName || ""
       const lastName = m.displayLastName || ""
       const matchesSearch = `${firstName} ${lastName}`.toLowerCase().includes(searchQueryLower)
+      
       const lastCheckIn = lastCheckInMap[String(m._id)]
       const isCheckedInToday = !!lastCheckIn && new Date(lastCheckIn).toDateString() === todayDateString
       const matchesCheckedIn = !checkedInOnly || isCheckedInToday
-      
-      // Archive filter logic
+    
       const isArchived = m.isArchived ?? false
       const matchesArchive = showArchived ? isArchived : !isArchived
       
@@ -112,106 +89,75 @@ export default function AdminMembersPage() {
     setExpandedId((prev) => (prev === id ? null : id))
   }
 
-  const handleDelete = async (id: string) => {
+  const updateMemberInList = (id: string, updates: Partial<MemberProfileDTO>) => {
+    setMembers((previousMembers) =>
+      previousMembers.map((member) =>
+        String(member._id) === id ? { ...member, ...updates } as MemberProfileDTO : member
+      )
+    )
+  }
+
+  const removeMemberFromList = (memberId: string) => {
+    setMembers((previousMembers) => previousMembers.filter((member) => String(member._id) !== memberId))
+    setLastCheckInMap((previousCheckInMap) => {
+      const { [memberId]: _, ...remainingCheckIns } = previousCheckInMap
+      return remainingCheckIns
+    })
+  }
+
+  const handleDelete = async (memberId: string) => {
     try {
       const token = await getAccessTokenSilently()
-      const res = await fetch(`/api/admin/members/${id}`, { 
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!res.ok) throw new Error()
+      await deleteMemberById(token, memberId)
       setExpandedId(null)
-      
-      // Refetch members list and attendance data
-      const headers = { Authorization: `Bearer ${token}` }
-      const [membersRes, attendanceRes] = await Promise.all([
-        fetch('/api/admin/members', { headers }),
-        fetch('/api/attendance/recent', { headers })
-      ])
-      const membersData = await membersRes.json()
-      const attendanceData = await attendanceRes.json()
-      
-      // Update last check-in map
-      const checkInMap: Record<string, string | null> = {}
-      if (Array.isArray(attendanceData)) {
-        attendanceData.forEach((item: { memberId: string; lastCheckIn: string | null }) => {
-          checkInMap[item.memberId] = item.lastCheckIn
-        })
-      }
-      setLastCheckInMap(checkInMap)
-      setMembers(membersData.members || [])
+      removeMemberFromList(memberId)
     } catch {
       alert("Failed to delete member. Please try again.")
     }
   }
 
-  const handleSave = (id: string) => async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-
-    const body = {
-      displayFirstName: formData.get("displayFirstName"),
-      displayLastName: formData.get("displayLastName"),
+  const extractMemberUpdatesFromForm = (formData: FormData): Partial<MemberProfileDTO> => {
+    return {
+      displayFirstName: formData.get("displayFirstName") as string,
+      displayLastName: formData.get("displayLastName") as string,
       personalInfo: {
-        legalFirstName: formData.get("legalFirstName"),
-        legalLastName: formData.get("legalLastName"),
-        email: formData.get("email"),
-        phone: formData.get("phone"),
-        dateOfBirth: formData.get("dateOfBirth") || null,
+        legalFirstName: formData.get("legalFirstName") as string,
+        legalLastName: formData.get("legalLastName") as string,
+        email: formData.get("email") as string,
+        phone: formData.get("phone") as string,
+        dateOfBirth: (formData.get("dateOfBirth") as string) || null,
         address: {
-          street: formData.get("street"),
-          city: formData.get("city"),
-          state: formData.get("state"),
-          zip: formData.get("zip"),
-          country: formData.get("country"),
+          street: formData.get("street") as string,
+          city: formData.get("city") as string,
+          state: formData.get("state") as string,
+          zip: formData.get("zip") as string,
+          country: formData.get("country") as string,
         },
       },
       guardian: {
-        firstName: formData.get("guardian.firstName"),
-        lastName: formData.get("guardian.lastName"),
+        firstName: formData.get("guardian.firstName") as string,
+        lastName: formData.get("guardian.lastName") as string,
       },
       profileComplete: formData.get("profileComplete") === "on",
       isWaiverOnFile: formData.get("isWaiverOnFile") === "on",
       isPaymentWaived: formData.get("isPaymentWaived") === "on",
       isArchived: formData.get("isArchived") === "on",
-      memberStatus: formData.get("memberStatus"),
-      squareCustomerId: formData.get("squareCustomerId"),
-      notes: formData.get("notes"),
+      memberStatus: formData.get("memberStatus") as MemberStatus,
+      squareCustomerId: formData.get("squareCustomerId") as string,
+      notes: formData.get("notes") as string,
     }
+  }
+
+  const handleSave = (memberId: string) => async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    const memberUpdates = extractMemberUpdatesFromForm(formData)
 
     setSaveStatus("saving")
     try {
       const token = await getAccessTokenSilently()
-      const res = await fetch(`/api/admin/members/${id}`, {
-        method: "PATCH",
-        headers: { 
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(body),
-      })
-      if (!res.ok) throw new Error()
-      
-      // Only refetch members list and attendance data, not Square status (which is slow)
-      const headers = { Authorization: `Bearer ${token}` }
-      const [membersRes, attendanceRes] = await Promise.all([
-        fetch('/api/admin/members', { headers }),
-        fetch('/api/attendance/recent', { headers })
-      ])
-      const membersData = await membersRes.json()
-      const attendanceData = await attendanceRes.json()
-      
-      // Update last check-in map
-      const checkInMap: Record<string, string | null> = {}
-      if (Array.isArray(attendanceData)) {
-        attendanceData.forEach((item: { memberId: string; lastCheckIn: string | null }) => {
-          checkInMap[item.memberId] = item.lastCheckIn
-        })
-      }
-      setLastCheckInMap(checkInMap)
-      const membersList: MemberProfileDTO[] = membersData.members || []
-      setMembers(membersList)
-      
+      await updateMemberById(token, memberId, memberUpdates)
+      updateMemberInList(memberId, memberUpdates)
       setSaveStatus("saved")
     } catch {
       setSaveStatus("error")
