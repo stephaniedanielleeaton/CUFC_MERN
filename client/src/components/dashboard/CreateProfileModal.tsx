@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { useMemberProfile } from '../../context/ProfileContext'
+import { createMemberProfile } from '../../services/dashboardService'
 
-type Props = {
+type Props = Readonly<{
   onClose: () => void
-}
+}>
 
 export function CreateProfileModal({ onClose }: Props) {
   const { user, getAccessTokenSilently } = useAuth0()
@@ -44,20 +45,12 @@ export function CreateProfileModal({ onClose }: Props) {
     setError(null)
     try {
       const token = await getAccessTokenSilently()
-      const res = await fetch("/api/members/me", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          displayFirstName: firstName.trim(),
-          displayLastName: lastName.trim(),
-          ...(email.trim() ? { personalInfo: { email: email.trim() } } : {}),
-          ...(isMinor ? { guardian: { firstName: guardianFirstName.trim(), lastName: guardianLastName.trim() } } : {}),
-        }),
+      await createMemberProfile(token, {
+        displayFirstName: firstName.trim(),
+        displayLastName: lastName.trim(),
+        ...(email.trim() ? { personalInfo: { email: email.trim() } } : {}),
+        ...(isMinor ? { guardian: { firstName: guardianFirstName.trim(), lastName: guardianLastName.trim() } } : {}),
       })
-      if (!res.ok) throw new Error("Failed to create profile")
       await refreshProfile()
       onClose()
     } catch {

@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { Clock } from 'lucide-react'
+import { fetchLastCheckIn, type LastCheckInDTO } from '../../services/dashboardService'
 
-export function LastCheckInCard({ memberProfileId }: { memberProfileId: string }) {
+export function LastCheckInCard({ memberProfileId }: Readonly<{ memberProfileId: string }>) {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0()
-  const [lastCheckIn, setLastCheckIn] = useState<null | { timestamp: string }>(null)
+  const [lastCheckIn, setLastCheckIn] = useState<LastCheckInDTO | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    async function fetchLastCheckIn() {
+    async function loadLastCheckIn() {
       if (!memberProfileId || !isAuthenticated) {
         setLoading(false)
         return
@@ -18,22 +19,15 @@ export function LastCheckInCard({ memberProfileId }: { memberProfileId: string }
       setError(null)
       try {
         const token = await getAccessTokenSilently()
-        const res = await fetch(`/api/members/last-checkin?memberProfileId=${memberProfileId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const data = await res.json()
-        if (res.ok && data.lastCheckIn?.timestamp) {
-          setLastCheckIn(data.lastCheckIn)
-        } else {
-          setLastCheckIn(null)
-        }
+        const data = await fetchLastCheckIn(token, memberProfileId)
+        setLastCheckIn(data)
       } catch {
         setError("Failed to load check-in history.")
       } finally {
         setLoading(false)
       }
     }
-    fetchLastCheckIn()
+    loadLastCheckIn()
   }, [memberProfileId, isAuthenticated, getAccessTokenSilently])
 
   let content
@@ -41,9 +35,7 @@ export function LastCheckInCard({ memberProfileId }: { memberProfileId: string }
     content = <p className="text-gray-500">Loading...</p>
   } else if (error) {
     content = <p className="text-red-600">{error}</p>
-  } else if (!lastCheckIn) {
-    content = <p className="text-gray-500">No check-in records found.</p>
-  } else {
+  } else if (lastCheckIn) {
     const date = new Date(lastCheckIn.timestamp)
     const dateStr = date.toLocaleDateString()
     const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
@@ -55,6 +47,8 @@ export function LastCheckInCard({ memberProfileId }: { memberProfileId: string }
         </p>
       </div>
     )
+  } else {
+    content = <p className="text-gray-500">No check-in records found.</p>
   }
 
   return (

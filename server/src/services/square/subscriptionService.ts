@@ -1,20 +1,12 @@
 import { SquareService } from './squareService';
 import { SquareCustomerService } from './squareCustomerService';
 import type { CatalogObject, Order } from 'square';
-import { Transaction, TransactionLineItem } from '@cufc/shared';
+import { Transaction, TransactionLineItem, MemberSubscriptionDTO, IntroEnrollmentDTO } from '@cufc/shared';
 import { DROP_IN_CATALOG_OBJECT_ID } from '../../config/constants';
 
 interface SubscriptionPlanVariationData {
   name?: string;
   phases?: unknown[];
-}
-
-interface MemberSubscriptionDTO {
-  id: string;
-  planName: string;
-  status: string;
-  priceFormatted: string;
-  activeThrough: string | null;
 }
 
 export interface SubscriptionStatusDTO {
@@ -136,12 +128,6 @@ export async function getMemberTransactions(squareCustomerId: string): Promise<T
   });
 }
 
-export interface IntroEnrollmentDTO {
-  orderId: string;
-  itemName: string;
-  variationName: string;
-}
-
 export async function getMemberIntroEnrollment(squareCustomerId: string | null): Promise<IntroEnrollmentDTO | null> {
   if (!squareCustomerId) {
     return null;
@@ -177,7 +163,7 @@ export async function getMemberSubscriptions(squareCustomerId: string): Promise<
   const subscriptions = await squareCustomerService.getCustomerSubscriptions(squareCustomerId);
 
   const activeSubscriptions = subscriptions.filter(
-    (sub) => sub.status === "ACTIVE" || sub.status === "PAUSED"
+    (sub) => sub.status === "ACTIVE"
   );
 
   const results: MemberSubscriptionDTO[] = [];
@@ -200,12 +186,17 @@ export async function getMemberSubscriptions(squareCustomerId: string): Promise<
 
     const invoiceIds = sub.invoiceIds ?? [];
     const mostRecentInvoiceId = invoiceIds[invoiceIds.length - 1];
+    let lastInvoiceDate: string | null = null;
     if (mostRecentInvoiceId) {
       try {
         const squareService = new SquareService();
         const invoice = await squareService.getInvoiceById(mostRecentInvoiceId);
         const money = invoice?.paymentRequests?.[0]?.computedAmountMoney;
         priceFormatted = formatMoney(money?.amount ?? undefined, money?.currency ?? undefined);
+        // Get the invoice date
+        if (invoice?.paymentRequests?.[0]?.computedAmountMoney) {
+          lastInvoiceDate = formatDate(invoice.createdAt);
+        }
       } catch (err) {
         console.error("Failed to fetch subscription invoice:", err);
       }
@@ -216,7 +207,9 @@ export async function getMemberSubscriptions(squareCustomerId: string): Promise<
       planName,
       status: sub.status ?? "ACTIVE",
       priceFormatted,
-      activeThrough: formatDate(sub.chargedThroughDate),
+      activeThrough: formatDate(sub.chargedThroughDate) ?? undefined,
+      lastInvoiceDate: lastInvoiceDate ?? undefined,
+      canceledDate: formatDate(sub.canceledDate) ?? undefined,
     });
   }
 

@@ -1,8 +1,9 @@
-import { SquareClient, Square, SquareEnvironment } from 'square';
+import { SquareClient, Square } from 'square';
 import { env } from '../../config/env';
+import { MONTHLY_SUBSCRIPTION_CHECKOUT_URL } from '../../config/constants';
 
 class SquareService {
-  private client: SquareClient;
+  private readonly client: SquareClient;
   private readonly RETAIL_LOCATION_ID = env.SQUARE_RETAIL_LOCATION_ID;
 
   constructor() {
@@ -132,6 +133,10 @@ class SquareService {
       this.logError(error as string);
       throw error;
     }
+  }
+
+  getSubscriptionCheckoutUrl(): string {
+    return MONTHLY_SUBSCRIPTION_CHECKOUT_URL;
   }
 }
 

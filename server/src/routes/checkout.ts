@@ -73,4 +73,9 @@ router.post('/dropin', checkJwt, async (req: Request<{}, {}, SingleClassCheckout
   }
 });
 
+
+router.post('/subscription', checkJwt, async (_req: Request, res: Response<CheckoutResponse | ErrorResponse>) => {
+  res.json({ checkoutUrl: squareService.getSubscriptionCheckoutUrl() });
+});
+
 export default router;

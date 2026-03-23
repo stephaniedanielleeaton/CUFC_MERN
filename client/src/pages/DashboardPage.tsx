@@ -11,6 +11,24 @@ import { IntroClassOfferings } from '../components/intro-classes/IntroClassOffer
 import { useIntroEnrollment } from '../hooks/useIntroEnrollment'
 import { MemberStatus } from '@cufc/shared'
 import { useAuth0 } from '@auth0/auth0-react'
+import { createDropInCheckout } from '../services/dashboardService'
+import type { IntroEnrollmentDTO } from '../hooks/useIntroEnrollment'
+
+interface EnrollmentSectionProps {
+  enrollmentLoading: boolean
+  enrollment: IntroEnrollmentDTO | null
+  onEnroll: () => void
+}
+
+function EnrollmentSection({ enrollmentLoading, enrollment, onEnroll }: Readonly<EnrollmentSectionProps>) {
+  if (enrollmentLoading) {
+    return <div className="h-16 bg-white rounded-lg shadow-md animate-pulse" />
+  }
+  if (enrollment) {
+    return <DashboardIntroEnrollmentCard enrollment={enrollment} />
+  }
+  return <DashboardIntroCourseCard onEnroll={onEnroll} />
+}
 
 export default function DashboardPage() {
   const { profile, loading, error } = useMemberProfile()
@@ -47,11 +65,17 @@ export default function DashboardPage() {
 
   const isNewMember = profile.memberStatus === MemberStatus.New
   const dropInDisabled = !profile.profileComplete || isNewMember
-  const dropInDisabledReason = !profile.profileComplete
-    ? "Complete your profile to unlock"
-    : isNewMember
-    ? "Complete an intro course or contact a coach to unlock"
-    : undefined
+
+  const getDropInDisabledReason = (): string | undefined => {
+    if (!profile.profileComplete) {
+      return "Complete your profile to unlock"
+    }
+    if (isNewMember) {
+      return "Complete an intro course or contact a coach to unlock"
+    }
+    return undefined
+  }
+  const dropInDisabledReason = getDropInDisabledReason()
 
   const handleShowIntroClasses = () => {
     setIntroClassFlow(true)
@@ -63,31 +87,17 @@ export default function DashboardPage() {
   }
 
   const handleDropInCheckout = async () => {
-
-  try {
-    const token = await getAccessTokenSilently()
-    const response = await fetch('/api/checkout/dropin', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        memberProfileId: profile._id,
-        redirectUrl: `${window.location.origin}/dashboard`
+    try {
+      const token = await getAccessTokenSilently()
+      const data = await createDropInCheckout(token, {
+        memberProfileId: profile._id ?? '',
+        redirectUrl: `${globalThis.location.origin}/dashboard`
       })
-    })
- 
-    const data = await response.json()
-    if (response.ok) {
-      window.location.href = data.checkoutUrl
-    } else {
-      alert(data.error || 'Failed to create checkout')
+      globalThis.location.href = data.checkoutUrl
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'An error occurred while creating checkout')
     }
-  } catch (error) {
-    alert('An error occurred while creating checkout')
   }
-}
 
   if (showIntroClasses) {
     return (
@@ -121,15 +131,11 @@ export default function DashboardPage() {
           {profile.memberStatus === MemberStatus.Full ? (
             <DashboardSubscriptionCard memberProfileId={profile._id ?? ""} />
           ) : (
-            <>
-              {enrollmentLoading ? (
-                <div className="h-16 bg-white rounded-lg shadow-md animate-pulse" />
-              ) : enrollment ? (
-                <DashboardIntroEnrollmentCard enrollment={enrollment} />
-              ) : (
-                <DashboardIntroCourseCard onEnroll={handleShowIntroClasses} />
-              )}
-            </>
+            <EnrollmentSection
+              enrollmentLoading={enrollmentLoading}
+              enrollment={enrollment}
+              onEnroll={handleShowIntroClasses}
+            />
           )}
         </div>
 
