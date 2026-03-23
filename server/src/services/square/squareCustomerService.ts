@@ -2,7 +2,7 @@ import { SquareClient, Square, SquareEnvironment } from 'square';
 import { env } from '../../config/env';
 
 export class SquareCustomerService {
-  private client: SquareClient;
+  private readonly client: SquareClient;
   private readonly RETAIL_LOCATION_ID = env.SQUARE_RETAIL_LOCATION_ID;
 
   constructor() {
@@ -217,7 +217,8 @@ export class SquareCustomerService {
             customerFilter: { customerIds: [customerId] },
             dateTimeFilter: {
               createdAt: { startAt: threeMonthsAgo.toISOString() }
-            }
+            },
+            stateFilter: { states: ['COMPLETED'] }
           },
           sort: { sortField: 'CREATED_AT', sortOrder: 'DESC' },
         },

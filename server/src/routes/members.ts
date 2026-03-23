@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { checkJwt, getAuth0Id } from '../middleware/auth';
 import { getProfileForUser, createProfileForUser, updateMemberProfileById } from '../services/memberProfileService';
 import { getLastCheckInForMember } from '../services/attendanceService';
-import { getMemberSubscriptions, getMemberIntroEnrollment } from '../services/square/subscriptionService';
+import { getMemberSubscriptions, getMemberIntroEnrollment, getMemberTransactions } from '../services/square/subscriptionService';
 
 const router = Router();
 
@@ -125,6 +125,27 @@ router.get('/last-checkin', checkJwt, async (req: Request, res: Response) => {
 
     const lastCheckIn = await getLastCheckInForMember(memberProfileId);
     res.json({ lastCheckIn });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// GET /api/members/me/transactions - Get member's payment history
+router.get('/me/transactions', checkJwt, async (req: Request, res: Response) => {
+  try {
+    const auth0Id = getAuth0Id(req);
+    if (!auth0Id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const profile = await getProfileForUser(auth0Id);
+    if (!profile?.squareCustomerId) {
+      return res.json([]);
+    }
+
+    const transactions = await getMemberTransactions(profile.squareCustomerId);
+    res.json(transactions);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Internal Server Error' });

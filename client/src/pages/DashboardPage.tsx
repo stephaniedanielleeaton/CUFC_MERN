@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useMemberProfile } from '../context/ProfileContext'
 import { DashboardHeaderCard } from '../components/dashboard/DashboardHeaderCard'
 import { DashboardSubscriptionCard } from '../components/dashboard/DashboardSubscriptionCard'
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const [showIntroClasses, setShowIntroClasses] = useState(false)
   const [introClassFlow, setIntroClassFlow] = useState(false)
   const { getAccessTokenSilently } = useAuth0()
+  const navigate = useNavigate()
 
   if (loading) return <div className="p-6">Loading...</div>
   if (error) return <div className="p-6 text-red-600">{error}</div>
@@ -152,7 +154,7 @@ export default function DashboardPage() {
               disabledReason={dropInDisabledReason}
               onClick={handleDropInCheckout}
             />
-            <DashboardToolCard label="My Payments" icon="credit-card" />
+            <DashboardToolCard label="My Payments" icon="credit-card" onClick={() => navigate('/dashboard/payments')} />
             <DashboardToolCard label="My Attendance" icon="calendar-check" />
           </div>
         </div>

@@ -1,6 +1,6 @@
-import type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO } from '@cufc/shared'
+import type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO, Transaction } from '@cufc/shared'
 
-export type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO } from '@cufc/shared'
+export type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO, Transaction } from '@cufc/shared'
 
 export interface CreateProfilePayload {
   displayFirstName: string
@@ -109,4 +109,17 @@ export async function getSubscriptionCheckoutUrl(
     throw new Error(data.error || 'Failed to get checkout URL')
   }
   return data.checkoutUrl
+}
+
+export async function fetchTransactions(
+  token: string
+): Promise<Transaction[]> {
+  const res = await fetch('/api/members/me/transactions', {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  if (!res.ok) {
+    return []
+  }
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
 }
