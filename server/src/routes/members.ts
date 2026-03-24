@@ -1,8 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { checkJwt, getAuth0Id } from '../middleware/auth';
-import { getProfileForUser, createProfileForUser, updateMemberProfileById } from '../services/memberProfileService';
-import { getLastCheckInForMember, getMemberAttendanceHistory } from '../services/attendanceService';
-import { getMemberSubscriptions, getMemberIntroEnrollment, getMemberTransactions } from '../services/square/subscriptionService';
+import { checkJwt, getAuth0Id, getAuth0Email } from '../middleware/auth';
+import { memberService } from '../services/memberService';
 
 const router = Router();
 
@@ -14,7 +12,17 @@ router.get('/me', checkJwt, async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const profile = await getProfileForUser(auth0Id);
+    // First try to find by auth0Id
+    let profile = await memberService.getProfileByAuth0Id(auth0Id);
+    
+    // If not found, try to find by email and link the auth0Id
+    if (!profile) {
+      const email = getAuth0Email(req);
+      if (email) {
+        profile = await memberService.findAndLinkByEmail(auth0Id, email);
+      }
+    }
+    
     res.json({ profile });
   } catch (error) {
     console.error(error);
@@ -37,7 +45,7 @@ router.post('/me', checkJwt, async (req: Request, res: Response) => {
       guardian?: { firstName?: string; lastName?: string };
     } = req.body;
 
-    const profile = await createProfileForUser(auth0Id, {
+    const profile = await memberService.createProfile(auth0Id, {
       displayFirstName: body.displayFirstName,
       displayLastName: body.displayLastName,
       personalInfo: body.personalInfo,
@@ -59,12 +67,7 @@ router.get('/me/subscriptions', checkJwt, async (req: Request, res: Response) =>
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const profile = await getProfileForUser(auth0Id);
-    if (!profile?.squareCustomerId) {
-      return res.json([]);
-    }
-
-    const subscriptions = await getMemberSubscriptions(profile.squareCustomerId);
+    const subscriptions = await memberService.getSubscriptions(auth0Id);
     res.json(subscriptions);
   } catch (error) {
     console.error(error);
@@ -80,12 +83,7 @@ router.get('/me/intro-enrollment', checkJwt, async (req: Request, res: Response)
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const profile = await getProfileForUser(auth0Id);
-    if (!profile) {
-      return res.json({ enrollment: null });
-    }
-
-    const enrollment = await getMemberIntroEnrollment(profile.squareCustomerId ?? null);
+    const enrollment = await memberService.getIntroEnrollment(auth0Id);
     res.json({ enrollment });
   } catch (error) {
     console.error(error);
@@ -101,13 +99,12 @@ router.post('/me/update', checkJwt, async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const body = req.body;
-    const existing = await getProfileForUser(auth0Id);
-    if (!existing) {
+    const profile = await memberService.getProfileByAuth0Id(auth0Id);
+    if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    const updated = await updateMemberProfileById(existing._id.toString(), body.data);
+    const updated = await memberService.updateProfile(profile._id.toString(), req.body.data);
     res.json({ success: true, data: updated });
   } catch (error) {
     console.error(error);
@@ -123,7 +120,7 @@ router.get('/last-checkin', checkJwt, async (req: Request, res: Response) => {
       return res.json({ lastCheckIn: null });
     }
 
-    const lastCheckIn = await getLastCheckInForMember(memberProfileId);
+    const lastCheckIn = await memberService.getLastCheckIn(memberProfileId);
     res.json({ lastCheckIn });
   } catch (error) {
     console.error(error);
@@ -139,12 +136,7 @@ router.get('/me/transactions', checkJwt, async (req: Request, res: Response) => 
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const profile = await getProfileForUser(auth0Id);
-    if (!profile?.squareCustomerId) {
-      return res.json([]);
-    }
-
-    const transactions = await getMemberTransactions(profile.squareCustomerId);
+    const transactions = await memberService.getTransactions(auth0Id);
     res.json(transactions);
   } catch (error) {
     console.error(error);
@@ -160,12 +152,7 @@ router.get('/me/attendance', checkJwt, async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const profile = await getProfileForUser(auth0Id);
-    if (!profile?._id) {
-      return res.json([]);
-    }
-
-    const attendance = await getMemberAttendanceHistory(profile._id.toString());
+    const attendance = await memberService.getAttendanceHistory(auth0Id);
     res.json(attendance);
   } catch (error) {
     console.error(error);

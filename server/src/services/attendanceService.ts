@@ -115,3 +115,11 @@ export async function getLastCheckInForMember(memberId: string): Promise<LastChe
 
   return { timestamp: timestampAsIsoString };
 }
+
+export const attendanceService = {
+  getMembersWithCheckInStatus,
+  checkInMember,
+  getMemberHistory: getMemberAttendanceHistory,
+  getRecentForAllMembers: getRecentAttendanceForAllMembers,
+  getLastCheckIn: getLastCheckInForMember,
+};

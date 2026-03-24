@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { checkJwt } from '../middleware/auth';
-import { squareService } from '../services/square/squareService';
+import { squareCheckoutService } from '../services/square';
 import { getMemberProfileById } from '../services/memberProfileService';
 import { IntroClassCheckoutRequest, CheckoutResponse, SingleClassCheckoutRequest, ErrorResponse } from '@cufc/shared';
 import { DROP_IN_CATALOG_OBJECT_ID } from '../config/constants';
@@ -22,7 +22,7 @@ router.post('/intro', checkJwt, async (req: Request<{}, {}, IntroClassCheckoutRe
       return res.status(404).json({ error: 'Member profile not found' });
     }
 
-    const checkoutUrl = await squareService.getSingleVariantCheckout(
+    const checkoutUrl = await squareCheckoutService.createPaymentLink(
       catalogObjectId, 
       memberProfileId, 
       profile.squareCustomerId || undefined, 
@@ -55,7 +55,7 @@ router.post('/dropin', checkJwt, async (req: Request<{}, {}, SingleClassCheckout
   }
 
   try {
-    const checkoutUrl = await squareService.getSingleVariantCheckout(
+    const checkoutUrl = await squareCheckoutService.createPaymentLink(
       DROP_IN_CATALOG_OBJECT_ID,
       memberProfileId,
       profile.squareCustomerId || undefined,
@@ -75,7 +75,7 @@ router.post('/dropin', checkJwt, async (req: Request<{}, {}, SingleClassCheckout
 
 
 router.post('/subscription', checkJwt, async (_req: Request, res: Response<CheckoutResponse | ErrorResponse>) => {
-  res.json({ checkoutUrl: squareService.getSubscriptionCheckoutUrl() });
+  res.json({ checkoutUrl: squareCheckoutService.getSubscriptionCheckoutUrl() });
 });
 
 export default router;

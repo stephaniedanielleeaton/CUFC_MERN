@@ -1,13 +1,7 @@
-import { HydratedDocument } from 'mongoose';
-import { MemberProfile, IMemberProfile } from '../models/MemberProfile';
-import { MemberProfileDTO, MemberUpdateData } from '@cufc/shared';
+import { MemberProfile, IMemberProfile, mapMemberDocToDTO } from '../models/MemberProfile';
+import { MemberUpdateData, MemberProfileDTO } from '@cufc/shared';
 import { dbConnect } from '../config/database';
-import { SquareService } from './square/squareService';
-import { SquareCustomerService } from './square/squareCustomerService';
-
-function toISODateString(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
+import { squareCustomersService } from './square';
 
 async function createSquareCustomerIfEmailProvided(
   email: string | undefined,
@@ -16,8 +10,7 @@ async function createSquareCustomerIfEmailProvided(
   if (!email) return undefined;
   
   try {
-    const squareCustomerService = new SquareCustomerService();
-    const customer = await squareCustomerService.getOrCreateCustomer({
+    const customer = await squareCustomersService.getOrCreate({
       email,
       givenName: profileData?.displayFirstName,
       familyName: profileData?.displayLastName,
@@ -26,45 +19,6 @@ async function createSquareCustomerIfEmailProvided(
   } catch {
     return undefined;
   }
-}
-
-export function mapMemberDocToDTO(doc: HydratedDocument<IMemberProfile>): MemberProfileDTO {
-  return {
-    _id: doc.id as string,
-    auth0Id: doc.auth0Id,
-    displayFirstName: doc.displayFirstName,
-    displayLastName: doc.displayLastName,
-    personalInfo: doc.personalInfo
-      ? {
-          legalFirstName: doc.personalInfo.legalFirstName,
-          legalLastName: doc.personalInfo.legalLastName,
-          email: doc.personalInfo.email,
-          phone: doc.personalInfo.phone,
-          dateOfBirth: doc.personalInfo.dateOfBirth
-            ? toISODateString(doc.personalInfo.dateOfBirth)
-            : null,
-          address: doc.personalInfo.address ?? undefined,
-        }
-      : undefined,
-    guardian: doc.guardian ?? undefined,
-    familyMembers: (doc.familyMembers ?? []).map((fm) => ({
-      name: fm.name,
-      relationship: fm.relationship,
-      dateOfBirth: fm.dateOfBirth ? toISODateString(fm.dateOfBirth) : null,
-    })),
-    isWaiverOnFile: doc.isWaiverOnFile,
-    isPaymentWaived: doc.isPaymentWaived,
-    isArchived: doc.isArchived,
-    notes: doc.notes,
-    lastAttendanceCheckIn: doc.lastAttendanceCheckIn
-      ? doc.lastAttendanceCheckIn.toISOString()
-      : null,
-    profileComplete: doc.profileComplete,
-    memberStatus: doc.memberStatus,
-    squareCustomerId: doc.squareCustomerId,
-    createdAt: doc.createdAt?.toISOString(),
-    updatedAt: doc.updatedAt?.toISOString(),
-  };
 }
 
 function buildMemberMongoUpdateSet(data: MemberUpdateData) {
@@ -123,7 +77,27 @@ export async function createProfileForUser(
 ): Promise<MemberProfileDTO> {
   await dbConnect();
   
-  const email = initialData?.personalInfo?.email;
+  const email = initialData?.personalInfo?.email?.toLowerCase().trim();
+  
+  // Check if an existing profile with this email exists but has no auth0Id linked
+  if (email) {
+    const existingProfile = await MemberProfile.findOne({
+      'personalInfo.email': { $regex: new RegExp(`^${email}$`, 'i') },
+      $or: [{ auth0Id: { $exists: false } }, { auth0Id: null }, { auth0Id: '' }]
+    });
+    
+    console.log(`[createProfileForUser] Looking for existing profile with email: ${email}, found: ${existingProfile ? existingProfile._id : 'none'}`);
+    
+    if (existingProfile) {
+      // Link the auth0Id to the existing profile
+      console.log(`[createProfileForUser] Linking auth0Id ${auth0Id} to existing profile ${existingProfile._id}`);
+      existingProfile.auth0Id = auth0Id;
+      await existingProfile.save();
+      return mapMemberDocToDTO(existingProfile);
+    }
+  }
+  
+  // No existing profile found, create a new one
   const squareCustomerId = await createSquareCustomerIfEmailProvided(email, initialData);
   
   const doc = await MemberProfile.create({ 
@@ -180,3 +154,40 @@ export async function getMembersWithSquareCustomerId(): Promise<{ memberId: stri
       squareCustomerId: m.squareCustomerId,
     }));
 }
+
+export async function findAndLinkByEmail(auth0Id: string, email: string): Promise<MemberProfileDTO | null> {
+  await dbConnect();
+  
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  // Find a profile with matching email that has no auth0Id linked
+  const existingProfile = await MemberProfile.findOne({
+    'personalInfo.email': { $regex: new RegExp(`^${normalizedEmail}$`, 'i') },
+    $or: [{ auth0Id: { $exists: false } }, { auth0Id: null }, { auth0Id: '' }]
+  });
+  
+  if (!existingProfile) {
+    console.log(`[findAndLinkByEmail] No unlinked profile found for email: ${normalizedEmail}`);
+    return null;
+  }
+  
+  // Link the auth0Id to the existing profile
+  console.log(`[findAndLinkByEmail] Linking auth0Id ${auth0Id} to existing profile ${existingProfile._id} with email ${normalizedEmail}`);
+  existingProfile.auth0Id = auth0Id;
+  await existingProfile.save();
+  
+  return mapMemberDocToDTO(existingProfile);
+}
+
+export const memberProfileService = {
+  getAll: getAllMemberProfiles,
+  getAllIds: getAllMemberIds,
+  getById: getMemberProfileById,
+  getByAuth0Id: getProfileForUser,
+  create: createProfileForUser,
+  update: updateMemberProfileById,
+  delete: deleteMemberProfileById,
+  getSquareCustomerId: getSquareCustomerIdForMember,
+  getMembersWithSquareCustomerId,
+  findAndLinkByEmail,
+};

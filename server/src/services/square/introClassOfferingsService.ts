@@ -1,31 +1,23 @@
-import { SquareService } from './squareService';
+import { squareCatalogService } from './';
 import { Square } from 'square';
 import { IntroClassDTO, VariationDTO } from '@cufc/shared';
 import { INTRO_CLASS_CATALOG_OBJECT_ID } from '../../config/constants';
 
 export class IntroClassOfferingsService {
-  private squareService: SquareService;
-
-  constructor() {
-    this.squareService = new SquareService();
-  }
-
   async getIntroClassOfferings(): Promise<IntroClassDTO> {
-    const catalogResponse: Square.GetCatalogObjectResponse =
-      await this.squareService.getCatalogObjectById(INTRO_CLASS_CATALOG_OBJECT_ID);
+    const catalogObject = await squareCatalogService.getObjectById(INTRO_CLASS_CATALOG_OBJECT_ID);
+    if (!catalogObject) throw new Error('Catalog object not found');
 
     const inventoryCounts: Square.InventoryCount[] =
-      await this.squareService.getInventoryByCatalogObjectId(INTRO_CLASS_CATALOG_OBJECT_ID);
+      await squareCatalogService.getInventoryByCatalogObjectId(INTRO_CLASS_CATALOG_OBJECT_ID);
 
-    return this.mapOfferingsToDTO(catalogResponse, inventoryCounts);
+    return this.mapOfferingsToDTO(catalogObject, inventoryCounts);
   }
 
   private mapOfferingsToDTO(
-    catalogResponse: Square.GetCatalogObjectResponse,
+    catalogObject: Square.CatalogObject,
     inventoryCounts: Square.InventoryCount[]
   ): IntroClassDTO {
-    const catalogObject = catalogResponse.object;
-    if (!catalogObject) throw new Error('Square response missing catalog object');
     if (!this.isCatalogItem(catalogObject)) {
       throw new Error(`Expected ITEM, but got ${catalogObject.type}`);
     }

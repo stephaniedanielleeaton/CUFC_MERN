@@ -10,6 +10,8 @@ export { requiredScopes };
 
 interface Auth0Payload {
   sub?: string;
+  email?: string;
+  'https://cufc.app/email'?: string;
   'https://cufc.app/roles'?: string[];
   [key: string]: unknown;
 }
@@ -30,4 +32,10 @@ export function requireRole(requiredRoles: string | string[]) {
 
 export function getAuth0Id(req: Request): string | undefined {
   return req.auth?.payload.sub;
+}
+
+export function getAuth0Email(req: Request): string | undefined {
+  const payload = req.auth?.payload as Auth0Payload | undefined;
+  // Check common locations for email in Auth0 tokens
+  return payload?.email ?? payload?.['https://cufc.app/email'] ?? undefined;
 }
