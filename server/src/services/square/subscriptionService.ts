@@ -193,7 +193,6 @@ export async function getMemberSubscriptions(squareCustomerId: string): Promise<
         const invoice = await squareService.getInvoiceById(mostRecentInvoiceId);
         const money = invoice?.paymentRequests?.[0]?.computedAmountMoney;
         priceFormatted = formatMoney(money?.amount ?? undefined, money?.currency ?? undefined);
-        // Get the invoice date
         if (invoice?.paymentRequests?.[0]?.computedAmountMoney) {
           lastInvoiceDate = formatDate(invoice.createdAt);
         }

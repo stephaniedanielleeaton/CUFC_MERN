@@ -6,6 +6,7 @@ import AttendancePage from './pages/AttendancePage'
 import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
 import PaymentHistoryPage from './pages/PaymentHistoryPage'
+import AttendanceHistoryPage from './pages/AttendanceHistoryPage'
 import AdminLayout from './components/admin/AdminLayout'
 import AdminMembersPage from './pages/admin/AdminMembersPage'
 import AdminAttendancePage from './pages/admin/AdminAttendancePage'
@@ -21,6 +22,7 @@ function App() {
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/dashboard/payments" element={<PaymentHistoryPage />} />
+          <Route path="/dashboard/attendance" element={<AttendanceHistoryPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminMembersPage />} />

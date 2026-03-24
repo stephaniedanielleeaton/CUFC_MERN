@@ -155,7 +155,7 @@ export default function DashboardPage() {
               onClick={handleDropInCheckout}
             />
             <DashboardToolCard label="My Payments" icon="credit-card" onClick={() => navigate('/dashboard/payments')} />
-            <DashboardToolCard label="My Attendance" icon="calendar-check" />
+            <DashboardToolCard label="My Attendance" icon="calendar-check" onClick={() => navigate('/dashboard/attendance')} />
           </div>
         </div>
 

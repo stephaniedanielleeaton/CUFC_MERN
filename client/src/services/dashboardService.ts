@@ -1,6 +1,7 @@
-import type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO, Transaction } from '@cufc/shared'
+import type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO, Transaction, AttendanceRecord } from '@cufc/shared'
 
-export type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO, Transaction } from '@cufc/shared'
+export type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO, Transaction, AttendanceRecord } from '@cufc/shared'
+export type IntroEnrollment = IntroEnrollmentDTO
 
 export interface CreateProfilePayload {
   displayFirstName: string
@@ -115,6 +116,19 @@ export async function fetchTransactions(
   token: string
 ): Promise<Transaction[]> {
   const res = await fetch('/api/members/me/transactions', {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+  if (!res.ok) {
+    return []
+  }
+  const data = await res.json()
+  return Array.isArray(data) ? data : []
+}
+
+export async function fetchAttendanceHistory(
+  token: string
+): Promise<AttendanceRecord[]> {
+  const res = await fetch('/api/members/me/attendance', {
     headers: { Authorization: `Bearer ${token}` }
   })
   if (!res.ok) {
