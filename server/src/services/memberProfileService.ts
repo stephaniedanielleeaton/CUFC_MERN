@@ -55,7 +55,7 @@ function buildMemberMongoUpdateSet(data: MemberUpdateData) {
 
 export async function getAllMemberProfiles(): Promise<MemberProfileDTO[]> {
   await dbConnect();
-  const profiles = await MemberProfile.find({});
+  const profiles = await MemberProfile.find({}).sort({ displayLastName: 1 });
   return profiles.map(mapMemberDocToDTO);
 }
 
