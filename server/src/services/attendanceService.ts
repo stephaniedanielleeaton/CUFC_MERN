@@ -1,9 +1,10 @@
 import { MemberProfile } from '../models/MemberProfile';
-import { Attendance } from '../models/Attendance';
 import { DateTime } from 'luxon';
 import { APP_TIMEZONE } from '../config/appTime';
 import { MemberCheckIn, AttendanceScreenMember, AttendanceRecord } from '@cufc/shared';
 import { dbConnect } from '../config/database';
+import { attendanceDAO } from './attendanceDAO';
+import { memberProfileService } from './memberProfileService';
 
 export interface RecentAttendanceDTO {
   memberId: string;
@@ -27,9 +28,7 @@ export async function getMembersWithCheckInStatus(): Promise<MemberCheckIn[]> {
   const todayStartUtc = currentTimeInAppTimezone.startOf('day').toUTC().toJSDate();
   const todayEndUtc = currentTimeInAppTimezone.endOf('day').toUTC().toJSDate();
 
-  const todaysAttendanceRecords = await Attendance.find({
-    timestamp: { $gte: todayStartUtc, $lte: todayEndUtc },
-  }).lean();
+  const todaysAttendanceRecords = await attendanceDAO.findTodayAttendance(todayStartUtc, todayEndUtc);
 
   const checkedInMemberIds = new Set(todaysAttendanceRecords.map((record) => record.userId.toString()));
 
@@ -42,47 +41,32 @@ export async function getMembersWithCheckInStatus(): Promise<MemberCheckIn[]> {
 }
 
 export async function checkInMember(memberId: string): Promise<{ checkedIn: boolean }> {
-  await dbConnect();
   const currentTimeInAppTimezone = DateTime.now().setZone(APP_TIMEZONE);
   const todayStartUtc = currentTimeInAppTimezone.startOf('day').toUTC().toJSDate();
   const todayEndUtc = currentTimeInAppTimezone.endOf('day').toUTC().toJSDate();
 
-  const existingCheckIn = await Attendance.findOne({
-    userId: memberId,
-    timestamp: { $gte: todayStartUtc, $lte: todayEndUtc },
-  });
+  const existingCheckIn = await attendanceDAO.findByUserIdAndDateRange(memberId, todayStartUtc, todayEndUtc);
 
   if (!existingCheckIn) {
-    await Attendance.create({ userId: memberId });
+    await attendanceDAO.createAttendance(memberId);
     return { checkedIn: true };
   } else {
-    await Attendance.deleteOne({ _id: existingCheckIn._id });
+    await attendanceDAO.deleteAttendanceById(existingCheckIn.id);
     return { checkedIn: false };
   }
 }
 
 export async function getMemberAttendanceHistory(memberId: string, maxRecords: number = 100): Promise<AttendanceRecord[]> {
-  await dbConnect();
-  const attendanceRecords = await Attendance.find({ userId: memberId })
-    .sort({ timestamp: -1 })
-    .limit(maxRecords)
-    .lean();
-  
+  const attendanceRecords = await attendanceDAO.findByUserId(memberId, maxRecords);
+
   return attendanceRecords.map((record): AttendanceRecord => ({
-    id: String(record._id),
-    timestamp: record.timestamp instanceof Date ? record.timestamp.toISOString() : String(record.timestamp),
+    id: record.id,
+    timestamp: record.timestamp,
   }));
 }
 
 export async function getRecentAttendanceForAllMembers(memberIds: string[]): Promise<RecentAttendanceDTO[]> {
-  await dbConnect();
-  
-  type MostRecentAttendanceByMember = { _id: string; mostRecentTimestamp: string };
-  const mostRecentByMember = await Attendance.aggregate([
-    { $match: { userId: { $in: memberIds } } },
-    { $sort: { timestamp: -1 } },
-    { $group: { _id: '$userId', mostRecentTimestamp: { $first: '$timestamp' } } },
-  ]) as MostRecentAttendanceByMember[];
+  const mostRecentByMember = await attendanceDAO.getMostRecentByMemberIds(memberIds);
 
   const lastCheckInByMemberId: Record<string, string> = {};
   mostRecentByMember.forEach((entry) => {
@@ -100,26 +84,26 @@ export interface LastCheckInDTO {
 }
 
 export async function getLastCheckInForMember(memberId: string): Promise<LastCheckInDTO> {
-  await dbConnect();
-  const mostRecentCheckIn = await Attendance.findOne({ userId: memberId })
-    .sort({ timestamp: -1 })
-    .lean();
+  const mostRecentCheckIn = await attendanceDAO.findMostRecentByUserId(memberId);
 
   if (!mostRecentCheckIn) {
     return { timestamp: null };
   }
 
-  const timestampAsIsoString = mostRecentCheckIn.timestamp instanceof Date 
-    ? mostRecentCheckIn.timestamp.toISOString() 
-    : String(mostRecentCheckIn.timestamp);
+  const timestampAsIsoString = mostRecentCheckIn.timestamp;
 
   return { timestamp: timestampAsIsoString };
+}
+
+export async function getRecentAttendance(): Promise<RecentAttendanceDTO[]> {
+  const memberIds = await memberProfileService.getAllIds();
+  return getRecentAttendanceForAllMembers(memberIds);
 }
 
 export const attendanceService = {
   getMembersWithCheckInStatus,
   checkInMember,
   getMemberHistory: getMemberAttendanceHistory,
-  getRecentForAllMembers: getRecentAttendanceForAllMembers,
+  getRecentAttendance,
   getLastCheckIn: getLastCheckInForMember,
 };
