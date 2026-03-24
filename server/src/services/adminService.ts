@@ -11,26 +11,15 @@ import {
   mapOrderToTransaction,
   mapPaymentToTransaction,
 } from './square';
+import { MemberSquareStatusDto, SubscriptionStatusDto } from '../types/dtos/admin';
 import { memberProfileService } from './memberProfileService';
 import { attendanceService } from './attendanceService';
 import { MemberUpdateData, Transaction, MemberSubscriptionDTO, IntroEnrollmentDTO, AttendanceRecord } from '@cufc/shared';
 import { DROP_IN_CATALOG_OBJECT_ID } from '../config/constants';
-import type { CatalogObject } from 'square';
 
-export interface MemberSquareStatusDto {
-  activeSubscribers: string[];
-  dropIns: string[];
-}
 
-export interface SubscriptionStatusDto {
-  hasActiveSubscription: boolean;
-  reason?: string;
-}
 
-interface SubscriptionPlanVariationData {
-  name?: string;
-  phases?: unknown[];
-}
+
 
 class AdminService {
 
@@ -107,7 +96,8 @@ class AdminService {
     );
 
     for (const payment of customerPayments) {
-      const order = await squareOrdersService.getById(payment.orderId!);
+      if (!payment.orderId) continue;
+      const order = await squareOrdersService.getById(payment.orderId);
       if (order && this.orderContainsDropIn(order)) {
         return true;
       }
@@ -200,43 +190,27 @@ class AdminService {
     if (!planVariationId) {
       return 'Membership';
     }
-    try {
-      const planVariation = await squareCatalogService.getSubscriptionPlanVariation(planVariationId);
-      const catalogObj = planVariation as CatalogObject & { subscriptionPlanVariationData?: SubscriptionPlanVariationData };
-      return catalogObj?.subscriptionPlanVariationData?.name ?? 'Membership';
-    } catch (err) {
-      console.error('Failed to fetch subscription plan variation:', err);
-      return 'Membership';
-    }
+    const planDto = await squareCatalogService.getSubscriptionPlanName(planVariationId);
+    return planDto.planName;
   }
 
   private async fetchInvoiceDetails(invoiceIds: string[] | undefined): Promise<{ priceFormatted: string; lastInvoiceDate: string | null }> {
     const ids = invoiceIds ?? [];
-    const mostRecentInvoiceId = ids[ids.length - 1];
+    const mostRecentInvoiceId = ids.at(-1);
 
     if (!mostRecentInvoiceId) {
       return { priceFormatted: '—', lastInvoiceDate: null };
     }
 
-    try {
-      const invoice = await squareInvoicesService.getById(mostRecentInvoiceId);
-      const money = invoice?.paymentRequests?.[0]?.computedAmountMoney;
-      const priceFormatted = this.formatMoney(money?.amount ?? undefined, money?.currency ?? undefined);
-      const lastInvoiceDate = money ? this.formatDate(invoice.createdAt) : null;
-      return { priceFormatted, lastInvoiceDate };
-    } catch (err) {
-      console.error('Failed to fetch subscription invoice:', err);
+    const invoiceDetails = await squareInvoicesService.getInvoiceDetails(mostRecentInvoiceId);
+    if (!invoiceDetails) {
       return { priceFormatted: '—', lastInvoiceDate: null };
     }
-  }
 
-  private formatMoney(amount: bigint | number | undefined, currency: string | undefined): string {
-    if (amount === undefined || amount === null) return '—';
-    const dollars = Number(amount) / 100;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency ?? 'USD',
-    }).format(dollars);
+    return {
+      priceFormatted: invoiceDetails.priceFormatted,
+      lastInvoiceDate: this.formatDate(invoiceDetails.createdAt),
+    };
   }
 
   private formatDate(dateStr: string | null | undefined): string | null {
