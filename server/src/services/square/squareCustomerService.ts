@@ -16,6 +16,16 @@ export class SquareCustomerService {
     console.error('Square Customer API Error:', error);
   }
 
+  async getCustomerById(customerId: string): Promise<Square.Customer | null> {
+    try {
+      const response = await this.client.customers.get({ customerId });
+      return response.customer ?? null;
+    } catch (error) {
+      this.logError(error as string);
+      return null;
+    }
+  }
+
   async getTodayDropInCustomerIds(catalogObjectId: string): Promise<Set<string>> {
     const startOfDay = new Date();
     startOfDay.setUTCHours(0, 0, 0, 0);
@@ -48,32 +58,66 @@ export class SquareCustomerService {
   }
 
   async checkCustomerHasTodayDropIn(customerId: string, catalogObjectId: string): Promise<boolean> {
+    // Use local midnight (not UTC) to match the user's timezone
     const startOfDay = new Date();
-    startOfDay.setUTCHours(0, 0, 0, 0);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    console.log(`[DropIn Check] Checking customer ${customerId} for drop-in item ${catalogObjectId}`);
+    console.log(`[DropIn Check] Start of day (local): ${startOfDay.toISOString()}`);
+
+    // Use Payments API - it correctly links customer_id even when Orders API doesn't
     try {
-      const response = await this.client.orders.search({
-        locationIds: [this.RETAIL_LOCATION_ID],
-        query: {
-          filter: {
-            customerFilter: { customerIds: [customerId] },
-            dateTimeFilter: {
-              createdAt: { startAt: startOfDay.toISOString() },
-            },
-          },
-          sort: { sortField: 'CREATED_AT', sortOrder: 'DESC' },
-        },
+      const response = await this.client.payments.list({
+        locationId: this.RETAIL_LOCATION_ID,
+        beginTime: startOfDay.toISOString(),
+        sortOrder: 'DESC',
       });
-      for (const order of response.orders ?? []) {
-        const hasDropInItem = order.lineItems?.some(
-          (li) => li.catalogObjectId === catalogObjectId
-        );
-        if (hasDropInItem) return true;
+      
+      // The SDK returns a paginated response - extract payments from data array
+      const payments: Square.Payment[] = (response as { data?: Square.Payment[] }).data ?? [];
+      
+      console.log(`[DropIn Check] Found ${payments.length} payments since ${startOfDay.toISOString()}`);
+
+      for (const payment of payments) {
+        console.log(`[DropIn Check] Payment ${payment.id}: customerId=${payment.customerId}, status=${payment.status}, orderId=${payment.orderId}`);
+        
+        // Check if this payment belongs to the customer and is completed
+        if (payment.customerId !== customerId || payment.status !== 'COMPLETED') {
+          console.log(`[DropIn Check] Skipping - customer mismatch or not completed`);
+          continue;
+        }
+
+        console.log(`[DropIn Check] Found matching payment for customer!`);
+
+        // Get the order to check if it contains the drop-in item
+        if (payment.orderId) {
+          try {
+            const orderResponse = await this.client.orders.get({
+              orderId: payment.orderId,
+            });
+            const lineItems = orderResponse.order?.lineItems ?? [];
+            console.log(`[DropIn Check] Order ${payment.orderId} has ${lineItems.length} line items:`);
+            lineItems.forEach(li => {
+              console.log(`[DropIn Check]   - catalogObjectId: ${li.catalogObjectId}, name: ${li.name}`);
+            });
+            
+            const hasDropInItem = lineItems.some(
+              (li) => li.catalogObjectId === catalogObjectId
+            );
+            console.log(`[DropIn Check] Has drop-in item: ${hasDropInItem}`);
+            if (hasDropInItem) return true;
+          } catch (err) {
+            console.log(`[DropIn Check] Order lookup failed:`, err);
+          }
+        }
       }
-      return false;
     } catch (error) {
+      console.log(`[DropIn Check] Error:`, error);
       this.logError(error as string);
-      throw error;
     }
+
+    console.log(`[DropIn Check] No drop-in found for customer ${customerId}`);
+    return false;
   }
 
   async getActiveSubscriptionsForCustomers(customerIds: string[]): Promise<Set<string>> {
@@ -246,6 +290,51 @@ export class SquareCustomerService {
     } catch (error) {
       this.logError(error as string);
       throw error;
+    }
+  }
+
+  async getPaymentsByCustomerId(customerId: string): Promise<Square.Payment[]> {
+    try {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+      // Get customer email for matching payments that don't have customer_id linked
+      const customer = await this.getCustomerById(customerId);
+      const customerEmail = customer?.emailAddress?.toLowerCase();
+
+      const allPayments: Square.Payment[] = [];
+      let cursor: string | undefined;
+
+      do {
+        const response = await this.client.payments.list({
+          locationId: this.RETAIL_LOCATION_ID,
+          beginTime: threeMonthsAgo.toISOString(),
+          sortOrder: 'DESC',
+          limit: 100,
+          cursor,
+        }) as unknown as { payments?: Square.Payment[]; cursor?: string };
+
+        const payments = response.payments ?? [];
+        for (const payment of payments) {
+          // Match by customer_id
+          if (payment.customerId === customerId) {
+            allPayments.push(payment);
+          } 
+          // Match by email in buyer_email_address
+          else if (customerEmail && payment.buyerEmailAddress?.toLowerCase() === customerEmail) {
+            allPayments.push(payment);
+          }
+          
+          if (allPayments.length >= 50) break;
+        }
+
+        cursor = response.cursor;
+      } while (cursor && allPayments.length < 50);
+
+      return allPayments;
+    } catch (error) {
+      this.logError(error as string);
+      return [];
     }
   }
 }

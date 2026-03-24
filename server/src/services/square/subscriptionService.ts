@@ -101,29 +101,50 @@ export async function getAllMembersSquareStatus(
 
 export async function getMemberTransactions(squareCustomerId: string): Promise<Transaction[]> {
   const squareCustomerService = new SquareCustomerService();
+  
+  // Try Orders API first
   const orders: Order[] = await squareCustomerService.getAllOrdersByCustomerId(squareCustomerId);
   
-  return orders.slice(0, 20).map((order: Order): Transaction => {
-    const orderMoney = order.totalMoney?.amount != null 
-      ? { amount: Number(order.totalMoney.amount), currency: order.totalMoney.currency }
+  if (orders.length > 0) {
+    return orders.slice(0, 20).map((order: Order): Transaction => {
+      const orderMoney = order.totalMoney?.amount != null 
+        ? { amount: Number(order.totalMoney.amount), currency: order.totalMoney.currency }
+        : undefined;
+      
+      return {
+        id: order.id,
+        createdAt: order.createdAt,
+        state: order.state,
+        totalMoney: orderMoney,
+        lineItems: (order.lineItems || []).map((li): TransactionLineItem => {
+          const liMoney = li.totalMoney?.amount != null
+            ? { amount: Number(li.totalMoney.amount), currency: li.totalMoney.currency }
+            : undefined;
+          return {
+            name: li.name ?? undefined,
+            variationName: li.variationName ?? undefined,
+            quantity: li.quantity ?? undefined,
+            totalMoney: liMoney,
+          };
+        }),
+      };
+    });
+  }
+
+  // Fallback to Payments API if no orders found
+  const payments = await squareCustomerService.getPaymentsByCustomerId(squareCustomerId);
+  
+  return payments.slice(0, 20).map((payment): Transaction => {
+    const paymentMoney = payment.totalMoney?.amount != null
+      ? { amount: Number(payment.totalMoney.amount), currency: payment.totalMoney.currency }
       : undefined;
-    
+
     return {
-      id: order.id,
-      createdAt: order.createdAt,
-      state: order.state,
-      totalMoney: orderMoney,
-      lineItems: (order.lineItems || []).map((li): TransactionLineItem => {
-        const liMoney = li.totalMoney?.amount != null
-          ? { amount: Number(li.totalMoney.amount), currency: li.totalMoney.currency }
-          : undefined;
-        return {
-          name: li.name ?? undefined,
-          variationName: li.variationName ?? undefined,
-          quantity: li.quantity ?? undefined,
-          totalMoney: liMoney,
-        };
-      }),
+      id: payment.id,
+      createdAt: payment.createdAt,
+      state: payment.status,
+      totalMoney: paymentMoney,
+      lineItems: [],
     };
   });
 }
