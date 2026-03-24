@@ -4,6 +4,8 @@ import { fetchIntroEnrollment, type IntroEnrollmentDTO } from '../services/dashb
 
 export { type IntroEnrollmentDTO } from '../services/dashboardService'
 
+export type IntroEnrollment = IntroEnrollmentDTO
+
 type Result = {
   enrollment: IntroEnrollmentDTO | null
   loading: boolean
