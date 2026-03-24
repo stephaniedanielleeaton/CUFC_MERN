@@ -57,67 +57,41 @@ export class SquareCustomerService {
     }
   }
 
-  async checkCustomerHasTodayDropIn(customerId: string, catalogObjectId: string): Promise<boolean> {
-    // Use local midnight (not UTC) to match the user's timezone
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+  async checkCustomerHasTodayDropIn(customerId: string, dropInCatalogId: string): Promise<boolean> {
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
 
-    console.log(`[DropIn Check] Checking customer ${customerId} for drop-in item ${catalogObjectId}`);
-    console.log(`[DropIn Check] Start of day (local): ${startOfDay.toISOString()}`);
-
-    // Use Payments API - it correctly links customer_id even when Orders API doesn't
     try {
       const response = await this.client.payments.list({
         locationId: this.RETAIL_LOCATION_ID,
-        beginTime: startOfDay.toISOString(),
+        beginTime: todayMidnight.toISOString(),
         sortOrder: 'DESC',
       });
       
-      // The SDK returns a paginated response - extract payments from data array
-      const payments: Square.Payment[] = (response as { data?: Square.Payment[] }).data ?? [];
-      
-      console.log(`[DropIn Check] Found ${payments.length} payments since ${startOfDay.toISOString()}`);
+      const todaysPayments: Square.Payment[] = (response as { data?: Square.Payment[] }).data ?? [];
+      const customerPayments = todaysPayments.filter(
+        p => p.customerId === customerId && p.status === 'COMPLETED' && p.orderId
+      );
 
-      for (const payment of payments) {
-        console.log(`[DropIn Check] Payment ${payment.id}: customerId=${payment.customerId}, status=${payment.status}, orderId=${payment.orderId}`);
-        
-        // Check if this payment belongs to the customer and is completed
-        if (payment.customerId !== customerId || payment.status !== 'COMPLETED') {
-          console.log(`[DropIn Check] Skipping - customer mismatch or not completed`);
-          continue;
-        }
-
-        console.log(`[DropIn Check] Found matching payment for customer!`);
-
-        // Get the order to check if it contains the drop-in item
-        if (payment.orderId) {
-          try {
-            const orderResponse = await this.client.orders.get({
-              orderId: payment.orderId,
-            });
-            const lineItems = orderResponse.order?.lineItems ?? [];
-            console.log(`[DropIn Check] Order ${payment.orderId} has ${lineItems.length} line items:`);
-            lineItems.forEach(li => {
-              console.log(`[DropIn Check]   - catalogObjectId: ${li.catalogObjectId}, name: ${li.name}`);
-            });
-            
-            const hasDropInItem = lineItems.some(
-              (li) => li.catalogObjectId === catalogObjectId
-            );
-            console.log(`[DropIn Check] Has drop-in item: ${hasDropInItem}`);
-            if (hasDropInItem) return true;
-          } catch (err) {
-            console.log(`[DropIn Check] Order lookup failed:`, err);
-          }
-        }
+      for (const payment of customerPayments) {
+        const orderContainsDropIn = await this.orderContainsCatalogItem(payment.orderId!, dropInCatalogId);
+        if (orderContainsDropIn) return true;
       }
     } catch (error) {
-      console.log(`[DropIn Check] Error:`, error);
       this.logError(error as string);
     }
 
-    console.log(`[DropIn Check] No drop-in found for customer ${customerId}`);
     return false;
+  }
+
+  private async orderContainsCatalogItem(orderId: string, catalogItemId: string): Promise<boolean> {
+    try {
+      const orderResponse = await this.client.orders.get({ orderId });
+      const lineItems = orderResponse.order?.lineItems ?? [];
+      return lineItems.some(item => item.catalogObjectId === catalogItemId);
+    } catch {
+      return false;
+    }
   }
 
   async getActiveSubscriptionsForCustomers(customerIds: string[]): Promise<Set<string>> {
@@ -144,8 +118,7 @@ export class SquareCustomerService {
   }
 
   async getRecentOrdersForCustomer(customerId: string): Promise<Square.Order[]> {
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const threeMonthsAgo = this.getDateMonthsAgo(3);
     try {
       const response = await this.client.orders.search({
         locationIds: [this.RETAIL_LOCATION_ID],
@@ -251,9 +224,7 @@ export class SquareCustomerService {
 
   async getOrdersByCustomerId(customerId: string): Promise<Square.Order[]> {
     try {
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-
+      const threeMonthsAgo = this.getDateMonthsAgo(3);
       const response = await this.client.orders.search({
         locationIds: [this.RETAIL_LOCATION_ID],
         query: {
@@ -295,15 +266,13 @@ export class SquareCustomerService {
 
   async getPaymentsByCustomerId(customerId: string): Promise<Square.Payment[]> {
     try {
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-
-      // Get customer email for matching payments that don't have customer_id linked
+      const threeMonthsAgo = this.getDateMonthsAgo(3);
       const customer = await this.getCustomerById(customerId);
       const customerEmail = customer?.emailAddress?.toLowerCase();
 
-      const allPayments: Square.Payment[] = [];
+      const matchingPayments: Square.Payment[] = [];
       let cursor: string | undefined;
+      const maxResults = 50;
 
       do {
         const response = await this.client.payments.list({
@@ -316,26 +285,30 @@ export class SquareCustomerService {
 
         const payments = response.payments ?? [];
         for (const payment of payments) {
-          // Match by customer_id
-          if (payment.customerId === customerId) {
-            allPayments.push(payment);
-          } 
-          // Match by email in buyer_email_address
-          else if (customerEmail && payment.buyerEmailAddress?.toLowerCase() === customerEmail) {
-            allPayments.push(payment);
+          const matchesById = payment.customerId === customerId;
+          const matchesByEmail = customerEmail && payment.buyerEmailAddress?.toLowerCase() === customerEmail;
+          
+          if (matchesById || matchesByEmail) {
+            matchingPayments.push(payment);
           }
           
-          if (allPayments.length >= 50) break;
+          if (matchingPayments.length >= maxResults) break;
         }
 
         cursor = response.cursor;
-      } while (cursor && allPayments.length < 50);
+      } while (cursor && matchingPayments.length < maxResults);
 
-      return allPayments;
+      return matchingPayments;
     } catch (error) {
       this.logError(error as string);
       return [];
     }
+  }
+
+  private getDateMonthsAgo(months: number): Date {
+    const date = new Date();
+    date.setMonth(date.getMonth() - months);
+    return date;
   }
 }
 
