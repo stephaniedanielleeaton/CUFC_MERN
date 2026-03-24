@@ -207,6 +207,31 @@ export class SquareCustomerService {
 
   async getOrdersByCustomerId(customerId: string): Promise<Square.Order[]> {
     try {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+      const response = await this.client.orders.search({
+        locationIds: [this.RETAIL_LOCATION_ID],
+        query: {
+          filter: {
+            customerFilter: { customerIds: [customerId] },
+            dateTimeFilter: {
+              createdAt: { startAt: threeMonthsAgo.toISOString() }
+            },
+            stateFilter: { states: ['COMPLETED'] }
+          },
+          sort: { sortField: 'CREATED_AT', sortOrder: 'DESC' },
+        },
+      });
+      return response.orders ?? [];
+    } catch (error) {
+      this.logError(error as string);
+      throw error;
+    }
+  }
+
+  async getAllOrdersByCustomerId(customerId: string): Promise<Square.Order[]> {
+    try {
       const response = await this.client.orders.search({
         locationIds: [this.RETAIL_LOCATION_ID],
         query: {

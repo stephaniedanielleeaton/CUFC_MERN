@@ -101,7 +101,7 @@ export async function getAllMembersSquareStatus(
 
 export async function getMemberTransactions(squareCustomerId: string): Promise<Transaction[]> {
   const squareCustomerService = new SquareCustomerService();
-  const orders: Order[] = await squareCustomerService.getOrdersByCustomerId(squareCustomerId);
+  const orders: Order[] = await squareCustomerService.getAllOrdersByCustomerId(squareCustomerId);
   
   return orders.slice(0, 20).map((order: Order): Transaction => {
     const orderMoney = order.totalMoney?.amount != null 
