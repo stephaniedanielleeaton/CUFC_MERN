@@ -123,6 +123,12 @@ export default function PaymentHistoryPage() {
             <h1 className="text-xl font-bold text-gray-900">Payment History</h1>
           </div>
 
+          <p className="text-xs text-gray-500 mb-4">
+            This history shows approximately the last year of payments and does not include refunds.
+            Payments made while not logged in may not appear here.
+            Please contact the club admin with any questions.
+          </p>
+
           <PaymentHistoryContent loading={loading} transactions={transactions} />
         </div>
       </div>

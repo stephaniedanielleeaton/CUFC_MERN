@@ -1,7 +1,6 @@
 import type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO, Transaction, AttendanceRecord } from '@cufc/shared'
 
 export type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO, Transaction, AttendanceRecord } from '@cufc/shared'
-export type IntroEnrollment = IntroEnrollmentDTO
 
 export interface CreateProfilePayload {
   displayFirstName: string
