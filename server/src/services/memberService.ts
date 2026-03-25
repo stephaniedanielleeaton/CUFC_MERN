@@ -1,7 +1,6 @@
 import { memberProfileService } from './memberProfileService';
 import { attendanceService } from './attendanceService';
 import { INTRO_CLASS_CATALOG_OBJECT_ID } from '../config/constants';
-import { Square } from 'square';
 import { 
   squareSubscriptionsService,
   squareOrdersService,

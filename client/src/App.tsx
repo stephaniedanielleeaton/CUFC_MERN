@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { MemberProfileProvider } from './context/ProfileContext'
 import Navbar from './components/navbar/Navbar'
 import HomePage from './pages/HomePage'
+import ContactPage from './pages/ContactPage'
 import AttendancePage from './pages/AttendancePage'
 import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
@@ -19,6 +20,7 @@ function App() {
       <div>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/dashboard/payments" element={<PaymentHistoryPage />} />

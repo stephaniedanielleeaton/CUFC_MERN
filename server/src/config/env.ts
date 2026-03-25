@@ -32,4 +32,7 @@ export const env = {
   SQUARE_ENVIRONMENT: process.env.SQUARE_ENVIRONMENT === 'sandbox' ? SquareEnvironment.Sandbox : SquareEnvironment.Production,
   INTRO_CLASS_CATALOG_OBJECT_ID: getRequiredEnvironmentVariable('INTRO_CLASS_CATALOG_OBJECT_ID'),
   DROP_IN_CATALOG_OBJECT_ID: getRequiredEnvironmentVariable('DROP_IN_CATALOG_OBJECT_ID'),
+
+  EMAIL_ACCOUNT: process.env.EMAIL_ACCOUNT,
+  EMAIL_PASS: process.env.EMAIL_PASS,
 };

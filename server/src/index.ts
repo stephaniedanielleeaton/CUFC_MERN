@@ -10,6 +10,7 @@ import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import introClassRoutes from './routes/introClass';
 import checkoutRoutes from './routes/checkout';
+import contactRoutes from './routes/contact';
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/intro-class-offerings', introClassRoutes);
 app.use('/api/checkout', checkoutRoutes);
+app.use('/api/contact', contactRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
