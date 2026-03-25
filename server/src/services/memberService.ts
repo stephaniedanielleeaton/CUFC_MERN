@@ -1,5 +1,7 @@
 import { memberProfileService } from './memberProfileService';
 import { attendanceService } from './attendanceService';
+import { INTRO_CLASS_CATALOG_OBJECT_ID } from '../config/constants';
+import { Square } from 'square';
 import { 
   squareSubscriptionsService,
   squareOrdersService,
@@ -114,12 +116,21 @@ class MemberService {
       return null;
     }
 
+    // Get intro class variations to match against order line items
+    const introClassItem = await squareCatalogService.getObjectById(INTRO_CLASS_CATALOG_OBJECT_ID);
+    if (introClassItem?.type !== 'ITEM' || !introClassItem.itemData?.variations) {
+      return null;
+    }
+
+    const variationIds = new Set(
+      introClassItem.itemData.variations.map((v) => v.id)
+    );
+
     const orders = await squareOrdersService.getRecentByCustomerId(profile.squareCustomerId, 3);
 
     for (const order of orders) {
       const introLineItem = order.lineItems.find((li: SquareLineItemDto) => {
-        const name = (li.name ?? '').toLowerCase();
-        return name.includes('introduction to historical european martial arts');
+        return li.catalogObjectId && variationIds.has(li.catalogObjectId);
       });
 
       if (introLineItem) {
