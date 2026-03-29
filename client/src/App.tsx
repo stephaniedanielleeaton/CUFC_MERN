@@ -12,6 +12,8 @@ import AdminLayout from './components/admin/AdminLayout'
 import AdminMembersPage from './pages/admin/AdminMembersPage'
 import AdminAttendancePage from './pages/admin/AdminAttendancePage'
 import AdminEmailPage from './pages/admin/AdminEmailPage'
+import NotificationsPage from './pages/NotificationsPage'
+import UnsubscribePage from './pages/UnsubscribePage'
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/unsubscribe" element={<UnsubscribePage />} />
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/dashboard/payments" element={<PaymentHistoryPage />} />
