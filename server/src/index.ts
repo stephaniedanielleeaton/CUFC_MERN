@@ -12,6 +12,7 @@ import introClassRoutes from './routes/introClass';
 import checkoutRoutes from './routes/checkout';
 import contactRoutes from './routes/contact';
 import emailListRoutes from './routes/emailLists';
+import emailRoutes from './routes/email';
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/intro-class-offerings', introClassRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/email-lists', emailListRoutes);
+app.use('/api/email', emailRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });

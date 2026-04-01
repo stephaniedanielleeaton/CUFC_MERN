@@ -7,3 +7,4 @@ export * from './types/IntroClassDTO';
 export * from './types/Transaction';
 export * from './types/Checkout';
 export * from './types/Subscription';
+export * from './types/SendToListRequest';

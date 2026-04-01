@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { emailService } from '../services/emailService';
+import { contactService } from '../services/contactService';
 
 const router = Router();
 
@@ -23,7 +23,7 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
-    await emailService.sendContactEmail(formData);
+    await contactService.sendContactEmail(formData);
 
     res.status(200).json({
       success: true,
