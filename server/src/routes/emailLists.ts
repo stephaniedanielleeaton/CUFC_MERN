@@ -1,8 +1,24 @@
 import { Router, Request, Response } from 'express';
 import { emailListService } from '../services/emailListService';
+import { EmailList } from '../models/EmailList';
+import { checkJwt, requireRole } from '../middleware/auth';
 import { AddEmailRequest, RemoveEmailRequest } from '../types/dtos/emailList';
 
 const router = Router();
+
+/**
+ * GET /api/email-lists/
+ * Returns all email lists with full details including emails
+ */
+router.get('/', checkJwt, requireRole('club-admin'), async (_req: Request, res: Response) => {
+  try {
+    const lists = await EmailList.find({}, { _id: 0, id: 1, name: 1, emails: 1 });
+    res.json(lists);
+  } catch (error) {
+    console.error('Error in GET /email-lists:', error);
+    res.status(500).json({ error: 'Failed to retrieve email lists' });
+  }
+});
 
 /**
  * GET /api/email-lists/summaries
@@ -15,6 +31,23 @@ router.get('/summaries', async (_req: Request, res: Response) => {
   } catch (error) {
     console.error('Error in GET /email-lists/summaries:', error);
     res.status(500).json({ error: 'Failed to retrieve email list summaries' });
+  }
+});
+
+/**
+ * GET /api/email-lists/members/all
+ * Returns all member emails as a special list
+ */
+router.get('/members/all', checkJwt, requireRole('club-admin'), async (_req: Request, res: Response) => {
+  try {
+    const memberList = await EmailList.findOne({ id: 'members' });
+    if (!memberList) {
+      return res.json({ id: 'all-members', name: 'All Members', emails: [] });
+    }
+    res.json({ id: 'all-members', name: 'All Members', emails: memberList.emails });
+  } catch (error) {
+    console.error('Error in GET /email-lists/members/all:', error);
+    res.status(500).json({ error: 'Failed to retrieve member emails' });
   }
 });
 
