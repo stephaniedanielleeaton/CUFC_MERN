@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { env } from '../config/env';
 import { EmailList } from '../models/EmailList';
 import { SendToListRequest, SendToListResult } from '@cufc/shared';
+import { applyTemplate, DEFAULT_TEMPLATE, EmailTemplateType } from '../templates/emailTemplates';
 
 type SentMessageInfo = nodemailer.SentMessageInfo;
 
@@ -11,7 +12,7 @@ class EmailService {
   private readonly BATCH_DELAY_MS = 2000;
 
   async sendEmailToList(request: SendToListRequest): Promise<SendToListResult> {
-    const { emailListIds, additionalEmails, subject, message } = request;
+    const { emailListIds, additionalEmails, subject, message, template } = request;
 
     const emailsFromLists = await this.collectEmailsFromLists(emailListIds);
     this.addManualEmails(emailsFromLists, additionalEmails);
@@ -31,28 +32,17 @@ class EmailService {
     let batchNumber = 1;
     const totalBatches = Math.ceil(allowedEmails.length / this.BATCH_SIZE);
 
-    for (let i = 0; i < allowedEmails.length; i += this.BATCH_SIZE) {
-      const batch = allowedEmails.slice(i, i + this.BATCH_SIZE);
-      console.log(`Processing batch ${batchNumber}/${totalBatches}, size: ${batch.length}`);
+    const templateName = (template as EmailTemplateType) ?? DEFAULT_TEMPLATE;
+    const formattedMessage = applyTemplate(message, templateName);
 
-      const batchResults = await this.sendBatch(transporter, batch, subject, message);
+    const batchStats = await this.processAllBatches(
+      transporter,
+      allowedEmails,
+      subject,
+      formattedMessage
+    );
 
-      const counts = this.processBatchResults(
-        batchResults,
-        batch,
-        successCount,
-        failureCount,
-        failures
-      );
-      successCount = counts.newSuccessCount;
-      failureCount = counts.newFailureCount;
-
-      await this.delayBetweenBatches(batchNumber, totalBatches);
-      batchNumber++;
-    }
-
-    const result = this.createSendResult(successCount, failureCount, blockedEmails);
-    result.failures = failures;
+    const result = this.buildSendResult(batchStats, blockedEmails);
     return result;
   }
 
@@ -129,13 +119,12 @@ class EmailService {
     return { allowedEmails, blockedEmails };
   }
 
-  private createMailOptions(subject: string, message: string, to: string) {
+  private createMailOptions(subject: string, htmlContent: string, to: string) {
     return {
       from: env.EMAIL_ACCOUNT,
       to,
       subject,
-      text: message,
-      html: `<div style="font-family: Arial, sans-serif; line-height: 1.6;">${message.replace(/\n/g, '<br>')}</div>`
+      html: htmlContent,
     };
   }
 
@@ -190,17 +179,51 @@ class EmailService {
     await new Promise(resolve => setTimeout(resolve, this.BATCH_DELAY_MS));
   }
 
-  private createSendResult(
-    successCount: number,
-    failureCount: number,
+  private async processAllBatches(
+    transporter: nodemailer.Transporter,
+    allowedEmails: string[],
+    subject: string,
+    formattedMessage: string
+  ): Promise<{ successCount: number; failureCount: number; failures: { email: string; error: string }[] }> {
+    const failures: { email: string; error: string }[] = [];
+    let successCount = 0;
+    let failureCount = 0;
+    let batchNumber = 1;
+    const totalBatches = Math.ceil(allowedEmails.length / this.BATCH_SIZE);
+
+    for (let i = 0; i < allowedEmails.length; i += this.BATCH_SIZE) {
+      const batch = allowedEmails.slice(i, i + this.BATCH_SIZE);
+      console.log(`Processing batch ${batchNumber}/${totalBatches}, size: ${batch.length}`);
+
+      const batchResults = await this.sendBatch(transporter, batch, subject, formattedMessage);
+
+      const counts = this.processBatchResults(
+        batchResults,
+        batch,
+        successCount,
+        failureCount,
+        failures
+      );
+      successCount = counts.newSuccessCount;
+      failureCount = counts.newFailureCount;
+
+      await this.delayBetweenBatches(batchNumber, totalBatches);
+      batchNumber++;
+    }
+
+    return { successCount, failureCount, failures };
+  }
+
+  private buildSendResult(
+    batchStats: { successCount: number; failureCount: number; failures: { email: string; error: string }[] },
     blockedEmails: string[]
   ): SendToListResult {
     return {
-      success: failureCount === 0,
-      message: `Completed: ${successCount} successful, ${failureCount} failed`,
-      successCount,
-      failureCount,
-      failures: [],
+      success: batchStats.failureCount === 0,
+      message: `Completed: ${batchStats.successCount} successful, ${batchStats.failureCount} failed`,
+      successCount: batchStats.successCount,
+      failureCount: batchStats.failureCount,
+      failures: batchStats.failures,
       blockedEmails
     };
   }
