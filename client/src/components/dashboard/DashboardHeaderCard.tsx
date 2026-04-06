@@ -11,11 +11,14 @@ interface DashboardHeaderCardProps {
 export function DashboardHeaderCard({ profile, onEditProfile }: DashboardHeaderCardProps) {
   const { user } = useAuth0()
 
-  const displayName = profile.displayFirstName && profile.displayLastName
-    ? `${profile.displayFirstName} ${profile.displayLastName}`
-    : profile.personalInfo?.legalFirstName && profile.personalInfo?.legalLastName
-    ? `${profile.personalInfo.legalFirstName} ${profile.personalInfo.legalLastName}`
-    : "Member"
+  let displayName: string
+  if (profile.displayFirstName && profile.displayLastName) {
+    displayName = `${profile.displayFirstName} ${profile.displayLastName}`
+  } else if (profile.personalInfo?.legalFirstName && profile.personalInfo?.legalLastName) {
+    displayName = `${profile.personalInfo.legalFirstName} ${profile.personalInfo.legalLastName}`
+  } else {
+    displayName = "Member"
+  }
 
   const profileImage = user?.picture || "/default-avatar.png"
 

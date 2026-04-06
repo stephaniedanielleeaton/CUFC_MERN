@@ -5,13 +5,13 @@ import { TextInput } from '../../common/TextInput'
 import SaveButton, { SaveStatus } from '../../common/SaveButton'
 
 type Props = {
-  member: MemberProfileDTO
-  onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void
-  onDelete?: () => void
-  saveStatus?: SaveStatus
+  readonly member: MemberProfileDTO
+  readonly onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void
+  readonly onDelete?: () => void
+  readonly saveStatus?: SaveStatus
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children }: { readonly title: string; readonly children: React.ReactNode }) {
   return (
     <section className="space-y-4">
       <h4 className="text-xs font-semibold tracking-wider text-gray-600 uppercase">
@@ -22,7 +22,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function Toggle({ label, name, defaultChecked }: { label: string; name: string; defaultChecked?: boolean }) {
+function Toggle({ label, name, defaultChecked }: { readonly label: string; readonly name: string; readonly defaultChecked?: boolean }) {
   return (
     <label className="flex items-center justify-between text-sm">
       <span className="text-gray-800">{label}</span>
@@ -35,7 +35,7 @@ function Toggle({ label, name, defaultChecked }: { label: string; name: string; 
   )
 }
 
-function Dropdown({ label, name, defaultValue, options }: { label: string; name: string; defaultValue?: string; options: { value: string; label: string }[] }) {
+function Dropdown({ label, name, defaultValue, options }: { readonly label: string; readonly name: string; readonly defaultValue?: string; readonly options: { readonly value: string; readonly label: string }[] }) {
   return (
     <div className="space-y-1">
       <label className="block text-sm font-semibold text-gray-800">{label}</label>

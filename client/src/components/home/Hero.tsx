@@ -19,7 +19,7 @@ export default function Hero() {
       <div className="relative w-full h-[420px] md:h-[600px] lg:h-[600px]">
         <img
           src="/meyerwatercolor.png"
-          alt="CUFC Hero Image"
+          alt="CUFC Hero"
           className="absolute inset-0 w-full h-full object-cover object-center scale-150 md:scale-100 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent pointer-events-none" />

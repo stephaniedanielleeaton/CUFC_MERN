@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
-import type { EmailList } from '@cufc/shared'
-import type { SendToListRequest } from '@cufc/shared'
+import type { EmailList, SendToListRequest } from '@cufc/shared'
 import { EmailSender, type SendEmailResult } from '../../components/admin/email/EmailSender'
 import {
   fetchEmailLists,
