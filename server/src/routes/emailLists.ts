@@ -3,6 +3,7 @@ import { emailListService } from '../services/emailListService';
 import { EmailList } from '../models/EmailList';
 import { checkJwt, requireRole } from '../middleware/auth';
 import { AddEmailRequest, RemoveEmailRequest } from '../types/dtos/emailList';
+import { memberProfileService } from '../services/memberProfileService';
 
 const router = Router();
 
@@ -36,15 +37,12 @@ router.get('/summaries', async (_req: Request, res: Response) => {
 
 /**
  * GET /api/email-lists/members/all
- * Returns all member emails as a special list
+ * Returns all member emails from member profiles as a special list
  */
 router.get('/members/all', checkJwt, requireRole('club-admin'), async (_req: Request, res: Response) => {
   try {
-    const memberList = await EmailList.findOne({ id: 'members' });
-    if (!memberList) {
-      return res.json({ id: 'all-members', name: 'All Members', emails: [] });
-    }
-    res.json({ id: 'all-members', name: 'All Members', emails: memberList.emails });
+    const memberEmails = await memberProfileService.getAllEmails();
+    res.json({ id: 'all-members', name: 'All Members', emails: memberEmails });
   } catch (error) {
     console.error('Error in GET /email-lists/members/all:', error);
     res.status(500).json({ error: 'Failed to retrieve member emails' });

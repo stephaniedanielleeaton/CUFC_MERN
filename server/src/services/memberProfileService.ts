@@ -118,6 +118,10 @@ export async function getMembersWithSquareCustomerId(): Promise<{ memberId: stri
   return memberProfileDAO.findAllWithSquareCustomerId();
 }
 
+export async function getAllMemberEmails(): Promise<string[]> {
+  return memberProfileDAO.findAllEmails();
+}
+
 export async function findAndLinkByEmail(auth0Id: string, email: string): Promise<MemberProfileDTO | null> {
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -145,5 +149,6 @@ export const memberProfileService = {
   delete: deleteMemberProfileById,
   getSquareCustomerId: getSquareCustomerIdForMember,
   getMembersWithSquareCustomerId,
+  getAllEmails: getAllMemberEmails,
   findAndLinkByEmail,
 };

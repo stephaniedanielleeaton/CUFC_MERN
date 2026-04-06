@@ -79,6 +79,17 @@ export async function findAllWithSquareCustomerId(): Promise<{ memberId: string;
     }));
 }
 
+export async function findAllEmails(): Promise<string[]> {
+  await dbConnect();
+  const profiles = await MemberProfile.find(
+    { 'personalInfo.email': { $exists: true, $ne: null } },
+    { 'personalInfo.email': 1 }
+  );
+
+  const emails = new Set(profiles.map(p => p.personalInfo!.email));
+  return Array.from(emails);
+}
+
 export async function linkAuth0Id(id: string, auth0Id: string): Promise<MemberProfileDTO | null> {
   await dbConnect();
   const doc = await MemberProfile.findById(id);
@@ -99,5 +110,6 @@ export const memberProfileDAO = {
   deleteById,
   findSquareCustomerIdById,
   findAllWithSquareCustomerId,
+  findAllEmails,
   linkAuth0Id,
 };
