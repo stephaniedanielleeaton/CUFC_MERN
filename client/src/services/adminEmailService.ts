@@ -2,6 +2,19 @@ import type { EmailList, SendToListRequest, SendToListResult } from '@cufc/share
 
 const API_BASE = '/api'
 
+export interface BatchProgress {
+  jobId: string
+  batchNumber: number
+  totalBatches: number
+  batchSize: number
+  successCount: number
+  failureCount: number
+  totalProcessed: number
+  totalEmails: number
+  failures: { email: string; error: string }[]
+  status: 'processing' | 'completed' | 'error'
+}
+
 export interface SendEmailResult extends SendToListResult {
   summary: {
     totalEmails: number
@@ -11,6 +24,7 @@ export interface SendEmailResult extends SendToListResult {
   }
   blockedEmails: string[]
   failedEmails: { email: string; error: string }[]
+  jobId?: string
 }
 
 /**
@@ -48,7 +62,70 @@ export async function fetchAllMemberEmailsList(token: string): Promise<EmailList
 }
 
 /**
- * Send email to selected lists and additional recipients
+ * Start async email job and return jobId for streaming progress
+ */
+export async function startEmailJobAsync(
+  token: string,
+  request: SendToListRequest
+): Promise<{ jobId: string; message: string }> {
+  const response = await fetch(`${API_BASE}/email/send-to-list/async`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.error || 'Failed to start email job')
+  }
+
+  return response.json()
+}
+
+/**
+ * Connect to SSE stream for email send progress
+ */
+export function connectToEmailProgressStream(
+  token: string,
+  jobId: string,
+  onProgress: (progress: BatchProgress) => void,
+  onComplete?: () => void,
+  onError?: (error: string) => void
+): () => void {
+  // Pass token as query param since EventSource doesn't support custom headers
+  const url = `${API_BASE}/email/send-to-list/stream?jobId=${encodeURIComponent(jobId)}&token=${encodeURIComponent(token)}`
+  const eventSource = new EventSource(url)
+
+  eventSource.onopen = () => {
+    console.log('SSE connection opened for job:', jobId)
+  }
+
+  eventSource.onmessage = (event) => {
+    const progress: BatchProgress = JSON.parse(event.data)
+    onProgress(progress)
+
+    if (progress.status === 'completed') {
+      eventSource.close()
+      onComplete?.()
+    }
+  }
+
+  eventSource.onerror = () => {
+    onError?.('Connection error')
+    eventSource.close()
+  }
+
+  // Return cleanup function
+  return () => {
+    eventSource.close()
+  }
+}
+
+/**
+ * Send email to selected lists and additional recipients (legacy, non-streaming)
  */
 export async function sendEmailToList(
   token: string,

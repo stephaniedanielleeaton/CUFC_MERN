@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { EventEmitter } from 'node:events';
 import { env } from '../config/env';
 import { EmailList } from '../models/EmailList';
 import { SendToListRequest, SendToListResult } from '@cufc/shared';
@@ -6,12 +7,25 @@ import { applyTemplate, DEFAULT_TEMPLATE, EmailTemplateType } from '../templates
 
 type SentMessageInfo = nodemailer.SentMessageInfo;
 
-class EmailService {
+export interface BatchProgress {
+  batchNumber: number;
+  totalBatches: number;
+  batchSize: number;
+  successCount: number;
+  failureCount: number;
+  totalProcessed: number;
+  totalEmails: number;
+  failures: { email: string; error: string }[];
+  status: 'processing' | 'completed' | 'error';
+}
+
+class EmailService extends EventEmitter {
   private transporter: nodemailer.Transporter | null = null;
   private readonly BATCH_SIZE = 25;
   private readonly BATCH_DELAY_MS = 2000;
+  private readonly activeJobs: Map<string, BatchProgress> = new Map();
 
-  async sendEmailToList(request: SendToListRequest): Promise<SendToListResult> {
+  async sendEmailToList(request: SendToListRequest, jobId?: string): Promise<SendToListResult> {
     const { emailListIds, additionalEmails, subject, message, template } = request;
 
     const emailsFromLists = await this.collectEmailsFromLists(emailListIds);
@@ -31,19 +45,59 @@ class EmailService {
 
     let batchNumber = 1;
     const totalBatches = Math.ceil(allowedEmails.length / this.BATCH_SIZE);
+    const totalEmails = allowedEmails.length;
 
     const templateName = (template as EmailTemplateType) ?? DEFAULT_TEMPLATE;
     const formattedMessage = applyTemplate(message, templateName);
+
+    if (jobId) {
+      this.activeJobs.set(jobId, {
+        batchNumber: 0,
+        totalBatches,
+        batchSize: this.BATCH_SIZE,
+        successCount: 0,
+        failureCount: 0,
+        totalProcessed: 0,
+        totalEmails,
+        failures: [],
+        status: 'processing'
+      });
+    }
 
     const batchStats = await this.processAllBatches(
       transporter,
       allowedEmails,
       subject,
-      formattedMessage
+      formattedMessage,
+      jobId,
+      totalBatches,
+      totalEmails
     );
+
+    if (jobId) {
+      const job = this.activeJobs.get(jobId);
+      if (job) {
+        job.status = 'completed';
+        this.activeJobs.set(jobId, job);
+        this.emit('progress', { jobId, ...job });
+      }
+    }
 
     const result = this.buildSendResult(batchStats, blockedEmails);
     return result;
+  }
+
+  getJobProgress(jobId: string): BatchProgress | undefined {
+    return this.activeJobs.get(jobId);
+  }
+
+  private updateJobProgress(jobId: string, progress: Partial<BatchProgress>) {
+    const job = this.activeJobs.get(jobId);
+    if (job) {
+      Object.assign(job, progress);
+      this.activeJobs.set(jobId, job);
+      this.emit('progress', { jobId, ...job });
+    }
   }
 
   private async getTransporter(): Promise<nodemailer.Transporter> {
@@ -157,9 +211,11 @@ class EmailService {
         currentSuccessCount++;
       } else {
         currentFailureCount++;
+        const errorMsg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+        console.error(`Failed to send to ${batchEmails[index]}: ${errorMsg}`);
         failures.push({
           email: batchEmails[index],
-          error: result.reason instanceof Error ? result.reason.message : String(result.reason)
+          error: errorMsg
         });
       }
     });
@@ -183,17 +239,30 @@ class EmailService {
     transporter: nodemailer.Transporter,
     allowedEmails: string[],
     subject: string,
-    formattedMessage: string
+    formattedMessage: string,
+    jobId?: string,
+    totalBatches?: number,
+    totalEmails?: number
   ): Promise<{ successCount: number; failureCount: number; failures: { email: string; error: string }[] }> {
     const failures: { email: string; error: string }[] = [];
     let successCount = 0;
     let failureCount = 0;
     let batchNumber = 1;
-    const totalBatches = Math.ceil(allowedEmails.length / this.BATCH_SIZE);
+    const calculatedTotalBatches = totalBatches ?? Math.ceil(allowedEmails.length / this.BATCH_SIZE);
+    const calculatedTotalEmails = totalEmails ?? allowedEmails.length;
 
     for (let i = 0; i < allowedEmails.length; i += this.BATCH_SIZE) {
       const batch = allowedEmails.slice(i, i + this.BATCH_SIZE);
-      console.log(`Processing batch ${batchNumber}/${totalBatches}, size: ${batch.length}`);
+      console.log(`Processing batch ${batchNumber}/${calculatedTotalBatches}, size: ${batch.length}`);
+
+      if (jobId) {
+        this.updateJobProgress(jobId, {
+          batchNumber,
+          totalBatches: calculatedTotalBatches,
+          batchSize: batch.length,
+          status: 'processing'
+        });
+      }
 
       const batchResults = await this.sendBatch(transporter, batch, subject, formattedMessage);
 
@@ -207,7 +276,18 @@ class EmailService {
       successCount = counts.newSuccessCount;
       failureCount = counts.newFailureCount;
 
-      await this.delayBetweenBatches(batchNumber, totalBatches);
+      if (jobId) {
+        this.updateJobProgress(jobId, {
+          batchNumber,
+          successCount,
+          failureCount,
+          totalProcessed: successCount + failureCount,
+          totalEmails: calculatedTotalEmails,
+          failures: [...failures]
+        });
+      }
+
+      await this.delayBetweenBatches(batchNumber, calculatedTotalBatches);
       batchNumber++;
     }
 
