@@ -13,7 +13,7 @@ type Step = "class" | "profile"
 export const IntroClassOfferings: React.FC<{ introClassFlow?: boolean }> = ({ introClassFlow = false }) => {
   const { introClassData, isLoading, error } = useIntroClassOfferings()
   const { isAuthenticated, isLoading: userLoading, getAccessTokenSilently } = useAuth0()
-  const { profile, loading: profileLoading } = useMemberProfile()
+  const { profile, loading: profileLoading, error: profileError } = useMemberProfile()
   const [selectedVariationId, setSelectedVariationId] = useState<string | null>(null)
   const [step, setStep] = useState<Step>("class")
   const [isProcessing, setIsProcessing] = useState(false)
@@ -31,7 +31,7 @@ export const IntroClassOfferings: React.FC<{ introClassFlow?: boolean }> = ({ in
       const requestPayload: IntroClassCheckoutRequest = {
         catalogObjectId: selectedVariationId,
         memberProfileId: profile._id,
-        redirectUrl: `${window.location.origin}/dashboard`,
+        redirectUrl: `${globalThis.location.origin}/dashboard`,
       }
       
       const response = await fetch('/api/checkout/intro', {
@@ -46,13 +46,12 @@ export const IntroClassOfferings: React.FC<{ introClassFlow?: boolean }> = ({ in
       const data: CheckoutResponse = await response.json()
       
       if (!response.ok) {
-        // Handle error response
         const errorData = data as any
         throw new Error(errorData.error || 'Failed to create checkout')
       }
       
       setRedirecting(true)
-      window.location.href = data.checkoutUrl
+      globalThis.location.href = data.checkoutUrl
     } catch (err) {
       setIsProcessing(false)
       setCheckoutError(err instanceof Error ? err.message : 'An error occurred')
@@ -68,14 +67,11 @@ export const IntroClassOfferings: React.FC<{ introClassFlow?: boolean }> = ({ in
     }
   }
 
-  // Auto-redirect to checkout if profile is completed and we're in intro class flow
   useEffect(() => {
     if (introClassFlow && profile?.profileComplete && selectedVariationId) {
       proceedToCheckout()
     }
   }, [introClassFlow, profile?.profileComplete, selectedVariationId, profileJustCompleted, proceedToCheckout])
-
-  // Track when profile gets completed
   useEffect(() => {
     if (profile?.profileComplete && !profileJustCompleted) {
       setProfileJustCompleted(true)
@@ -90,10 +86,10 @@ export const IntroClassOfferings: React.FC<{ introClassFlow?: boolean }> = ({ in
     )
   }
 
-  if (error) {
+  if (error || profileError) {
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-        <p>Unable to load class information. Please try again later.</p>
+        <p>{profileError ? "Unable to load profile. Please try again later." : "Unable to load class information. Please try again later."}</p>
       </div>
     )
   }

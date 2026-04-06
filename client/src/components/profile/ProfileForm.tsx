@@ -26,9 +26,14 @@ interface ProfileFormData {
   profileComplete?: boolean
 }
 
-export default function ProfileForm({ member, onSaved }: { member: MemberProfileDTO; onSaved?: () => void }) {
+interface ProfileFormProps {
+  readonly member: MemberProfileDTO
+  readonly onSaved?: () => void
+}
+
+export default function ProfileForm({ member, onSaved }: ProfileFormProps) {
   const { getAccessTokenSilently } = useAuth0()
-  const { setProfile } = useMemberProfile()
+  const { updateProfile } = useMemberProfile()
   const [formData, setFormData] = useState<ProfileFormData>(() => ({
     displayFirstName: member.displayFirstName || "",
     displayLastName: member.displayLastName || "",
@@ -59,14 +64,14 @@ export default function ProfileForm({ member, onSaved }: { member: MemberProfile
     if (!formData.personalInfo?.legalFirstName?.trim()) newErrors.legalFirstName = "Legal first name is required."
     if (!formData.personalInfo?.legalLastName?.trim()) newErrors.legalLastName = "Legal last name is required."
     if (!formData.personalInfo?.email?.trim()) newErrors.email = "Email is required."
-    if (!formData.personalInfo?.dateOfBirth?.trim()) {
-      newErrors.dateOfBirth = "Date of birth is required."
-    } else {
+    if (formData.personalInfo?.dateOfBirth?.trim()) {
       const dob = new Date(formData.personalInfo.dateOfBirth)
       const today = new Date()
       const age = today.getFullYear() - dob.getFullYear()
         - (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0)
       if (age < 16) newErrors.dateOfBirth = "Members must be at least 16 years old to register."
+    } else {
+      newErrors.dateOfBirth = "Date of birth is required."
     }
     const address = formData.personalInfo?.address || {}
     if (!address.street?.trim()) newErrors.street = "Street is required."
@@ -140,7 +145,7 @@ export default function ProfileForm({ member, onSaved }: { member: MemberProfile
 
     if (res.ok) {
       const { data } = await res.json()
-      setProfile(data)
+      updateProfile(data)
       setSaveStatus("saved")
       onSaved?.()
     } else {
