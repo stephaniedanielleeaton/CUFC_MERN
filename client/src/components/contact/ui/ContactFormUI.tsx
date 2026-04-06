@@ -1,4 +1,5 @@
-import type { ContactFormData } from '../../../types/contact';
+import type { ContactFormData } from '../../../types/contact'
+import { SquareButton } from '../../common/SquareButton'
 
 interface ContactFormUIProps {
   formData: ContactFormData;
@@ -71,13 +72,14 @@ export function ContactFormUI({
       </div>
 
       <div>
-        <button
+        <SquareButton
           type="submit"
+          variant="medium-pink"
           disabled={isSubmitting}
-          className="w-full bg-[#904F69] text-white text-lg font-bold px-8 py-4 rounded-lg transition-all duration-300 hover:bg-[#904F69]/90 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed"
+          style={{ width: '100%', minWidth: '100%' }}
         >
           {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
-        </button>
+        </SquareButton>
       </div>
     </form>
   );

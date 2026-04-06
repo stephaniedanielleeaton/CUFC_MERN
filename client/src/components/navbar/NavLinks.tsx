@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
 
 export const NAV_LINKS = [
-  { href: "/join", label: "Join" },
   { href: "/get-started", label: "Get Started" },
   { href: "/about", label: "About" },
+  { href: "/schedule", label: "Schedule" },
   { href: "/events", label: "Events" },
   { href: "/contact", label: "Contact" },
   { href: "/notifications", label: "Notifications" },
