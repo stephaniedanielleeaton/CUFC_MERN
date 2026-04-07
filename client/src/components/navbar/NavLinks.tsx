@@ -10,10 +10,10 @@ export const NAV_LINKS = [
   { href: "/notifications", label: "Notifications" },
 ]
 
-type NavLinksProps = {
+type NavLinksProps = Readonly<{
   onClick?: () => void
   className?: string
-}
+}>
 
 export function NavLinks({ onClick, className = "" }: NavLinksProps) {
   const { loginWithRedirect, isAuthenticated } = useAuth0()

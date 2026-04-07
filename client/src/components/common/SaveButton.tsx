@@ -1,6 +1,16 @@
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error"
 
+function getButtonStyles(status: SaveStatus) {
+  const styles: Record<SaveStatus, string> = {
+    idle:   "bg-blue-600 text-white hover:bg-blue-700",
+    saving: "bg-blue-400 text-white cursor-not-allowed",
+    saved:  "bg-green-600 text-white hover:bg-green-700",
+    error:  "bg-red-500 text-white hover:bg-red-600"
+  }
+  return styles[status]
+}
+
 type Props = {
   saveStatus?: SaveStatus
   label?: string
@@ -8,17 +18,16 @@ type Props = {
   onClick?: () => void
 }
 
-export default function SaveButton({ saveStatus = "idle", label = "Save Changes", type = "submit", onClick }: Props) {
-  const text =
-    saveStatus === "saving" ? "Saving…" :
-    saveStatus === "saved"  ? "Saved!"  :
-    saveStatus === "error"  ? "Failed"  : label
+export default function SaveButton({ saveStatus = "idle", label = "Save Changes", type = "submit", onClick }: Readonly<Props>) {
+  const textMap: Record<SaveStatus, string> = {
+    idle: label,
+    saving: "Saving…",
+    saved: "Saved!",
+    error: "Failed",
+  }
+  const text = textMap[saveStatus]
 
-  const colorClass =
-    saveStatus === "saving" ? "bg-blue-400 text-white cursor-not-allowed" :
-    saveStatus === "saved"  ? "bg-green-600 text-white hover:bg-green-700" :
-    saveStatus === "error"  ? "bg-red-500 text-white hover:bg-red-600"    :
-                              "bg-blue-600 text-white hover:bg-blue-700"
+  const colorClass = getButtonStyles(saveStatus)
 
   return (
     <div className="flex items-center gap-3">

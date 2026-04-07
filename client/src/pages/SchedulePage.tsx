@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useScheduleData } from '../hooks/useScheduleData'
+import { useScheduleData } from '../hooks/useScheduleData.ts'
 import { useUserRoles } from '../hooks/useUserRoles'
 import { SmallHero } from '../components/common/SmallHero'
 import { ScheduleGrid, EventsList, ClosuresList, ScheduleModal } from '../components/schedule'

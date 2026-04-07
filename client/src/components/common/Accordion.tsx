@@ -77,15 +77,17 @@ export function Accordion({ items, allowMultiple = false }: AccordionProps) {
     }
   }, [items])
 
-  const handleToggle = (index: number) => {
-    if (allowMultiple) {
-      setOpenIndexes((prev) =>
-        prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-      )
-    } else {
-      setOpenIndexes((prev) => (prev.includes(index) ? [] : [index]))
-    }
+  const handleToggleSingle = (index: number) => {
+    setOpenIndexes((prev) => (prev.includes(index) ? [] : [index]))
   }
+
+  const handleToggleMultiple = (index: number) => {
+    setOpenIndexes((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    )
+  }
+
+  const handleToggle = allowMultiple ? handleToggleMultiple : handleToggleSingle
 
   return (
     <div className="border-b border-gray-200">

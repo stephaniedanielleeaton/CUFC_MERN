@@ -8,7 +8,7 @@ interface ScheduleItemCardProps {
   onDelete: (item: ScheduleItem) => void
 }
 
-export function ScheduleItemCard({ item, isAdmin, onEdit, onDelete }: ScheduleItemCardProps) {
+export function ScheduleItemCard({ item, isAdmin, onEdit, onDelete }: Readonly<ScheduleItemCardProps>) {
   return (
     <div className="bg-navy-dark/20 backdrop-blur-sm rounded-lg p-4 hover:bg-navy-dark/30 transition-colors">
       <div className="flex justify-between">

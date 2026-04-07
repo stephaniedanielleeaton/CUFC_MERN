@@ -17,12 +17,11 @@ type DesktopNavbarProps = {
   isAdmin: boolean
   canCheckIn: boolean
   displayName: string | null
-  profileComplete: boolean
   onLogin: () => void
   onLogout: () => void
 }
 
-export function DesktopNavbar({ user, isAdmin, canCheckIn, displayName, onLogin, onLogout }: DesktopNavbarProps) {
+export function DesktopNavbar({ user, isAdmin, canCheckIn, displayName, onLogin, onLogout }: Readonly<DesktopNavbarProps>) {
   return (
     <div className="hidden md:block w-full z-40">
       <div className="h-[58px] bg-navy text-white flex items-center justify-between px-12 py-1 font-khula font-normal leading-none tracking-[.1em]">

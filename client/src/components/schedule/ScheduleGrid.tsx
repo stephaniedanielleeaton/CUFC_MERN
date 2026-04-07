@@ -1,13 +1,13 @@
 import type { ScheduleItem } from '../../types/ScheduleTypes'
 import { ScheduleItemCard } from './ScheduleItemCard'
-import { AddButton } from './AddButton'
+import { AddButton } from './AddButton.tsx'
 
 interface ScheduleGridProps {
-  items: ScheduleItem[]
-  isAdmin: boolean
-  onAdd: () => void
-  onEdit: (item: ScheduleItem) => void
-  onDelete: (item: ScheduleItem) => void
+  readonly items: ScheduleItem[]
+  readonly isAdmin: boolean
+  readonly onAdd: () => void
+  readonly onEdit: (item: ScheduleItem) => void
+  readonly onDelete: (item: ScheduleItem) => void
 }
 
 export function ScheduleGrid({ items, isAdmin, onAdd, onEdit, onDelete }: ScheduleGridProps) {

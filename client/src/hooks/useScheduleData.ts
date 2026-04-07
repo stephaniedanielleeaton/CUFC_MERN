@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { ScheduleItem, Event, Closure, ScheduleData } from '../types/ScheduleTypes'
+import type { ScheduleData } from '../types/ScheduleTypes'
 
 const API_BASE = '/api'
 

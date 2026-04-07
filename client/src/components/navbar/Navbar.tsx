@@ -23,7 +23,7 @@ export default function Navbar() {
   const canCheckIn = roles.includes("club-admin") || roles.includes("kiosk")
 
   const handleLogin = () => loginWithRedirect()
-  const handleLogout = () => logout({ logoutParams: { returnTo: window.location.origin } })
+  const handleLogout = () => logout({ logoutParams: { returnTo: globalThis.location.origin } })
 
   return (
     <>
@@ -43,7 +43,6 @@ export default function Navbar() {
         isAdmin={isAdmin}
         canCheckIn={canCheckIn}
         displayName={displayName}
-        profileComplete={profileComplete}
         onLogin={handleLogin}
         onLogout={handleLogout}
       />

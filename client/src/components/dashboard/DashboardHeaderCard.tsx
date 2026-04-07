@@ -8,7 +8,7 @@ interface DashboardHeaderCardProps {
   onEditProfile?: () => void
 }
 
-export function DashboardHeaderCard({ profile, onEditProfile }: DashboardHeaderCardProps) {
+export function DashboardHeaderCard({ profile, onEditProfile }: Readonly<DashboardHeaderCardProps>) {
   const { user } = useAuth0()
 
   let displayName: string

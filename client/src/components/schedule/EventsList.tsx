@@ -10,7 +10,7 @@ interface EventsListProps {
   onDelete: (event: Event) => void
 }
 
-export function EventsList({ events, isAdmin, onAdd, onEdit, onDelete }: EventsListProps) {
+export function EventsList({ events, isAdmin, onAdd, onEdit, onDelete }: Readonly<EventsListProps>) {
   return (
     <div className="relative">
       <div className="absolute inset-0 bg-navy-light/30 rounded-xl -z-10"></div>

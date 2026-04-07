@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 type CheckInLinkProps = {
-  onClick?: () => void
+  readonly onClick?: () => void
 }
 
 export function CheckInLink({ onClick }: CheckInLinkProps) {
