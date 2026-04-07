@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import { MemberProfileProvider } from './context/ProfileContext'
 import Navbar from './components/navbar/Navbar'
 import HomePage from './pages/HomePage'
@@ -28,6 +28,7 @@ function App() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/unsubscribe" element={<UnsubscribePage />} />
           <Route path="/attendance" element={<AttendancePage />} />
+          <Route path="/checkin" element={<Navigate to="/attendance" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/dashboard/payments" element={<PaymentHistoryPage />} />
           <Route path="/dashboard/attendance" element={<AttendanceHistoryPage />} />

@@ -4,6 +4,7 @@ import { UserAvatar } from './UserAvatar'
 import { SignInOutButton } from './SignInOutButton'
 import { NavLinks } from './NavLinks'
 import { AdminLink } from './AdminLink'
+import { CheckInLink } from './CheckInLink'
 
 type Auth0User = {
   picture?: string
@@ -15,6 +16,7 @@ type Auth0User = {
 type MobileNavbarProps = {
   user: Auth0User | null
   isAdmin: boolean
+  canCheckIn: boolean
   displayName: string | null
   profileComplete: boolean
   menuOpen: boolean
@@ -23,7 +25,7 @@ type MobileNavbarProps = {
   onLogout: () => void
 }
 
-export function MobileNavbar({ user, isAdmin, displayName, profileComplete, menuOpen, setMenuOpen, onLogin, onLogout }: MobileNavbarProps) {
+export function MobileNavbar({ user, isAdmin, canCheckIn, displayName, profileComplete, menuOpen, setMenuOpen, onLogin, onLogout }: MobileNavbarProps) {
   return (
     <>
       {/* Mobile Nav */}
@@ -68,6 +70,10 @@ export function MobileNavbar({ user, isAdmin, displayName, profileComplete, menu
               </Link>
             )}
             <NavLinks onClick={() => setMenuOpen(false)} />
+            {(canCheckIn || isAdmin) && (
+              <div className="w-16 border-t border-gray-500 my-2"></div>
+            )}
+            {canCheckIn && <CheckInLink />}
             {isAdmin && <AdminLink />}
             <SignInOutButton
               user={user}

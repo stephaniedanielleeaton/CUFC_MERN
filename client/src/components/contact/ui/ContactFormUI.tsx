@@ -1,13 +1,20 @@
 import type { ContactFormData } from '../../../types/contact'
 import { SquareButton } from '../../common/SquareButton'
 
+
 interface ContactFormUIProps {
-  formData: ContactFormData;
-  onChange: (field: keyof ContactFormData, value: string) => void;
-  onSubmit: () => void;
-  isSubmitting: boolean;
-  error: string | null;
+  readonly formData: ContactFormData
+  readonly onChange: (field: keyof ContactFormData, value: string) => void
+  readonly onSubmit: () => void
+  readonly isSubmitting: boolean
+  readonly error: string | null
 }
+
+const INPUT_CLASSES = 
+  'w-full px-4 py-3 border border-gray-300 focus:outline-none focus:border-navy transition-colors'
+
+const TEXTAREA_CLASSES = 
+  `${INPUT_CLASSES} resize-none`
 
 export function ContactFormUI({
   formData,
@@ -16,71 +23,67 @@ export function ContactFormUI({
   isSubmitting,
   error,
 }: ContactFormUIProps) {
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit();
-  };
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    onSubmit()
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 text-base">
+    <form 
+      onSubmit={handleSubmit} 
+      className="space-y-4 text-base"
+      aria-label="Contact form"
+    >
       {error && (
-        <p className="text-center text-red-500">
+        <div role="alert" className="text-center text-red-500">
           {error}
-        </p>
+        </div>
       )}
 
-      <div>
-        <label className="block text-base font-medium text-gray-700 mb-2">
-          Full Name <span className="text-[#904F69]">*</span>
-        </label>
-        <input
-          type="text"
-          placeholder="Your name"
-          value={formData.fullName}
-          onChange={(e) => onChange('fullName', e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-[#904F69]/20 focus:border-[#904F69] transition-colors"
-          required
-        />
-      </div>
+      <input
+        type="text"
+        name="fullName"
+        placeholder="Full Name*"
+        value={formData.fullName}
+        onChange={(e) => onChange('fullName', e.target.value)}
+        className={INPUT_CLASSES}
+        required
+        aria-required="true"
+      />
 
-      <div>
-        <label className="block text-base font-medium text-gray-700 mb-2">
-          Email Address <span className="text-[#904F69]">*</span>
-        </label>
-        <input
-          type="email"
-          placeholder="your.email@example.com"
-          value={formData.emailAddress}
-          onChange={(e) => onChange('emailAddress', e.target.value)}
-          className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-[#904F69]/20 focus:border-[#904F69] transition-colors"
-          required
-        />
-      </div>
+      <input
+        type="email"
+        name="emailAddress"
+        placeholder="Email Address*"
+        value={formData.emailAddress}
+        onChange={(e) => onChange('emailAddress', e.target.value)}
+        className={INPUT_CLASSES}
+        required
+        aria-required="true"
+      />
 
-      <div>
-        <label className="block text-base font-medium text-gray-700 mb-2">
-          Message <span className="text-[#904F69]">*</span>
-        </label>
-        <textarea
-          placeholder="How can we help you?"
-          value={formData.message}
-          onChange={(e) => onChange('message', e.target.value)}
-          rows={4}
-          className="w-full px-4 py-4 text-base md:text-lg rounded-lg border border-gray-200 focus:ring-2 focus:ring-[#904F69]/20 focus:border-[#904F69] transition-colors resize-none"
-          required
-        />
-      </div>
+      <textarea
+        name="message"
+        placeholder="Message*"
+        value={formData.message}
+        onChange={(e) => onChange('message', e.target.value)}
+        rows={5}
+        className={TEXTAREA_CLASSES}
+        required
+        aria-required="true"
+      />
 
-      <div>
+      <div className="pt-2 flex justify-center md:justify-start">
         <SquareButton
           type="submit"
-          variant="medium-pink"
+          variant="white"
           disabled={isSubmitting}
-          style={{ width: '100%', minWidth: '100%' }}
+          className="w-full md:w-auto"
+          style={{ minWidth: 180 }}
         >
           {isSubmitting ? 'SUBMITTING...' : 'SUBMIT'}
         </SquareButton>
       </div>
     </form>
-  );
+  )
 }
