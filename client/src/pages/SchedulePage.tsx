@@ -365,7 +365,12 @@ export default function SchedulePage() {
   const openAddModal = (type: 'schedule' | 'event' | 'closure') => {
     setModalType(type)
     setEditingItem(null)
-    setFormData({})
+    // Set default day for schedule items so the displayed value matches actual data
+    if (type === 'schedule') {
+      setFormData({ day: 'Monday' })
+    } else {
+      setFormData({})
+    }
     setShowModal(true)
   }
 
