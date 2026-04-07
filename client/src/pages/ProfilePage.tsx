@@ -29,7 +29,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen py-10">
+    <div className="bg-gray-50 py-10">
       <div className="max-w-md mx-auto px-4 space-y-6">
         <Link 
           to="/dashboard" 

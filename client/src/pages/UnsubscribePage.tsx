@@ -4,7 +4,7 @@ import { SmallHero } from '../components/common/SmallHero'
 
 export default function UnsubscribePage(): ReactElement {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-gray-50">
       <SmallHero pageTitle="Unsubscribe" />
       <div className="max-w-2xl mx-auto py-12 px-4">
         <UnsubscribeForm />

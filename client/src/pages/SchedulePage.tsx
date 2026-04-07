@@ -86,7 +86,7 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="bg-white">
       <SmallHero pageTitle="Schedule" />
       <section className="bg-navy py-16 md:py-24 w-full" id="schedule">
         <div className="max-w-6xl mx-auto px-6 md:px-10">

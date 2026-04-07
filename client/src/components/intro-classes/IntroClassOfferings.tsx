@@ -137,15 +137,25 @@ export const IntroClassOfferings: React.FC<{ introClassFlow?: boolean }> = ({ in
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <div className="bg-navy p-3 text-center">
-        <h2 className="text-lg font-semibold text-white tracking-wide">
-          Upcoming Intro Classes for New Fencers
+    <div className="w-full px-4 md:px-0">
+      {/* Centered Header */}
+      <div className="text-center mb-8">
+        <span className="text-xs uppercase tracking-widest text-navy/60 font-semibold">
+          Get Started
+        </span>
+        <h2 className="text-2xl md:text-3xl font-extrabold text-navy mt-2 mb-3">
+          Upcoming Intro Classes
         </h2>
+        <p className="text-gray-600 text-sm md:text-base leading-relaxed max-w-xl mx-auto">
+          New to fencing? Our intro classes are designed for beginners of all ages 
+          and fitness levels. Select a date that works for you.
+        </p>
       </div>
-      <div className="p-4">
+
+      {/* Class Selection - Centered */}
+      <div className="max-w-md mx-auto">
         {introClassData.variations && introClassData.variations.length > 0 ? (
-          <ul className="space-y-2" aria-label="Available Intro Classes">
+          <ul className="space-y-2 mb-4" aria-label="Available Intro Classes">
             {introClassData.variations.map((variation) => (
               <ClassVariationItem
                 key={variation.id}
@@ -156,21 +166,22 @@ export const IntroClassOfferings: React.FC<{ introClassFlow?: boolean }> = ({ in
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-gray-600">No class dates are available right now.</p>
+          <p className="text-sm text-gray-500 mb-4 text-center">No class dates are available right now.</p>
         )}
-        <div className="mt-4">
+        
+        <div className="flex flex-col items-center">
           <EnrollButton
             hasSelectedVariation={!!selectedVariationId}
             label={profile?.profileComplete ? "Enroll Now" : "Continue"}
             onEnrollClick={handleContinue}
           />
           {isAuthenticated && (
-            <div className="mt-1">
+            <div className="mt-2 text-center">
               {!selectedVariationId && (
-                <p className="text-xs text-center text-gray-500">Select a class date to continue.</p>
+                <p className="text-xs text-gray-500">Select a class date to continue.</p>
               )}
               {checkoutError && (
-                <p className="text-xs text-center text-red-500 mt-1">Error: {checkoutError}</p>
+                <p className="text-xs text-red-500 mt-1">Error: {checkoutError}</p>
               )}
             </div>
           )}

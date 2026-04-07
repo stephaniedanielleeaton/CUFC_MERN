@@ -45,7 +45,7 @@ export default function DashboardPage() {
 
   if (!profile) {
     return (
-      <div className="bg-gray-50 min-h-screen py-10">
+      <div className="bg-gray-50 py-10">
         <div className="max-w-md mx-auto px-4">
           <div className="bg-white rounded-xl shadow-md p-8 text-center space-y-4">
             <h2 className="text-xl font-bold text-gray-800">Welcome!</h2>
@@ -103,7 +103,7 @@ export default function DashboardPage() {
 
   if (showIntroClasses) {
     return (
-      <div className="bg-gray-50 min-h-screen py-10">
+      <div className="bg-gray-50 py-10">
         <div className="max-w-md mx-auto px-4 space-y-6">
           <button
             onClick={handleBackToDashboard}

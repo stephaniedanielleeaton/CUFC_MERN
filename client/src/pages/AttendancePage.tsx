@@ -91,7 +91,7 @@ export default function AttendancePage() {
             totalCheckedIn={totalCheckedIn} 
           />
           
-          <div className="p-4 bg-white min-h-screen">
+          <div className="p-4 bg-white">
             <div className="flex items-center justify-between mb-4">
               <SearchBar 
                 searchTerm={searchTerm} 

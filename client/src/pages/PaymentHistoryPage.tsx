@@ -105,7 +105,7 @@ export default function PaymentHistoryPage() {
   }, [isAuthenticated, getAccessTokenSilently])
 
   return (
-    <div className="bg-gray-50 min-h-screen py-10">
+    <div className="bg-gray-50 py-10">
       <div className="max-w-md mx-auto px-4 space-y-6">
         <button
           onClick={() => navigate('/dashboard')}
