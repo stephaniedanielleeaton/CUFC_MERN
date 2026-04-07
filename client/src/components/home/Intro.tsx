@@ -12,7 +12,7 @@ export function Intro() {
 
   return (
     <section className="bg-white w-full border-b border-gray-100 relative z-10">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center pt-20 pb-16 md:py-24 px-6 md:px-10">
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center pt-12 pb-16 md:py-24 px-6 md:px-10">
         {/* Main Intro */}
         <div className="md:w-2/3 md:pr-16 mb-12 md:mb-0 flex flex-col justify-center">
           <div className="flex flex-col space-y-7">
@@ -35,7 +35,7 @@ export function Intro() {
                 variant="navy"
                 style={{ minWidth: 180 }}
               >
-                LEARN MORE
+                LEARN MORE &gt;
               </SquareButton>
             </div>
           </div>
@@ -50,7 +50,7 @@ export function Intro() {
             <ul className="flex flex-col gap-3 md:gap-3">
               {DISCIPLINES.map((discipline) => (
                 <li key={discipline} className="flex items-center gap-3">
-                  <span className="inline-block min-w-[8px] h-[8px] bg-mediumPink rounded-full"></span>
+                  <span className="inline-block min-w-[8px] h-[8px] bg-medium-pink rounded-full"></span>
                   <span className="text-gray-800 text-base md:text-lg leading-relaxed">
                     {discipline}
                   </span>
@@ -66,7 +66,7 @@ export function Intro() {
               className="w-full"
               style={{ minWidth: '100%' }}
             >
-              LEARN MORE
+              LEARN MORE &gt;
             </SquareButton>
           </div>
         </div>
