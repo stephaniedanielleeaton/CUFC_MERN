@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface AccordionItemProps {
+  readonly id?: string
   readonly title: string
   readonly children: React.ReactNode
   readonly isOpen?: boolean
@@ -9,6 +10,7 @@ interface AccordionItemProps {
 
 interface AccordionProps {
   readonly items: Array<{
+    id?: string
     title: string
     content: React.ReactNode
   }>
@@ -31,9 +33,9 @@ function ChevronIcon({ isOpen }: { readonly isOpen: boolean }) {
   )
 }
 
-export function AccordionItem({ title, children, isOpen = false, onToggle }: AccordionItemProps) {
+export function AccordionItem({ id, title, children, isOpen = false, onToggle }: AccordionItemProps) {
   return (
-    <div className="border-t border-gray-200">
+    <div id={id} className="border-t border-gray-200">
       <button
         type="button"
         onClick={onToggle}
@@ -61,6 +63,20 @@ export function AccordionItem({ title, children, isOpen = false, onToggle }: Acc
 export function Accordion({ items, allowMultiple = false }: AccordionProps) {
   const [openIndexes, setOpenIndexes] = useState<number[]>([])
 
+  useEffect(() => {
+    const hash = globalThis.location.hash.slice(1)
+    if (hash) {
+      const index = items.findIndex((item) => item.id === hash)
+      if (index !== -1) {
+        setOpenIndexes([index])
+        setTimeout(() => {
+          const element = document.getElementById(hash)
+          element?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 100)
+      }
+    }
+  }, [items])
+
   const handleToggle = (index: number) => {
     if (allowMultiple) {
       setOpenIndexes((prev) =>
@@ -75,7 +91,8 @@ export function Accordion({ items, allowMultiple = false }: AccordionProps) {
     <div className="border-b border-gray-200">
       {items.map((item, index) => (
         <AccordionItem
-          key={index}
+          key={item.id || index}
+          id={item.id}
           title={item.title}
           isOpen={openIndexes.includes(index)}
           onToggle={() => handleToggle(index)}

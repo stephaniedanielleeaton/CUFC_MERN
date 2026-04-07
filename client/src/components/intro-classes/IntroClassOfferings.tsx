@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { useIntroClassOfferings } from '../../hooks/useIntroClassOfferings'
 import { useMemberProfile } from '../../context/ProfileContext'
 import { useAuth0 } from '@auth0/auth0-react'
@@ -146,10 +147,16 @@ export const IntroClassOfferings: React.FC<{ introClassFlow?: boolean }> = ({ in
         <h2 className="text-2xl md:text-3xl font-extrabold text-navy mt-2 mb-3">
           Upcoming Intro Classes
         </h2>
-        <p className="text-gray-600 text-sm md:text-base leading-relaxed max-w-xl mx-auto">
+        <p className="text-gray-600 text-sm md:text-base leading-relaxed max-w-xl mx-auto mb-3">
           New to fencing? Our intro classes are designed for beginners of all ages 
           and fitness levels. Select a date that works for you.
         </p>
+        <Link 
+          to="/about#getting-started" 
+          className="text-navy underline hover:text-medium-pink transition-colors text-sm"
+        >
+          Learn more about our intro course →
+        </Link>
       </div>
 
       {/* Class Selection - Centered */}

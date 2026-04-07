@@ -154,6 +154,7 @@ const ACCORDION_ITEMS = [
     ),
   },
   {
+    id: 'getting-started',
     title: 'Getting Started',
     content: (
       <div className="space-y-6">
