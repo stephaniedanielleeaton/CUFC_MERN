@@ -11,8 +11,8 @@ export function Intro() {
   }
 
   return (
-    <section className="bg-white w-full border-b border-gray-100">
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center py-16 md:py-24 px-6 md:px-10">
+    <section className="bg-white w-full border-b border-gray-100 relative z-10">
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center pt-20 pb-16 md:py-24 px-6 md:px-10">
         {/* Main Intro */}
         <div className="md:w-2/3 md:pr-16 mb-12 md:mb-0 flex flex-col justify-center">
           <div className="flex flex-col space-y-7">
