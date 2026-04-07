@@ -3,6 +3,7 @@ import { MemberProfileProvider } from './context/ProfileContext'
 import Navbar from './components/navbar/Navbar'
 import HomePage from './pages/HomePage'
 import ContactPage from './pages/ContactPage'
+import SchedulePage from './pages/SchedulePage'
 import AttendancePage from './pages/AttendancePage'
 import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
@@ -23,6 +24,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/unsubscribe" element={<UnsubscribePage />} />
           <Route path="/attendance" element={<AttendancePage />} />
