@@ -3,6 +3,7 @@ import { Intro } from '../components/home/Intro'
 import { IntroClassOfferings } from '../components/intro-classes/IntroClassOfferings'
 import { NotificationSignup } from '../components/common/NotificationSignup/NotificationSignup'
 import { ContactSection } from '../components/contact/ContactSection'
+import { MembershipCTA } from '../components/common/MembershipCTA'
 
 export default function HomePage() {
   return (
@@ -24,6 +25,7 @@ export default function HomePage() {
           <ContactSection />
         </div>
       </section>
+      <MembershipCTA />
     </>
   )
 }
