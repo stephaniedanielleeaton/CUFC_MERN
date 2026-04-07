@@ -307,10 +307,13 @@ export default function AboutPage() {
             <h3 className="text-2xl md:text-3xl font-extrabold text-navy mt-2 mb-4">
               About Our Club
             </h3>
-            <p className="text-gray-600 text-base leading-relaxed max-w-2xl">
+            <p className="text-gray-600 text-base leading-relaxed max-w-2xl mb-3">
               Columbus United Fencing Club is dedicated to the study and practice of Historical 
               European Martial Arts (HEMA). We offer classes for all skill levels, from complete 
               beginners to experienced fencers looking to refine their technique.
+            </p>
+            <p className="text-gray-600 text-base leading-relaxed max-w-2xl">
+              We are a registered 501(c)(3) nonprofit organization, committed to serving the community of historical fencers.
             </p>
           </div>
 
