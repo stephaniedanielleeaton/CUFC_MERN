@@ -69,20 +69,26 @@ export default function AdminMembersPage() {
 
   const filtered = useMemo(() => {
     const searchQueryLower = search.toLowerCase()
-    return members.filter((m) => {
-      const firstName = m.displayFirstName || ""
-      const lastName = m.displayLastName || ""
-      const matchesSearch = `${firstName} ${lastName}`.toLowerCase().includes(searchQueryLower)
+    return members
+      .filter((m) => {
+        const firstName = m.displayFirstName || ""
+        const lastName = m.displayLastName || ""
+        const matchesSearch = `${firstName} ${lastName}`.toLowerCase().includes(searchQueryLower)
+        
+        const lastCheckIn = lastCheckInMap[String(m._id)]
+        const isCheckedInToday = !!lastCheckIn && new Date(lastCheckIn).toDateString() === todayDateString
+        const matchesCheckedIn = !checkedInOnly || isCheckedInToday
       
-      const lastCheckIn = lastCheckInMap[String(m._id)]
-      const isCheckedInToday = !!lastCheckIn && new Date(lastCheckIn).toDateString() === todayDateString
-      const matchesCheckedIn = !checkedInOnly || isCheckedInToday
-    
-      const isArchived = m.isArchived ?? false
-      const matchesArchive = showArchived ? isArchived : !isArchived
-      
-      return matchesSearch && matchesCheckedIn && matchesArchive
-    })
+        const isArchived = m.isArchived ?? false
+        const matchesArchive = showArchived ? isArchived : !isArchived
+        
+        return matchesSearch && matchesCheckedIn && matchesArchive
+      })
+      .sort((a, b) => {
+        const lastNameA = (a.displayLastName || "").toLowerCase()
+        const lastNameB = (b.displayLastName || "").toLowerCase()
+        return lastNameA.localeCompare(lastNameB)
+      })
   }, [members, search, checkedInOnly, lastCheckInMap, todayDateString, showArchived])
 
   const handleToggle = (id: string) => {

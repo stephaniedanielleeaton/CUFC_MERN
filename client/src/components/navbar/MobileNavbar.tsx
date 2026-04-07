@@ -73,8 +73,8 @@ export function MobileNavbar({ user, isAdmin, canCheckIn, displayName, profileCo
             {(canCheckIn || isAdmin) && (
               <div className="w-16 border-t border-gray-500 my-2"></div>
             )}
-            {canCheckIn && <CheckInLink />}
-            {isAdmin && <AdminLink />}
+            {canCheckIn && <CheckInLink onClick={() => setMenuOpen(false)} />}
+            {isAdmin && <AdminLink onClick={() => setMenuOpen(false)} />}
             <SignInOutButton
               user={user}
               onClick={() => {
