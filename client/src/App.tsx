@@ -4,6 +4,7 @@ import Navbar from './components/navbar/Navbar'
 import { Footer } from './components/layout/Footer'
 import { SubFooter } from './components/layout/SubFooter'
 import HomePage from './pages/HomePage'
+import AboutPage from './pages/AboutPage'
 import ContactPage from './pages/ContactPage'
 import SchedulePage from './pages/SchedulePage'
 import AttendancePage from './pages/AttendancePage'
@@ -26,6 +27,7 @@ function App() {
         <main className="flex-grow bg-gray-50">
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/schedule" element={<SchedulePage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
