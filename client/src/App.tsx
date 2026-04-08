@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { MemberProfileProvider } from './context/ProfileContext'
+import { ToastProvider } from './components/common/Toast'
 import Navbar from './components/navbar/Navbar'
 import { Footer } from './components/layout/Footer'
 import { SubFooter } from './components/layout/SubFooter'
@@ -21,8 +22,9 @@ import UnsubscribePage from './pages/UnsubscribePage'
 
 function App() {
   return (
-    <MemberProfileProvider>
-      <div className="flex flex-col min-h-screen">
+    <ToastProvider>
+      <MemberProfileProvider>
+        <div className="flex flex-col min-h-screen">
         <Navbar />
         <main className="flex-grow bg-gray-50">
           <Routes>
@@ -48,8 +50,9 @@ function App() {
         </main>
         <Footer />
         <SubFooter />
-      </div>
-    </MemberProfileProvider>
+        </div>
+      </MemberProfileProvider>
+    </ToastProvider>
   )
 }
 

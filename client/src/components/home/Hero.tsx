@@ -1,18 +1,8 @@
-import { useNavigate } from 'react-router-dom'
 import { SquareButton } from '../common/SquareButton'
-import { useAuth0 } from '@auth0/auth0-react'
+import { useJoinNavigation } from '../../hooks/useJoinNavigation'
 
 export default function Hero() {
-  const { loginWithRedirect, isAuthenticated } = useAuth0()
-  const navigate = useNavigate()
-
-  const handleJoinNowClick = () => {
-    if (isAuthenticated) {
-      navigate('/dashboard')
-    } else {
-      loginWithRedirect({ appState: { returnTo: '/dashboard' } })
-    }
-  }
+  const { handleJoinClick } = useJoinNavigation()
 
   return (
     <section className="w-full">
@@ -32,7 +22,7 @@ export default function Hero() {
             </h1>
             <div className="flex flex-col sm:flex-row gap-4">
               <SquareButton 
-                onClick={handleJoinNowClick}
+                onClick={handleJoinClick}
                 variant="transparent"
                 className="mt-2"
                 style={{ 

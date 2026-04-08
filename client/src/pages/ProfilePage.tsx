@@ -2,7 +2,7 @@ import { useAuth0 } from '@auth0/auth0-react'
 import { Link } from 'react-router-dom'
 import { useMemberProfile } from '../context/ProfileContext'
 import { ProfileHeader } from '../components/profile/ProfileHeader'
-import ProfileForm from '../components/profile/ProfileForm'
+import { UnifiedProfileForm } from '../components/profile/UnifiedProfileForm'
 
 export default function ProfilePage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth0()
@@ -41,7 +41,7 @@ export default function ProfilePage() {
           Back to Dashboard
         </Link>
         <ProfileHeader />
-        <ProfileForm member={profile} />
+        <UnifiedProfileForm mode="edit" existingProfile={profile} />
       </div>
     </div>
   )

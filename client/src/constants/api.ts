@@ -1,0 +1,56 @@
+export const API_ENDPOINTS = {
+  MEMBERS: {
+    ME: '/api/members/me',
+    GUEST: '/api/members/guest',
+    UPDATE: '/api/members/me/update',
+    SUBSCRIPTIONS: '/api/members/me/subscriptions',
+    INTRO_ENROLLMENT: '/api/members/me/intro-enrollment',
+    LAST_CHECKIN: '/api/members/last-checkin',
+    TRANSACTIONS: '/api/members/me/transactions',
+    ATTENDANCE: '/api/members/me/attendance',
+  },
+  CHECKOUT: {
+    INTRO: '/api/checkout/intro',
+    INTRO_GUEST: '/api/checkout/intro-guest',
+    DROPIN: '/api/checkout/dropin',
+    SUBSCRIPTION: '/api/checkout/subscription',
+  },
+  ATTENDANCE: {
+    MEMBERS: '/api/attendance/members',
+    CHECKIN: '/api/attendance/checkin',
+    RECENT: '/api/attendance/recent',
+  },
+  ADMIN: {
+    MEMBERS: '/api/admin/members',
+    MEMBERS_SQUARE_STATUS: '/api/admin/members/square-status',
+    MEMBER_BY_ID: (id: string) => `/api/admin/members/${id}`,
+    MEMBER_SUBSCRIPTION: (id: string) => `/api/admin/members/${id}/subscription-status`,
+    MEMBER_TRANSACTIONS: (id: string) => `/api/admin/members/${id}/transactions`,
+    MEMBER_ATTENDANCE: (id: string) => `/api/admin/members/${id}/attendance`,
+  },
+  SCHEDULE: {
+    ROOT: '/api/schedule',
+    SCHEDULE_ITEMS: '/api/schedule/schedule-items',
+    SCHEDULE_ITEM_BY_ID: (id: string) => `/api/schedule/schedule-items/${id}`,
+    EVENTS: '/api/schedule/events',
+    EVENT_BY_ID: (id: string) => `/api/schedule/events/${id}`,
+    CLOSURES: '/api/schedule/closures',
+    CLOSURE_BY_ID: (id: string) => `/api/schedule/closures/${id}`,
+  },
+  INTRO_CLASS: '/api/intro-class-offerings',
+  CONTACT: '/api/contact',
+  AUTH: {
+    ROLES: '/api/auth/roles',
+  },
+  EMAIL: {
+    SEND_TO_LIST: '/api/email/send-to-list',
+    SEND_TO_LIST_STREAM: '/api/email/send-to-list/stream',
+    SEND_TO_LIST_ASYNC: '/api/email/send-to-list/async',
+  },
+  EMAIL_LISTS: {
+    ROOT: '/api/email-lists',
+    SUMMARIES: '/api/email-lists/summaries',
+    ALL_MEMBERS: '/api/email-lists/members/all',
+    PROMOTIONAL_EMAILS: '/api/email-lists/promotional/emails',
+  },
+} as const;

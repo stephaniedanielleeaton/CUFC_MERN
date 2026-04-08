@@ -1,4 +1,5 @@
 import { memberProfileService } from './memberProfileService';
+import type { GuestProfileInput } from '@cufc/shared';
 import { attendanceService } from './attendanceService';
 import { INTRO_CLASS_CATALOG_OBJECT_ID } from '../config/constants';
 import { 
@@ -52,6 +53,10 @@ class MemberService {
     return memberProfileService.update(memberId, data);
   }
 
+  async createGuestProfile(data: GuestProfileInput): Promise<MemberProfileDTO> {
+    return memberProfileService.createGuest(data);
+  }
+
   async getSubscriptions(auth0Id: string): Promise<MemberSubscriptionDTO[]> {
     const profile = await memberProfileService.getByAuth0Id(auth0Id);
     if (!profile?.squareCustomerId) {
@@ -61,52 +66,59 @@ class MemberService {
     const subscriptions = await squareSubscriptionsService.getByCustomerId(profile.squareCustomerId);
     const activeSubscriptions = subscriptions.filter((sub: SquareSubscriptionDto) => sub.status === 'ACTIVE');
 
-    const results: MemberSubscriptionDTO[] = [];
+    return Promise.all(activeSubscriptions.map((sub) => this.buildSubscriptionDTO(sub)));
+  }
 
-    for (const sub of activeSubscriptions) {
-      let planName = 'Membership';
-      let priceFormatted = '—';
+  private async buildSubscriptionDTO(sub: SquareSubscriptionDto): Promise<MemberSubscriptionDTO> {
+    const planName = await this.fetchPlanName(sub.planVariationId);
+    const { priceFormatted, lastInvoiceDate } = await this.fetchInvoiceDetails(sub.invoiceIds);
 
-      if (sub.planVariationId) {
-        try {
-          const planVariation = await squareCatalogService.getSubscriptionPlanVariation(sub.planVariationId);
-          const catalogObj = planVariation as CatalogObject & { subscriptionPlanVariationData?: SubscriptionPlanVariationData };
-          const planData = catalogObj?.subscriptionPlanVariationData;
-          if (planData?.name) planName = planData.name;
-        } catch (err) {
-          console.error('Failed to fetch subscription plan variation:', err);
-        }
-      }
+    return {
+      id: sub.id,
+      planName,
+      status: sub.status,
+      priceFormatted,
+      activeThrough: this.formatDate(sub.chargedThroughDate) ?? undefined,
+      lastInvoiceDate: lastInvoiceDate ?? undefined,
+      canceledDate: this.formatDate(sub.canceledDate) ?? undefined,
+    };
+  }
 
-      const invoiceIds = sub.invoiceIds ?? [];
-      const mostRecentInvoiceId = invoiceIds[invoiceIds.length - 1];
-      let lastInvoiceDate: string | null = null;
-
-      if (mostRecentInvoiceId) {
-        try {
-          const invoice = await squareInvoicesService.getById(mostRecentInvoiceId);
-          const money = invoice?.paymentRequests?.[0]?.computedAmountMoney;
-          priceFormatted = this.formatMoney(money?.amount ?? undefined, money?.currency ?? undefined);
-          if (invoice?.paymentRequests?.[0]?.computedAmountMoney) {
-            lastInvoiceDate = this.formatDate(invoice.createdAt);
-          }
-        } catch (err) {
-          console.error('Failed to fetch subscription invoice:', err);
-        }
-      }
-
-      results.push({
-        id: sub.id,
-        planName,
-        status: sub.status,
-        priceFormatted,
-        activeThrough: this.formatDate(sub.chargedThroughDate) ?? undefined,
-        lastInvoiceDate: lastInvoiceDate ?? undefined,
-        canceledDate: this.formatDate(sub.canceledDate) ?? undefined,
-      });
+  private async fetchPlanName(planVariationId: string | null | undefined): Promise<string> {
+    if (!planVariationId) {
+      return 'Membership';
     }
 
-    return results;
+    try {
+      const planVariation = await squareCatalogService.getSubscriptionPlanVariation(planVariationId);
+      const catalogObj = planVariation as CatalogObject & { subscriptionPlanVariationData?: SubscriptionPlanVariationData };
+      return catalogObj?.subscriptionPlanVariationData?.name ?? 'Membership';
+    } catch (err) {
+      console.error('Failed to fetch subscription plan variation:', err);
+      return 'Membership';
+    }
+  }
+
+  private async fetchInvoiceDetails(invoiceIds: string[] | undefined): Promise<{
+    priceFormatted: string;
+    lastInvoiceDate: string | null;
+  }> {
+    const mostRecentInvoiceId = invoiceIds?.[invoiceIds.length - 1];
+    if (!mostRecentInvoiceId) {
+      return { priceFormatted: '—', lastInvoiceDate: null };
+    }
+
+    try {
+      const invoice = await squareInvoicesService.getById(mostRecentInvoiceId);
+      const money = invoice?.paymentRequests?.[0]?.computedAmountMoney;
+      const priceFormatted = this.formatMoney(money?.amount ?? undefined, money?.currency ?? undefined);
+      const lastInvoiceDate = money ? this.formatDate(invoice?.createdAt) : null;
+
+      return { priceFormatted, lastInvoiceDate };
+    } catch (err) {
+      console.error('Failed to fetch subscription invoice:', err);
+      return { priceFormatted: '—', lastInvoiceDate: null };
+    }
   }
 
   async getIntroEnrollment(auth0Id: string): Promise<IntroEnrollmentDTO | null> {

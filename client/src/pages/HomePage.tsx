@@ -10,7 +10,7 @@ export default function HomePage() {
     <>
       <Hero />
       <Intro />
-      <section className="py-12 bg-navy-light border-t border-navy-dark">
+      <section id="intro-classes" className="py-12 bg-navy-light border-t border-navy-dark">
         <div className="container mx-auto px-5 sm:px-6 max-w-4xl">
           <IntroClassOfferings />
         </div>

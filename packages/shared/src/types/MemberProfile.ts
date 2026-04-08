@@ -28,6 +28,21 @@ export type Guardian = {
   lastName?: string;
 };
 
+export type GuestProfileInput = {
+  displayFirstName?: string;
+  displayLastName?: string;
+  personalInfo?: {
+    legalFirstName?: string;
+    legalLastName?: string;
+    email?: string;
+    phone?: string;
+    dateOfBirth?: string;
+    address?: Address;
+  };
+  guardian?: Guardian;
+  profileComplete?: boolean;
+};
+
 export type MemberProfileDTO = {
   _id: string;
   auth0Id?: string;

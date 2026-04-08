@@ -1,16 +1,8 @@
 import { SquareButton } from './SquareButton'
-import { useAuth0 } from '@auth0/auth0-react'
+import { useJoinNavigation } from '../../hooks/useJoinNavigation'
 
 export function MembershipCTA() {
-  const { loginWithRedirect, isAuthenticated } = useAuth0()
-
-  const handleJoinClick = () => {
-    if (isAuthenticated) {
-      globalThis.location.href = '/dashboard'
-    } else {
-      loginWithRedirect({ appState: { returnTo: '/dashboard' } })
-    }
-  }
+  const { handleJoinClick } = useJoinNavigation()
 
   return (
     <section className="bg-dark-red w-full py-12 md:py-16 px-4">

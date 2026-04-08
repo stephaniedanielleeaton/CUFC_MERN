@@ -1,4 +1,4 @@
-import { MemberProfileDTO, MemberUpdateData } from '@cufc/shared';
+import { MemberProfileDTO, MemberUpdateData, GuestProfileInput } from '@cufc/shared';
 import { memberProfileDAO } from './memberProfileDAO';
 import { squareCustomersService } from './square';
 
@@ -122,6 +122,58 @@ export async function getAllMemberEmails(): Promise<string[]> {
   return memberProfileDAO.findAllEmails();
 }
 
+export async function createGuestProfile(data: GuestProfileInput): Promise<MemberProfileDTO> {
+  const email = data.personalInfo?.email?.toLowerCase().trim();
+
+  // Check if an existing profile with this email exists
+  if (email) {
+    const existingProfile = await memberProfileDAO.findByEmailUnlinked(email);
+    if (existingProfile) {
+      // Update the existing profile with the new data
+      const updated = await memberProfileDAO.updateById(existingProfile._id, {
+        displayFirstName: data.displayFirstName,
+        displayLastName: data.displayLastName,
+        'personalInfo.legalFirstName': data.personalInfo?.legalFirstName,
+        'personalInfo.legalLastName': data.personalInfo?.legalLastName,
+        'personalInfo.phone': data.personalInfo?.phone,
+        'personalInfo.dateOfBirth': data.personalInfo?.dateOfBirth,
+        'personalInfo.address.street': data.personalInfo?.address?.street,
+        'personalInfo.address.city': data.personalInfo?.address?.city,
+        'personalInfo.address.state': data.personalInfo?.address?.state,
+        'personalInfo.address.zip': data.personalInfo?.address?.zip,
+        'personalInfo.address.country': data.personalInfo?.address?.country,
+        ...(data.guardian ? { guardian: data.guardian } : {}),
+        profileComplete: data.profileComplete ?? true,
+      });
+      if (updated) return updated;
+    }
+  }
+
+  // Create Square customer if email provided
+  const squareCustomerId = await createSquareCustomerIfEmailProvided(email, data);
+
+  // Create new guest profile (no auth0Id)
+  return memberProfileDAO.create({
+    displayFirstName: data.displayFirstName,
+    displayLastName: data.displayLastName,
+    personalInfo: data.personalInfo
+      ? {
+          legalFirstName: data.personalInfo.legalFirstName,
+          legalLastName: data.personalInfo.legalLastName,
+          email: data.personalInfo.email,
+          phone: data.personalInfo.phone,
+          dateOfBirth: data.personalInfo.dateOfBirth
+            ? new Date(data.personalInfo.dateOfBirth)
+            : undefined,
+          address: data.personalInfo.address,
+        }
+      : undefined,
+    guardian: data.guardian,
+    profileComplete: data.profileComplete ?? true,
+    ...(squareCustomerId ? { squareCustomerId } : {}),
+  });
+}
+
 export async function findAndLinkByEmail(auth0Id: string, email: string): Promise<MemberProfileDTO | null> {
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -145,6 +197,7 @@ export const memberProfileService = {
   getById: getMemberProfileById,
   getByAuth0Id: getProfileForUser,
   create: createProfileForUser,
+  createGuest: createGuestProfile,
   update: updateMemberProfileById,
   delete: deleteMemberProfileById,
   getSquareCustomerId: getSquareCustomerIdForMember,
