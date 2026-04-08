@@ -79,7 +79,7 @@ export default function AdminEmailPage() {
     )
   }
 
-  const handleSendEmail = async (emailData: SendToListRequest): Promise<SendEmailResult> => {
+  const handleSendEmail = async (_emailData: SendToListRequest): Promise<SendEmailResult> => {
     throw new Error('Use streaming mode instead')
   }
 

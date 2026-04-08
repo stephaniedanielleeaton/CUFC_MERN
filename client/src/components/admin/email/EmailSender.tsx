@@ -1,6 +1,6 @@
 import { useState, useRef, FormEvent, useCallback } from 'react'
 import type { SendToListRequest } from '@cufc/shared'
-import type { BatchProgress } from '../../services/adminEmailService'
+import type { BatchProgress } from '../../../services/adminEmailService'
 import { RecipientListSelector } from './RecipientListSelector'
 import { AdditionalEmailsInput } from './AdditionalEmailsInput'
 import { TemplateSelector } from './TemplateSelector'

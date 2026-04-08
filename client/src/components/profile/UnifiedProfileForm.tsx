@@ -44,35 +44,56 @@ const INITIAL_FORM_DATA: ProfileFormData = {
   guardianLastName: '',
 }
 
+function validateRequired(value: string, fieldName: string): string | undefined {
+  return value.trim() ? undefined : `${fieldName} is required.`
+}
+
+function validateAge(dateOfBirth: string): string | undefined {
+  if (!dateOfBirth.trim()) return 'Date of birth is required.'
+
+  const dob = new Date(dateOfBirth)
+  const today = new Date()
+  const hasHadBirthdayThisYear = today >= new Date(today.getFullYear(), dob.getMonth(), dob.getDate())
+  const age = today.getFullYear() - dob.getFullYear() - (hasHadBirthdayThisYear ? 0 : 1)
+
+  return age < 16 ? 'Members must be at least 16 years old.' : undefined
+}
+
+function validateGuardian(formData: ProfileFormData, errors: ValidationErrors): void {
+  if (!formData.isMinor) return
+
+  const guardianFirstError = validateRequired(formData.guardianFirstName, 'Guardian first name')
+  const guardianLastError = validateRequired(formData.guardianLastName, 'Guardian last name')
+
+  if (guardianFirstError) errors.guardianFirstName = guardianFirstError
+  if (guardianLastError) errors.guardianLastName = guardianLastError
+}
+
 function validateProfile(formData: ProfileFormData): ValidationErrors {
   const errors: ValidationErrors = {}
 
-  if (!formData.displayFirstName.trim()) errors.displayFirstName = 'Display first name is required.'
-  if (!formData.displayLastName.trim()) errors.displayLastName = 'Display last name is required.'
-  if (!formData.legalFirstName.trim()) errors.legalFirstName = 'Legal first name is required.'
-  if (!formData.legalLastName.trim()) errors.legalLastName = 'Legal last name is required.'
-  if (!formData.email.trim()) errors.email = 'Email is required.'
+  const fieldsToValidate = [
+    { value: formData.displayFirstName, field: 'displayFirstName', label: 'Display first name' },
+    { value: formData.displayLastName, field: 'displayLastName', label: 'Display last name' },
+    { value: formData.legalFirstName, field: 'legalFirstName', label: 'Legal first name' },
+    { value: formData.legalLastName, field: 'legalLastName', label: 'Legal last name' },
+    { value: formData.email, field: 'email', label: 'Email' },
+    { value: formData.street, field: 'street', label: 'Street' },
+    { value: formData.city, field: 'city', label: 'City' },
+    { value: formData.state, field: 'state', label: 'State' },
+    { value: formData.zip, field: 'zip', label: 'ZIP' },
+    { value: formData.country, field: 'country', label: 'Country' },
+  ]
 
-  if (formData.dateOfBirth.trim()) {
-    const dob = new Date(formData.dateOfBirth)
-    const today = new Date()
-    const age = today.getFullYear() - dob.getFullYear() -
-      (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0)
-    if (age < 16) errors.dateOfBirth = 'Members must be at least 16 years old.'
-  } else {
-    errors.dateOfBirth = 'Date of birth is required.'
+  for (const { value, field, label } of fieldsToValidate) {
+    const error = validateRequired(value, label)
+    if (error) errors[field] = error
   }
 
-  if (!formData.street.trim()) errors.street = 'Street is required.'
-  if (!formData.city.trim()) errors.city = 'City is required.'
-  if (!formData.state.trim()) errors.state = 'State is required.'
-  if (!formData.zip.trim()) errors.zip = 'ZIP is required.'
-  if (!formData.country.trim()) errors.country = 'Country is required.'
+  const ageError = validateAge(formData.dateOfBirth)
+  if (ageError) errors.dateOfBirth = ageError
 
-  if (formData.isMinor) {
-    if (!formData.guardianFirstName.trim()) errors.guardianFirstName = 'Guardian first name is required.'
-    if (!formData.guardianLastName.trim()) errors.guardianLastName = 'Guardian last name is required.'
-  }
+  validateGuardian(formData, errors)
 
   return errors
 }

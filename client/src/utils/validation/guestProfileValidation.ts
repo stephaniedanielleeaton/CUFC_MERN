@@ -36,52 +36,69 @@ export const INITIAL_GUEST_PROFILE_FORM_DATA: GuestProfileFormData = {
 
 export type ValidationErrors = Record<string, string>;
 
+type StringField = Exclude<
+  keyof GuestProfileFormData,
+  'isMinor' | 'guardianFirstName' | 'guardianLastName' | 'dateOfBirth' | 'phone'
+>;
+
+const REQUIRED_FIELDS: Array<{ field: StringField; message: string }> = [
+  { field: 'displayFirstName', message: 'Display first name is required.' },
+  { field: 'displayLastName', message: 'Display last name is required.' },
+  { field: 'legalFirstName', message: 'Legal first name is required.' },
+  { field: 'legalLastName', message: 'Legal last name is required.' },
+  { field: 'email', message: 'Email is required.' },
+  { field: 'street', message: 'Street is required.' },
+  { field: 'city', message: 'City is required.' },
+  { field: 'state', message: 'State is required.' },
+  { field: 'zip', message: 'ZIP is required.' },
+  { field: 'country', message: 'Country is required.' },
+];
+
+function calculateAge(dateOfBirth: string): number {
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+  const hasBirthdayPassed = today >= new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+  return today.getFullYear() - dob.getFullYear() - (hasBirthdayPassed ? 0 : 1);
+}
+
+function validateDateOfBirth(dateOfBirth: string): string | undefined {
+  if (!dateOfBirth.trim()) {
+    return 'Date of birth is required.';
+  }
+  const age = calculateAge(dateOfBirth);
+  if (age < 16) {
+    return 'Members must be at least 16 years old to register.';
+  }
+  return undefined;
+}
+
+function validateGuardianFields(formData: GuestProfileFormData): ValidationErrors {
+  const errors: ValidationErrors = {};
+  if (!formData.guardianFirstName.trim()) {
+    errors.guardianFirstName = 'Guardian first name is required.';
+  }
+  if (!formData.guardianLastName.trim()) {
+    errors.guardianLastName = 'Guardian last name is required.';
+  }
+  return errors;
+}
+
 export function validateGuestProfile(formData: GuestProfileFormData): ValidationErrors {
   const errors: ValidationErrors = {};
 
-  if (!formData.displayFirstName.trim()) {
-    errors.displayFirstName = 'Display first name is required.';
-  }
-  if (!formData.displayLastName.trim()) {
-    errors.displayLastName = 'Display last name is required.';
-  }
-  if (!formData.legalFirstName.trim()) {
-    errors.legalFirstName = 'Legal first name is required.';
-  }
-  if (!formData.legalLastName.trim()) {
-    errors.legalLastName = 'Legal last name is required.';
-  }
-  if (!formData.email.trim()) {
-    errors.email = 'Email is required.';
-  }
-
-  if (formData.dateOfBirth.trim()) {
-    const dob = new Date(formData.dateOfBirth);
-    const today = new Date();
-    const age =
-      today.getFullYear() -
-      dob.getFullYear() -
-      (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0);
-    if (age < 16) {
-      errors.dateOfBirth = 'Members must be at least 16 years old to register.';
+  for (const { field, message } of REQUIRED_FIELDS) {
+    if (!formData[field].trim()) {
+      errors[field] = message;
     }
-  } else {
-    errors.dateOfBirth = 'Date of birth is required.';
   }
 
-  if (!formData.street.trim()) errors.street = 'Street is required.';
-  if (!formData.city.trim()) errors.city = 'City is required.';
-  if (!formData.state.trim()) errors.state = 'State is required.';
-  if (!formData.zip.trim()) errors.zip = 'ZIP is required.';
-  if (!formData.country.trim()) errors.country = 'Country is required.';
+  const dobError = validateDateOfBirth(formData.dateOfBirth);
+  if (dobError) {
+    errors.dateOfBirth = dobError;
+  }
 
   if (formData.isMinor) {
-    if (!formData.guardianFirstName.trim()) {
-      errors.guardianFirstName = 'Guardian first name is required.';
-    }
-    if (!formData.guardianLastName.trim()) {
-      errors.guardianLastName = 'Guardian last name is required.';
-    }
+    Object.assign(errors, validateGuardianFields(formData));
   }
 
   return errors;
