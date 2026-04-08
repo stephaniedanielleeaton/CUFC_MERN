@@ -67,21 +67,6 @@ export type MemberProfileDTO = {
   role?: string;
 };
 
-export type MemberUpdateData = {
-  auth0Id?: string;
-  displayFirstName?: string;
-  displayLastName?: string;
-  personalInfo?: PersonalInfo;
-  guardian?: Guardian;
-  profileComplete?: boolean;
-  isWaiverOnFile?: boolean;
-  isPaymentWaived?: boolean;
-  isArchived?: boolean;
-  memberStatus?: string;
-  squareCustomerId?: string;
-  notes?: string;
-};
-
 export type MemberProfileFormInput = MemberProfileDTO & {
   profileId: string;
 };
