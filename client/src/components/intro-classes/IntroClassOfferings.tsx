@@ -6,9 +6,10 @@ import { useAuth0 } from '@auth0/auth0-react'
 import { ClassVariationItem } from './ClassVariationItem'
 import { EnrollButton } from './EnrollButton'
 import { RedirectingOverlay } from '../common/RedirectingOverlay'
+import { LoadingSpinner } from '../common/LoadingSpinner'
 import { GuestCheckoutModal } from '../checkout'
-import { IntroClassCheckoutRequest, CheckoutResponse, MemberProfileDTO } from '@cufc/shared'
-import { API_ENDPOINTS } from '../../constants/api'
+import { createIntroCheckout, createGuestIntroCheckout } from '../../services/checkoutService'
+import type { MemberProfileDTO } from '@cufc/shared'
 
 interface IntroClassOfferingsProps {
   onClassSelected?: (classId: string) => void
@@ -35,33 +36,20 @@ export const IntroClassOfferings: React.FC<IntroClassOfferingsProps> = ({
       setIsProcessing(true)
       setCheckoutError(null)
       
-      const requestPayload: IntroClassCheckoutRequest = {
-        catalogObjectId: selectedVariationId,
-        memberProfileId,
-        redirectUrl: `${globalThis.location.origin}/`,
-      }
-
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      let endpoint: string = API_ENDPOINTS.CHECKOUT.INTRO_GUEST
-
+      let data
       if (isAuthenticated) {
         const token = await getAccessTokenSilently()
-        headers['Authorization'] = `Bearer ${token}`
-        endpoint = API_ENDPOINTS.CHECKOUT.INTRO
-        requestPayload.redirectUrl = `${globalThis.location.origin}/dashboard`
-      }
-      
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(requestPayload),
-      })
-      
-      const data: CheckoutResponse = await response.json()
-      
-      if (!response.ok) {
-        const errorData = data as unknown as { error?: string }
-        throw new Error(errorData.error || 'Failed to create checkout')
+        data = await createIntroCheckout(token, {
+          catalogObjectId: selectedVariationId,
+          memberProfileId,
+          redirectUrl: `${globalThis.location.origin}/dashboard`,
+        })
+      } else {
+        data = await createGuestIntroCheckout({
+          catalogObjectId: selectedVariationId,
+          memberProfileId,
+          redirectUrl: `${globalThis.location.origin}/`,
+        })
       }
       
       setRedirecting(true)
@@ -95,11 +83,7 @@ export const IntroClassOfferings: React.FC<IntroClassOfferingsProps> = ({
   }
 
   if (isLoading || userLoading || profileLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[300px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-medium-pink" />
-      </div>
-    )
+    return <LoadingSpinner />
   }
 
   if (error || profileError) {

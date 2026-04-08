@@ -10,11 +10,11 @@ import { DashboardIntroEnrollmentCard } from '../components/dashboard/DashboardI
 import { IntroClassOfferings } from '../components/intro-classes/IntroClassOfferings'
 import { UnifiedProfileForm } from '../components/profile/UnifiedProfileForm'
 import { RedirectingOverlay } from '../components/common/RedirectingOverlay'
+import { BackButton } from '../components/common/BackButton'
 import { useIntroEnrollment } from '../hooks/useIntroEnrollment'
-import { MemberStatus, IntroClassCheckoutRequest, CheckoutResponse } from '@cufc/shared'
+import { MemberStatus } from '@cufc/shared'
 import { useAuth0 } from '@auth0/auth0-react'
-import { createDropInCheckout } from '../services/dashboardService'
-import { API_ENDPOINTS } from '../constants/api'
+import { createIntroCheckout, createDropInCheckout } from '../services/checkoutService'
 import type { IntroEnrollmentDTO } from '../hooks/useIntroEnrollment'
 
 type EnrollmentStep = 'dashboard' | 'profile' | 'class-selection'
@@ -48,20 +48,11 @@ export default function DashboardPage() {
     try {
       setIsCheckingOut(true)
       const token = await getAccessTokenSilently()
-      const response = await fetch(API_ENDPOINTS.CHECKOUT.INTRO, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          catalogObjectId: classId,
-          memberProfileId: profileId,
-          redirectUrl: `${globalThis.location.origin}/dashboard`
-        } as IntroClassCheckoutRequest),
+      const data = await createIntroCheckout(token, {
+        catalogObjectId: classId,
+        memberProfileId: profileId,
+        redirectUrl: `${globalThis.location.origin}/dashboard`
       })
-      const data: CheckoutResponse = await response.json()
-      if (!response.ok) throw new Error('Failed to create checkout')
       globalThis.location.href = data.checkoutUrl
     } catch (err) {
       setIsCheckingOut(false)
@@ -152,15 +143,7 @@ export default function DashboardPage() {
     return (
       <div className="bg-gray-50 py-10">
         <div className="max-w-md mx-auto px-4 space-y-4">
-          <button
-            onClick={() => setEnrollmentStep('dashboard')}
-            className="flex items-center text-sm text-navy hover:text-medium-pink transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-            </svg>
-            Back to Dashboard
-          </button>
+          <BackButton onClick={() => setEnrollmentStep('dashboard')} label="Back to Dashboard" />
           <div>
             <h2 className="text-lg font-bold text-gray-800 mb-1">Complete Your Profile</h2>
             <p className="text-sm text-gray-600 mb-4">Please complete your profile before enrolling in an intro class.</p>
@@ -183,15 +166,7 @@ export default function DashboardPage() {
     return (
       <div className="bg-gray-50 py-10">
         <div className="max-w-md mx-auto px-4 space-y-6">
-          <button
-            onClick={() => setEnrollmentStep('dashboard')}
-            className="flex items-center text-sm text-navy hover:text-medium-pink transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-            </svg>
-            Back to Dashboard
-          </button>
+          <BackButton onClick={() => setEnrollmentStep('dashboard')} label="Back to Dashboard" />
           <IntroClassOfferings 
             onClassSelected={handleClassSelected}
             allowIncompleteProfile
