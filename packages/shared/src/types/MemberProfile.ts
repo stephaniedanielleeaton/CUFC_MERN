@@ -28,6 +28,21 @@ export type Guardian = {
   lastName?: string;
 };
 
+export type GuestProfileInput = {
+  displayFirstName?: string;
+  displayLastName?: string;
+  personalInfo?: {
+    legalFirstName?: string;
+    legalLastName?: string;
+    email?: string;
+    phone?: string;
+    dateOfBirth?: string;
+    address?: Address;
+  };
+  guardian?: Guardian;
+  profileComplete?: boolean;
+};
+
 export type MemberProfileDTO = {
   _id: string;
   auth0Id?: string;
@@ -38,6 +53,7 @@ export type MemberProfileDTO = {
   familyMembers?: FamilyMember[];
   isWaiverOnFile?: boolean;
   isPaymentWaived?: boolean;
+  isArchived?: boolean;
   notes?: string;
   lastAttendanceCheckIn?: string | null;
   profileComplete?: boolean;
@@ -60,6 +76,7 @@ export type MemberUpdateData = {
   profileComplete?: boolean;
   isWaiverOnFile?: boolean;
   isPaymentWaived?: boolean;
+  isArchived?: boolean;
   memberStatus?: string;
   squareCustomerId?: string;
   notes?: string;

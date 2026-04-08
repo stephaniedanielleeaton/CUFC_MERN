@@ -1,22 +1,15 @@
-import { HydratedDocument } from 'mongoose';
-import { MemberProfile, IMemberProfile } from '../models/MemberProfile';
-import { MemberProfileDTO, MemberUpdateData } from '@cufc/shared';
-import { dbConnect } from '../config/database';
-import { SquareService } from './square/squareService';
-
-function toISODateString(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
+import { MemberProfileDTO, MemberUpdateData, GuestProfileInput } from '@cufc/shared';
+import { memberProfileDAO } from './memberProfileDAO';
+import { squareCustomersService } from './square';
 
 async function createSquareCustomerIfEmailProvided(
   email: string | undefined,
   profileData?: { displayFirstName?: string; displayLastName?: string }
 ): Promise<string | undefined> {
   if (!email) return undefined;
-  
+
   try {
-    const squareService = new SquareService();
-    const customer = await squareService.getOrCreateCustomer({
+    const customer = await squareCustomersService.getOrCreate({
       email,
       givenName: profileData?.displayFirstName,
       familyName: profileData?.displayLastName,
@@ -25,44 +18,6 @@ async function createSquareCustomerIfEmailProvided(
   } catch {
     return undefined;
   }
-}
-
-export function mapMemberDocToDTO(doc: HydratedDocument<IMemberProfile>): MemberProfileDTO {
-  return {
-    _id: doc.id as string,
-    auth0Id: doc.auth0Id,
-    displayFirstName: doc.displayFirstName,
-    displayLastName: doc.displayLastName,
-    personalInfo: doc.personalInfo
-      ? {
-          legalFirstName: doc.personalInfo.legalFirstName,
-          legalLastName: doc.personalInfo.legalLastName,
-          email: doc.personalInfo.email,
-          phone: doc.personalInfo.phone,
-          dateOfBirth: doc.personalInfo.dateOfBirth
-            ? toISODateString(doc.personalInfo.dateOfBirth)
-            : null,
-          address: doc.personalInfo.address ?? undefined,
-        }
-      : undefined,
-    guardian: doc.guardian ?? undefined,
-    familyMembers: (doc.familyMembers ?? []).map((fm) => ({
-      name: fm.name,
-      relationship: fm.relationship,
-      dateOfBirth: fm.dateOfBirth ? toISODateString(fm.dateOfBirth) : null,
-    })),
-    isWaiverOnFile: doc.isWaiverOnFile,
-    isPaymentWaived: doc.isPaymentWaived,
-    notes: doc.notes,
-    lastAttendanceCheckIn: doc.lastAttendanceCheckIn
-      ? doc.lastAttendanceCheckIn.toISOString()
-      : null,
-    profileComplete: doc.profileComplete,
-    memberStatus: doc.memberStatus,
-    squareCustomerId: doc.squareCustomerId,
-    createdAt: doc.createdAt?.toISOString(),
-    updatedAt: doc.updatedAt?.toISOString(),
-  };
 }
 
 function buildMemberMongoUpdateSet(data: MemberUpdateData) {
@@ -90,6 +45,7 @@ function buildMemberMongoUpdateSet(data: MemberUpdateData) {
     ...(data.profileComplete !== undefined && { profileComplete: data.profileComplete }),
     ...(data.isWaiverOnFile !== undefined && { isWaiverOnFile: data.isWaiverOnFile }),
     ...(data.isPaymentWaived !== undefined && { isPaymentWaived: data.isPaymentWaived }),
+    ...(data.isArchived !== undefined && { isArchived: data.isArchived }),
     ...(data.memberStatus !== undefined && { memberStatus: data.memberStatus }),
     ...(data.squareCustomerId !== undefined && { squareCustomerId: data.squareCustomerId }),
     ...(data.notes !== undefined && { notes: data.notes }),
@@ -97,83 +53,155 @@ function buildMemberMongoUpdateSet(data: MemberUpdateData) {
 }
 
 export async function getAllMemberProfiles(): Promise<MemberProfileDTO[]> {
-  await dbConnect();
-  const profiles = await MemberProfile.find({});
-  return profiles.map(mapMemberDocToDTO);
+  return memberProfileDAO.findAll();
 }
 
 export async function getAllMemberIds(): Promise<string[]> {
-  await dbConnect();
-  const profiles = await MemberProfile.find({}, { _id: 1 }).lean();
-  return profiles.map((p) => String(p._id));
+  return memberProfileDAO.findAllIds();
 }
 
 export async function getProfileForUser(auth0Id: string): Promise<MemberProfileDTO | null> {
-  await dbConnect();
-  const doc = await MemberProfile.findOne({ auth0Id });
-  return doc ? mapMemberDocToDTO(doc) : null;
+  return memberProfileDAO.findByAuth0Id(auth0Id);
 }
 
 export async function createProfileForUser(
   auth0Id: string,
   initialData?: { displayFirstName?: string; displayLastName?: string; personalInfo?: { email?: string }; guardian?: { firstName?: string; lastName?: string } }
 ): Promise<MemberProfileDTO> {
-  await dbConnect();
-  
-  const email = initialData?.personalInfo?.email;
+  const email = initialData?.personalInfo?.email?.toLowerCase().trim();
+
+  // Check if an existing profile with this email exists but has no auth0Id linked
+  if (email) {
+    const existingProfile = await memberProfileDAO.findByEmailUnlinked(email);
+
+    console.log(`[createProfileForUser] Looking for existing profile with email: ${email}, found: ${existingProfile ? existingProfile._id : 'none'}`);
+
+    if (existingProfile) {
+      // Link the auth0Id to the existing profile
+      console.log(`[createProfileForUser] Linking auth0Id ${auth0Id} to existing profile ${existingProfile._id}`);
+      const linked = await memberProfileDAO.linkAuth0Id(existingProfile._id, auth0Id);
+      if (!linked) throw new Error('Failed to link auth0Id to existing profile');
+      return linked;
+    }
+  }
+
+  // No existing profile found, create a new one
   const squareCustomerId = await createSquareCustomerIfEmailProvided(email, initialData);
-  
-  const doc = await MemberProfile.create({ 
-    auth0Id, 
+
+  return memberProfileDAO.create({
+    auth0Id,
     ...(initialData ?? {}),
     ...(squareCustomerId ? { squareCustomerId } : {})
   });
-  return mapMemberDocToDTO(doc);
 }
 
 export async function getMemberProfileById(id: string): Promise<MemberProfileDTO | null> {
-  await dbConnect();
-  const doc = await MemberProfile.findById(id);
-  return doc ? mapMemberDocToDTO(doc) : null;
+  return memberProfileDAO.findById(id);
 }
 
 export async function updateMemberProfileById(
   id: string,
   data: MemberUpdateData
 ): Promise<MemberProfileDTO | null> {
-  await dbConnect();
-  const updated = await MemberProfile.findByIdAndUpdate(
-    id,
-    { $set: buildMemberMongoUpdateSet(data) },
-    { new: true }
-  );
-  return updated ? mapMemberDocToDTO(updated) : null;
+  return memberProfileDAO.updateById(id, buildMemberMongoUpdateSet(data));
 }
 
 export async function deleteMemberProfileById(id: string): Promise<boolean> {
-  await dbConnect();
-  const deleted = await MemberProfile.findByIdAndDelete(id);
-  return !!deleted;
+  return memberProfileDAO.deleteById(id);
 }
 
 export async function getSquareCustomerIdForMember(memberId: string): Promise<string | null> {
-  await dbConnect();
-  const member = await MemberProfile.findById(memberId, { squareCustomerId: 1 }).lean() as { squareCustomerId?: string } | null;
-  return member?.squareCustomerId ?? null;
+  return memberProfileDAO.findSquareCustomerIdById(memberId);
 }
 
 export async function getMembersWithSquareCustomerId(): Promise<{ memberId: string; squareCustomerId: string }[]> {
-  await dbConnect();
-  type MemberWithSquare = { _id: unknown; squareCustomerId?: string };
-  const members = await MemberProfile.find(
-    { squareCustomerId: { $exists: true, $ne: null } },
-    { _id: 1, squareCustomerId: 1 }
-  ).lean() as MemberWithSquare[];
-  
-  return members
-    .filter((m): m is MemberWithSquare & { squareCustomerId: string } => !!m.squareCustomerId)
-    .map((m) => ({
-      memberId: String(m._id),
-      squareCustomerId: m.squareCustomerId,
-    }));
+  return memberProfileDAO.findAllWithSquareCustomerId();
 }
+
+export async function getAllMemberEmails(): Promise<string[]> {
+  return memberProfileDAO.findAllEmails();
+}
+
+export async function createGuestProfile(data: GuestProfileInput): Promise<MemberProfileDTO> {
+  const email = data.personalInfo?.email?.toLowerCase().trim();
+
+  // Check if an existing profile with this email exists
+  if (email) {
+    const existingProfile = await memberProfileDAO.findByEmailUnlinked(email);
+    if (existingProfile) {
+      // Update the existing profile with the new data
+      const updated = await memberProfileDAO.updateById(existingProfile._id, {
+        displayFirstName: data.displayFirstName,
+        displayLastName: data.displayLastName,
+        'personalInfo.legalFirstName': data.personalInfo?.legalFirstName,
+        'personalInfo.legalLastName': data.personalInfo?.legalLastName,
+        'personalInfo.phone': data.personalInfo?.phone,
+        'personalInfo.dateOfBirth': data.personalInfo?.dateOfBirth,
+        'personalInfo.address.street': data.personalInfo?.address?.street,
+        'personalInfo.address.city': data.personalInfo?.address?.city,
+        'personalInfo.address.state': data.personalInfo?.address?.state,
+        'personalInfo.address.zip': data.personalInfo?.address?.zip,
+        'personalInfo.address.country': data.personalInfo?.address?.country,
+        ...(data.guardian ? { guardian: data.guardian } : {}),
+        profileComplete: data.profileComplete ?? true,
+      });
+      if (updated) return updated;
+    }
+  }
+
+  // Create Square customer if email provided
+  const squareCustomerId = await createSquareCustomerIfEmailProvided(email, data);
+
+  // Create new guest profile (no auth0Id)
+  return memberProfileDAO.create({
+    displayFirstName: data.displayFirstName,
+    displayLastName: data.displayLastName,
+    personalInfo: data.personalInfo
+      ? {
+          legalFirstName: data.personalInfo.legalFirstName,
+          legalLastName: data.personalInfo.legalLastName,
+          email: data.personalInfo.email,
+          phone: data.personalInfo.phone,
+          dateOfBirth: data.personalInfo.dateOfBirth
+            ? new Date(data.personalInfo.dateOfBirth)
+            : undefined,
+          address: data.personalInfo.address,
+        }
+      : undefined,
+    guardian: data.guardian,
+    profileComplete: data.profileComplete ?? true,
+    ...(squareCustomerId ? { squareCustomerId } : {}),
+  });
+}
+
+export async function findAndLinkByEmail(auth0Id: string, email: string): Promise<MemberProfileDTO | null> {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Find a profile with matching email that has no auth0Id linked
+  const existingProfile = await memberProfileDAO.findByEmailUnlinked(normalizedEmail);
+
+  if (!existingProfile) {
+    console.log(`[findAndLinkByEmail] No unlinked profile found for email: ${normalizedEmail}`);
+    return null;
+  }
+
+  // Link the auth0Id to the existing profile
+  console.log(`[findAndLinkByEmail] Linking auth0Id ${auth0Id} to existing profile ${existingProfile._id} with email ${normalizedEmail}`);
+
+  return memberProfileDAO.linkAuth0Id(existingProfile._id, auth0Id);
+}
+
+export const memberProfileService = {
+  getAll: getAllMemberProfiles,
+  getAllIds: getAllMemberIds,
+  getById: getMemberProfileById,
+  getByAuth0Id: getProfileForUser,
+  create: createProfileForUser,
+  createGuest: createGuestProfile,
+  update: updateMemberProfileById,
+  delete: deleteMemberProfileById,
+  getSquareCustomerId: getSquareCustomerIdForMember,
+  getMembersWithSquareCustomerId,
+  getAllEmails: getAllMemberEmails,
+  findAndLinkByEmail,
+};

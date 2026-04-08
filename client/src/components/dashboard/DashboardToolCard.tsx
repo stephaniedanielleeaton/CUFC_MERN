@@ -13,6 +13,7 @@ interface DashboardToolCardProps {
   icon: "users" | "dollar-sign" | "link" | "credit-card" | "calendar-check"
   disabled?: boolean
   disabledReason?: string
+  onClick?:() => void
 }
 
 const iconMap = {
@@ -23,11 +24,12 @@ const iconMap = {
   "calendar-check": CalendarCheck,
 }
 
-export function DashboardToolCard({ label, icon, disabled = false, disabledReason }: DashboardToolCardProps) {
+export function DashboardToolCard({ label, icon, disabled = false, disabledReason, onClick }: DashboardToolCardProps) {
   const Icon = iconMap[icon]
 
   return (
     <div
+    onClick={ disabled ? undefined : onClick}
       className={`flex items-center justify-between px-2 py-2 rounded-md transition ${
         disabled
           ? "bg-gray-50 cursor-not-allowed"

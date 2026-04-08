@@ -1,31 +1,25 @@
-import { SquareService } from './squareService';
-import type { CatalogObject, Order } from 'square';
-import { Transaction, TransactionLineItem } from '@cufc/shared';
-import { DROP_IN_CATALOG_OBJECT_ID } from '../../config/constants';
-import { IntroClassOfferingsService } from './introClassOfferingsService';
-import type { VariationDTO } from '@cufc/shared';
+import { 
+  squareSubscriptionsService, 
+  squareOrdersService, 
+  squarePaymentsService,
+  squareCatalogService,
+  squareInvoicesService,
+  SquareSubscriptionDto,
+  SquareLineItemDto,
+  mapOrderToTransaction,
+  mapPaymentToTransaction,
+} from './';
+import type { CatalogObject } from 'square';
+import { Transaction, MemberSubscriptionDTO, IntroEnrollmentDTO } from '@cufc/shared';
 
 interface SubscriptionPlanVariationData {
   name?: string;
   phases?: unknown[];
 }
 
-interface MemberSubscriptionDTO {
-  id: string;
-  planName: string;
-  status: string;
-  priceFormatted: string;
-  activeThrough: string | null;
-}
-
 export interface SubscriptionStatusDTO {
   hasActiveSubscription: boolean;
   reason?: string;
-}
-
-export interface AllMembersSquareStatusDTO {
-  activeSubscribers: string[];
-  dropIns: string[];
 }
 
 function formatMoney(amount: bigint | number | undefined, currency: string | undefined): string {
@@ -47,9 +41,8 @@ function formatDate(dateStr: string | null | undefined): string | null {
 }
 
 export async function checkMemberHasActiveSubscription(squareCustomerId: string): Promise<boolean> {
-  const squareService = new SquareService();
-  const subscriptions = await squareService.getCustomerSubscriptions(squareCustomerId);
-  return subscriptions.some((sub) => sub.status === "ACTIVE");
+  const subscriptions = await squareSubscriptionsService.getByCustomerId(squareCustomerId);
+  return subscriptions.some((sub: SquareSubscriptionDto) => sub.status === "ACTIVE");
 }
 
 export async function getMemberSubscriptionStatus(squareCustomerId: string | null): Promise<SubscriptionStatusDTO> {
@@ -60,87 +53,16 @@ export async function getMemberSubscriptionStatus(squareCustomerId: string | nul
   return { hasActiveSubscription };
 }
 
-export async function getAllMembersSquareStatus(
-  membersWithSquare: { memberId: string; squareCustomerId: string }[]
-): Promise<AllMembersSquareStatusDTO> {
-  const squareService = new SquareService();
-  
-  const statusChecks = await Promise.all(
-    membersWithSquare.map(async (m) => {
-      let hasActiveSubscription = false;
-      let hasTodayDropIn = false;
-      
-      try {
-        const subscriptions = await squareService.getCustomerSubscriptions(m.squareCustomerId);
-        hasActiveSubscription = subscriptions.some((sub) => sub.status === 'ACTIVE');
-      } catch {
-        // Skip errors (e.g., invalid customer ID) to continue processing remaining members
-      }
-      
-      try {
-        hasTodayDropIn = await squareService.checkCustomerHasTodayDropIn(
-          m.squareCustomerId,
-          DROP_IN_CATALOG_OBJECT_ID
-        );
-      } catch {
-        // Skip errors to continue processing remaining members
-      }
-      
-      return {
-        squareCustomerId: m.squareCustomerId,
-        hasActiveSubscription,
-        hasTodayDropIn,
-      };
-    })
-  );
-  
-  const activeSubscribers = statusChecks
-    .filter((s) => s.hasActiveSubscription)
-    .map((s) => s.squareCustomerId);
-  
-  const dropIns = statusChecks
-    .filter((s) => s.hasTodayDropIn)
-    .map((s) => s.squareCustomerId);
-  
-  return {
-    activeSubscribers,
-    dropIns,
-  };
-}
-
 export async function getMemberTransactions(squareCustomerId: string): Promise<Transaction[]> {
-  const squareService = new SquareService();
-  const orders: Order[] = await squareService.getOrdersByCustomerId(squareCustomerId);
+  const orders = await squareOrdersService.getByCustomerId(squareCustomerId);
   
-  return orders.slice(0, 20).map((order: Order): Transaction => {
-    const orderMoney = order.totalMoney?.amount != null 
-      ? { amount: Number(order.totalMoney.amount), currency: order.totalMoney.currency }
-      : undefined;
-    
-    return {
-      id: order.id,
-      createdAt: order.createdAt,
-      state: order.state,
-      totalMoney: orderMoney,
-      lineItems: (order.lineItems || []).map((li): TransactionLineItem => {
-        const liMoney = li.totalMoney?.amount != null
-          ? { amount: Number(li.totalMoney.amount), currency: li.totalMoney.currency }
-          : undefined;
-        return {
-          name: li.name ?? undefined,
-          variationName: li.variationName ?? undefined,
-          quantity: li.quantity ?? undefined,
-          totalMoney: liMoney,
-        };
-      }),
-    };
-  });
-}
+  if (orders.length > 0) {
+    return orders.slice(0, 20).map(mapOrderToTransaction);
+  }
 
-export interface IntroEnrollmentDTO {
-  orderId: string;
-  itemName: string;
-  variationName: string;
+  const payments = await squarePaymentsService.getRecentPaymentsPaginated(50);
+  const customerPayments = payments.filter(p => p.customerId === squareCustomerId);
+  return customerPayments.slice(0, 20).map(mapPaymentToTransaction);
 }
 
 export async function getMemberIntroEnrollment(squareCustomerId: string | null): Promise<IntroEnrollmentDTO | null> {
@@ -148,22 +70,21 @@ export async function getMemberIntroEnrollment(squareCustomerId: string | null):
     return null;
   }
 
-  const squareService = new SquareService();
-  const orders = await squareService.getOrdersByCustomerId(squareCustomerId);
+  const orders = await squareOrdersService.getRecentByCustomerId(squareCustomerId, 3);
 
   if (orders.length === 0) {
     return null;
   }
 
   for (const order of orders) {
-    const introLineItem = order.lineItems?.find((li) => {
+    const introLineItem = order.lineItems.find((li: SquareLineItemDto) => {
       const name = (li.name ?? '').toLowerCase();
       return name.includes('introduction to historical european martial arts');
     });
 
     if (introLineItem) {
       return {
-        orderId: order.id ?? "",
+        orderId: order.id,
         itemName: introLineItem.name ?? "Intro Fencing Class",
         variationName: introLineItem.variationName ?? "",
       };
@@ -174,12 +95,8 @@ export async function getMemberIntroEnrollment(squareCustomerId: string | null):
 }
 
 export async function getMemberSubscriptions(squareCustomerId: string): Promise<MemberSubscriptionDTO[]> {
-  const squareService = new SquareService();
-  const subscriptions = await squareService.getCustomerSubscriptions(squareCustomerId);
-
-  const activeSubscriptions = subscriptions.filter(
-    (sub) => sub.status === "ACTIVE" || sub.status === "PAUSED"
-  );
+  const subscriptions = await squareSubscriptionsService.getByCustomerId(squareCustomerId);
+  const activeSubscriptions = subscriptions.filter((sub: SquareSubscriptionDto) => sub.status === "ACTIVE");
 
   const results: MemberSubscriptionDTO[] = [];
 
@@ -189,7 +106,7 @@ export async function getMemberSubscriptions(squareCustomerId: string): Promise<
 
     if (sub.planVariationId) {
       try {
-        const planVariation = await squareService.getSubscriptionPlanVariation(sub.planVariationId);
+        const planVariation = await squareCatalogService.getSubscriptionPlanVariation(sub.planVariationId);
         const catalogObj = planVariation as CatalogObject & { subscriptionPlanVariationData?: SubscriptionPlanVariationData };
         const planData = catalogObj?.subscriptionPlanVariationData;
         if (planData?.name) planName = planData.name;
@@ -200,22 +117,28 @@ export async function getMemberSubscriptions(squareCustomerId: string): Promise<
 
     const invoiceIds = sub.invoiceIds ?? [];
     const mostRecentInvoiceId = invoiceIds[invoiceIds.length - 1];
+    let lastInvoiceDate: string | null = null;
     if (mostRecentInvoiceId) {
       try {
-        const invoice = await squareService.getInvoiceById(mostRecentInvoiceId);
+        const invoice = await squareInvoicesService.getById(mostRecentInvoiceId);
         const money = invoice?.paymentRequests?.[0]?.computedAmountMoney;
         priceFormatted = formatMoney(money?.amount ?? undefined, money?.currency ?? undefined);
+        if (invoice?.paymentRequests?.[0]?.computedAmountMoney) {
+          lastInvoiceDate = formatDate(invoice.createdAt);
+        }
       } catch (err) {
         console.error("Failed to fetch subscription invoice:", err);
       }
     }
 
     results.push({
-      id: sub.id ?? "",
+      id: sub.id,
       planName,
-      status: sub.status ?? "ACTIVE",
+      status: sub.status,
       priceFormatted,
-      activeThrough: formatDate(sub.chargedThroughDate),
+      activeThrough: formatDate(sub.chargedThroughDate) ?? undefined,
+      lastInvoiceDate: lastInvoiceDate ?? undefined,
+      canceledDate: formatDate(sub.canceledDate) ?? undefined,
     });
   }
 

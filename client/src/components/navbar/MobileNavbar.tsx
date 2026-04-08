@@ -4,6 +4,7 @@ import { UserAvatar } from './UserAvatar'
 import { SignInOutButton } from './SignInOutButton'
 import { NavLinks } from './NavLinks'
 import { AdminLink } from './AdminLink'
+import { CheckInLink } from './CheckInLink'
 
 type Auth0User = {
   picture?: string
@@ -13,17 +14,18 @@ type Auth0User = {
 }
 
 type MobileNavbarProps = {
-  user: Auth0User | null
-  isAdmin: boolean
-  displayName: string | null
-  profileComplete: boolean
-  menuOpen: boolean
-  setMenuOpen: (open: boolean) => void
-  onLogin: () => void
-  onLogout: () => void
+  readonly user: Auth0User | null
+  readonly isAdmin: boolean
+  readonly canCheckIn: boolean
+  readonly displayName: string | null
+  readonly profileComplete: boolean
+  readonly menuOpen: boolean
+  readonly setMenuOpen: (open: boolean) => void
+  readonly onLogin: () => void
+  readonly onLogout: () => void
 }
 
-export function MobileNavbar({ user, isAdmin, displayName, profileComplete, menuOpen, setMenuOpen, onLogin, onLogout }: MobileNavbarProps) {
+export function MobileNavbar({ user, isAdmin, canCheckIn, displayName, profileComplete, menuOpen, setMenuOpen, onLogin, onLogout }: MobileNavbarProps) {
   return (
     <>
       {/* Mobile Nav */}
@@ -68,7 +70,11 @@ export function MobileNavbar({ user, isAdmin, displayName, profileComplete, menu
               </Link>
             )}
             <NavLinks onClick={() => setMenuOpen(false)} />
-            {isAdmin && <AdminLink />}
+            {(canCheckIn || isAdmin) && (
+              <div className="w-16 border-t border-gray-500 my-2"></div>
+            )}
+            {canCheckIn && <CheckInLink onClick={() => setMenuOpen(false)} />}
+            {isAdmin && <AdminLink onClick={() => setMenuOpen(false)} />}
             <SignInOutButton
               user={user}
               onClick={() => {

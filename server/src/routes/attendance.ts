@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getMembersWithCheckInStatus, checkInMember, getRecentAttendanceForAllMembers } from '../services/attendanceService';
-import { getAllMemberIds } from '../services/memberProfileService';
+import { attendanceService } from '../services/attendanceService';
 import { checkJwt, requireRole } from '../middleware/auth';
 
 const router = Router();
@@ -8,7 +7,7 @@ const router = Router();
 // GET /api/attendance/members - Get all members with check-in status
 router.get('/members', async (_req: Request, res: Response) => {
   try {
-    const result = await getMembersWithCheckInStatus();
+    const result = await attendanceService.getMembersWithCheckInStatus();
     res.json(result);
   } catch (error) {
     console.error(error);
@@ -25,7 +24,7 @@ router.post('/checkin', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing memberId' });
     }
 
-    const result = await checkInMember(memberId);
+    const result = await attendanceService.checkInMember(memberId);
     res.json(result);
   } catch (error) {
     console.error(error);
@@ -36,8 +35,7 @@ router.post('/checkin', async (req: Request, res: Response) => {
 // GET /api/attendance/recent - Get recent attendance (admin only)
 router.get('/recent', checkJwt, requireRole('club-admin'), async (_req: Request, res: Response) => {
   try {
-    const memberIds = await getAllMemberIds();
-    const result = await getRecentAttendanceForAllMembers(memberIds);
+    const result = await attendanceService.getRecentAttendance();
     res.json(result);
   } catch (error) {
     console.error(error);

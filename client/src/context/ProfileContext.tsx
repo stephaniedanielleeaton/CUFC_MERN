@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import type { MemberProfileDTO, MemberProfileFormInput } from '@cufc/shared'
 
@@ -7,7 +7,7 @@ type MemberProfileContextType = {
   loading: boolean
   error: string | null
   refreshProfile: () => Promise<void>
-  setProfile: React.Dispatch<React.SetStateAction<MemberProfileFormInput | null>>
+  updateProfile: (data: MemberProfileFormInput) => void
 }
 
 const MemberProfileContext = createContext<MemberProfileContextType | undefined>(undefined)
@@ -22,14 +22,13 @@ function toFormInput(p: MemberProfileDTO): MemberProfileFormInput {
   return { ...p, profileId: String(p._id) } as MemberProfileFormInput
 }
 
-export function MemberProfileProvider({ children }: { children: ReactNode }) {
+export function MemberProfileProvider({ children }: Readonly<{ children: ReactNode }>) {
   const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently } = useAuth0()
   const [profile, setProfile] = useState<MemberProfileFormInput | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchProfile = useCallback(async () => {
-    // Wait for auth to finish loading
     if (authLoading) return
     
     if (!isAuthenticated) {
@@ -63,10 +62,17 @@ export function MemberProfileProvider({ children }: { children: ReactNode }) {
     fetchProfile()
   }, [fetchProfile])
 
+  const updateProfile = useCallback((data: MemberProfileFormInput) => {
+    setProfile(data)
+  }, [])
+
+  const contextValue = useMemo(
+    () => ({ profile, loading, error, refreshProfile: fetchProfile, updateProfile }),
+    [profile, loading, error, fetchProfile, updateProfile]
+  )
+
   return (
-    <MemberProfileContext.Provider
-      value={{ profile, loading, error, refreshProfile: fetchProfile, setProfile }}
-    >
+    <MemberProfileContext.Provider value={contextValue}>
       {children}
     </MemberProfileContext.Provider>
   )
