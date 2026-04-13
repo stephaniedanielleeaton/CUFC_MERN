@@ -848,6 +848,368 @@ FRONTEND_URL=https://www.columbusunitedfencing.com
 
 ---
 
+## Part 4: Class Diagram & Architecture
+
+### Vertical Slice Architecture
+
+The tournament registration feature is designed as a **vertical slice** - a self-contained feature with minimal coupling to existing code. 
+
+**Integration Points (READ-ONLY from existing code):**
+- `MemberProfile` - Read user's display name, legal name, phone, guardian info for form auto-fill
+- `auth.ts` middleware - Use `checkJwt`, `getAuth0Id()` for authentication
+- `EmailList` model - Create/update tournament-specific email lists
+- `emailService` - Send alert emails on M2 post failure
+
+**No modifications to existing code required.**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        TOURNAMENT REGISTRATION SLICE                         │
+│                                                                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                           ROUTES LAYER                               │    │
+│  │  tournamentRoutes.ts  ──────────────────────────  squareRoutes.ts   │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                    │                                         │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                          SERVICE LAYER                               │    │
+│  │                                                                      │    │
+│  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐   │    │
+│  │  │ TournamentService│  │RegistrationSvc  │  │ TournamentSquare │   │    │
+│  │  │                  │  │                  │  │     Service      │   │    │
+│  │  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘   │    │
+│  │           │                     │                     │              │    │
+│  └───────────┼─────────────────────┼─────────────────────┼──────────────┘    │
+│              │                     │                     │                   │
+│  ┌───────────┼─────────────────────┼─────────────────────┼──────────────┐    │
+│  │           ▼                     ▼                     ▼              │    │
+│  │  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐   │    │
+│  │  │   «interface»    │  │  TournamentDAO   │  │  RegistrantDAO   │   │    │
+│  │  │   IM2Service     │  │                  │  │                  │   │    │
+│  │  └────────┬─────────┘  └──────────────────┘  └──────────────────┘   │    │
+│  │           │                     │                     │              │    │
+│  │  ┌────────┴─────────┐           │                     │              │    │
+│  │  │                  │           │                     │              │    │
+│  │  ▼                  ▼           ▼                     ▼              │    │
+│  │ M2ServiceLive  M2ServiceStub   Tournament Model   Registrant Model  │    │
+│  │                          DATA ACCESS LAYER                           │    │
+│  └──────────────────────────────────────────────────────────────────────┘    │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                    INTEGRATION POINTS (Existing Code - Read Only)
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  MemberProfile (read)  │  auth.ts (use)  │  EmailList (write)  │  emailService │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Class Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              INTERFACES                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│      «interface» IM2Service     │
+├─────────────────────────────────┤
+│ + getClubTournaments()          │
+│ + getTournament(id)             │
+│ + getAllClubs()                 │
+│ + addPersonToEvent(eventId,     │
+│     person)                     │
+└─────────────────────────────────┘
+              △
+              │ implements
+    ┌─────────┴─────────┐
+    │                   │
+┌───┴───────────────┐ ┌─┴─────────────────┐
+│  M2ServiceLive    │ │  M2ServiceStub    │
+├───────────────────┤ ├───────────────────┤
+│ - baseUrl         │ │ - stubTournaments │
+│ - token           │ │ - stubClubs       │
+│ - tokenExpiry     │ ├───────────────────┤
+├───────────────────┤ │ + getClub...()    │
+│ - getToken()      │ │ + getTournament() │
+│ + getClub...()    │ │ + getAllClubs()   │
+│ + getTournament() │ │ + addPerson...()  │
+│ + getAllClubs()   │ └───────────────────┘
+│ + addPerson...()  │
+└───────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              SERVICES                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────┐       ┌─────────────────────────────────┐
+│      TournamentService          │       │     RegistrationService         │
+├─────────────────────────────────┤       ├─────────────────────────────────┤
+│ - m2Service: IM2Service         │       │ - m2Service: IM2Service         │
+│ - tournamentDAO: TournamentDAO  │       │ - registrantDAO: RegistrantDAO  │
+│ - emailListService (existing)   │       │ - tournamentDAO: TournamentDAO  │
+├─────────────────────────────────┤       │ - emailService (existing)       │
+│ + getClubTournaments()          │       │ - emailListDAO (existing)       │
+│ + getTournamentDetails(m2Id)    │       ├─────────────────────────────────┤
+│ + getClubs()                    │       │ + submitRegistration(data)      │
+│ + ensureTournamentExists(m2Id)  │       │ + getRegistrantsByTournament()  │
+└─────────────────────────────────┘       │ + getRegistrantsByUser(userId)  │
+                                          │ + hasExistingRegistration()     │
+                                          │ + finalizePayment(paymentId)    │
+                                          │ + postToM2(registrant)          │
+                                          │ - sendM2FailureAlert(reg, err)  │
+                                          │ - addToTournamentEmailList()    │
+                                          └─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│   TournamentSquareService       │
+├─────────────────────────────────┤
+│ - squareClient: SquareClient    │
+│ - locationId: string            │
+├─────────────────────────────────┤
+│ + createOrder(registrant)       │
+│ + createPaymentLink(orderId)    │
+│ + verifyWebhookSignature()      │
+│ + extractOrderMetadata(order)   │
+└─────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           DATA ACCESS (DAOs)                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────┐       ┌─────────────────────────────────┐
+│        TournamentDAO            │       │        RegistrantDAO            │
+├─────────────────────────────────┤       ├─────────────────────────────────┤
+│ + findByM2Id(m2TournamentId)    │       │ + create(data)                  │
+│ + create(data)                  │       │ + findByPaymentId(paymentId)    │
+│ + findAll()                     │       │ + findByTournamentId(id)        │
+│ + updateById(id, data)          │       │ + findByUserId(userId)          │
+└─────────────────────────────────┘       │ + findPaidByUserAndTournament() │
+                                          │ + updatePaymentStatus(id, data) │
+                                          │ + updateM2Status(id, posted)    │
+                                          └─────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              MODELS                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────┐       ┌─────────────────────────────────┐
+│     Tournament (MongoDB)        │       │     Registrant (MongoDB)        │
+├─────────────────────────────────┤       ├─────────────────────────────────┤
+│ _id: ObjectId                   │       │ _id: ObjectId                   │
+│ m2TournamentId: number          │       │ tournamentId: ObjectId          │
+│ name: string                    │       │ m2TournamentId: number          │
+│ isActive: boolean               │       │ tournamentName: string          │
+│ createdAt: Date                 │       │ selectedEvents: SelectedEvent[] │
+│ updatedAt: Date                 │       │ preferredFirstName: string      │
+└─────────────────────────────────┘       │ preferredLastName: string       │
+                                          │ legalFirstName: string          │
+                                          │ legalLastName: string           │
+                                          │ email: string                   │
+                                          │ phoneNumber: string             │
+                                          │ clubAffiliation?: ClubAffil     │
+                                          │ isMinor: boolean                │
+                                          │ guardianFirstName?: string      │
+                                          │ guardianLastName?: string       │
+                                          │ paymentId: string               │
+                                          │ squareOrderId?: string          │
+                                          │ isPaid: boolean                 │
+                                          │ paidAt?: Date                   │
+                                          │ amountPaidInCents?: number      │
+                                          │ m2Posted: boolean               │
+                                          │ m2PostedAt?: Date               │
+                                          │ userId?: ObjectId               │
+                                          │ createdAt: Date                 │
+                                          │ updatedAt: Date                 │
+                                          └─────────────────────────────────┘
+
+┌─────────────────────────────────┐       ┌─────────────────────────────────┐
+│   SelectedEvent (embedded)      │       │   ClubAffiliation (embedded)    │
+├─────────────────────────────────┤       ├─────────────────────────────────┤
+│ m2EventId: number               │       │ m2ClubId: number                │
+│ eventName: string               │       │ name: string                    │
+│ priceInCents: number            │       └─────────────────────────────────┘
+└─────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              DTOs                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────┐       ┌─────────────────────────────────┐
+│   M2TournamentDTO               │       │   RegistrationRequestDTO        │
+├─────────────────────────────────┤       ├─────────────────────────────────┤
+│ TournamentId: number            │       │ m2TournamentId: number          │
+│ Name: string                    │       │ selectedEvents: SelectedEvent[] │
+│ StartDate: string               │       │ preferredFirstName: string      │
+│ EndDate: string                 │       │ preferredLastName: string       │
+│ RegistrationCutOff: string      │       │ legalFirstName: string          │
+│ Description: string             │       │ legalLastName: string           │
+│ BasePrice: number (cents)       │       │ email: string                   │
+│ Events: M2EventDTO[]            │       │ phoneNumber: string             │
+│ Club: M2ClubDTO                 │       │ clubAffiliation?: ClubAffil     │
+│ Address: M2AddressDTO           │       │ isMinor: boolean                │
+│ Images: M2ImageDTO[]            │       │ guardianFirstName?: string      │
+└─────────────────────────────────┘       │ guardianLastName?: string       │
+                                          └─────────────────────────────────┘
+┌─────────────────────────────────┐
+│   M2EventDTO                    │       ┌─────────────────────────────────┐
+├─────────────────────────────────┤       │   RegistrantDTO                 │
+│ EventId: number                 │       ├─────────────────────────────────┤
+│ EventName: string               │       │ id: string                      │
+│ Status: string                  │       │ tournamentName: string          │
+│ EventPrice: number (cents)      │       │ selectedEvents: SelectedEvent[] │
+│ Date: string                    │       │ displayName: string             │
+│ StartTime: string               │       │ email: string                   │
+│ ParticipantsCount: number       │       │ isPaid: boolean                 │
+│ Weapon: { Name: string }        │       │ m2Posted: boolean               │
+└─────────────────────────────────┘       │ createdAt: string               │
+                                          └─────────────────────────────────┘
+```
+
+### File Structure (Vertical Slice)
+
+```
+server/src/
+├── features/
+│   └── tournament/                    # VERTICAL SLICE - Self-contained
+│       ├── models/
+│       │   ├── Tournament.ts          # Tournament model + schema
+│       │   └── Registrant.ts          # Registrant model + schema
+│       │
+│       ├── dao/
+│       │   ├── TournamentDAO.ts       # Tournament data access
+│       │   └── RegistrantDAO.ts       # Registrant data access
+│       │
+│       ├── services/
+│       │   ├── meyerSquared/
+│       │   │   ├── IM2Service.ts      # Interface
+│       │   │   ├── M2ServiceLive.ts   # Live implementation
+│       │   │   ├── M2ServiceStub.ts   # Stub for testing
+│       │   │   ├── m2Types.ts         # M2 API types
+│       │   │   └── index.ts           # Factory + exports
+│       │   │
+│       │   ├── TournamentService.ts   # Tournament business logic
+│       │   ├── RegistrationService.ts # Registration business logic
+│       │   └── TournamentSquareService.ts  # Square integration
+│       │
+│       ├── routes/
+│       │   ├── tournamentRoutes.ts    # Public tournament endpoints
+│       │   └── squareWebhookRoutes.ts # Square webhook handler
+│       │
+│       ├── dto/
+│       │   ├── m2Dtos.ts              # M2 API DTOs
+│       │   ├── registrationDtos.ts    # Registration DTOs
+│       │   └── index.ts               # Barrel export
+│       │
+│       └── index.ts                   # Feature barrel export
+│
+├── services/
+│   ├── emailService.ts                # EXISTING - used for alerts
+│   └── emailListService.ts            # EXISTING - used for email lists
+│
+├── models/
+│   ├── MemberProfile.ts               # EXISTING - read for auto-fill
+│   └── EmailList.ts                   # EXISTING - write tournament lists
+│
+└── middleware/
+    └── auth.ts                        # EXISTING - use checkJwt, getAuth0Id
+```
+
+### Dependency Graph
+
+```
+                    ┌─────────────────────┐
+                    │  tournamentRoutes   │
+                    │  squareWebhookRoutes│
+                    └──────────┬──────────┘
+                               │
+           ┌───────────────────┼───────────────────┐
+           │                   │                   │
+           ▼                   ▼                   ▼
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│TournamentService │ │RegistrationSvc  │ │TournamentSquare  │
+└────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘
+         │                    │                    │
+         │           ┌────────┴────────┐           │
+         │           │                 │           │
+         ▼           ▼                 ▼           ▼
+┌──────────────┐ ┌──────────┐ ┌──────────────┐ ┌──────────┐
+│ IM2Service   │ │Tournament│ │ Registrant   │ │ Square   │
+│ (interface)  │ │   DAO    │ │    DAO       │ │ Client   │
+└──────┬───────┘ └────┬─────┘ └──────┬───────┘ └──────────┘
+       │              │              │
+       │              ▼              ▼
+       │         ┌─────────┐   ┌───────────┐
+       │         │Tournament│   │Registrant │
+       │         │  Model   │   │  Model    │
+       │         └─────────┘   └───────────┘
+       │
+       ├─────────────────┐
+       │                 │
+       ▼                 ▼
+┌─────────────┐   ┌─────────────┐
+│M2ServiceLive│   │M2ServiceStub│
+└─────────────┘   └─────────────┘
+
+EXISTING CODE (Integration Points - No Modifications)
+─────────────────────────────────────────────────────
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│MemberProfile│  │  auth.ts    │  │ EmailList   │  │emailService │
+│   (read)    │  │   (use)     │  │  (write)    │  │  (use)      │
+└─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
+```
+
+### Sequence Diagram: Registration Flow
+
+```
+User          Frontend       tournamentRoutes    RegistrationSvc    TournamentSquareSvc    IM2Service
+ │                │                 │                  │                    │                  │
+ │  Load Page     │                 │                  │                    │                  │
+ │───────────────▶│                 │                  │                    │                  │
+ │                │  GET /tournaments                  │                    │                  │
+ │                │────────────────▶│                  │                    │                  │
+ │                │                 │  getClubTournaments()                 │                  │
+ │                │                 │─────────────────────────────────────────────────────────▶│
+ │                │                 │                  │                    │    M2 API call   │
+ │                │                 │◀─────────────────────────────────────────────────────────│
+ │                │◀────────────────│                  │                    │                  │
+ │◀───────────────│                 │                  │                    │                  │
+ │                │                 │                  │                    │                  │
+ │  Submit Form   │                 │                  │                    │                  │
+ │───────────────▶│                 │                  │                    │                  │
+ │                │  POST /tournaments/:id/register    │                    │                  │
+ │                │────────────────▶│                  │                    │                  │
+ │                │                 │  submitRegistration(data)             │                  │
+ │                │                 │─────────────────▶│                    │                  │
+ │                │                 │                  │  createOrder()     │                  │
+ │                │                 │                  │───────────────────▶│                  │
+ │                │                 │                  │◀───────────────────│                  │
+ │                │                 │                  │  createPaymentLink()                  │
+ │                │                 │                  │───────────────────▶│                  │
+ │                │                 │                  │◀───────────────────│                  │
+ │                │                 │◀─────────────────│  { paymentUrl }    │                  │
+ │                │◀────────────────│                  │                    │                  │
+ │◀───────────────│  Redirect to Square                │                    │                  │
+ │                │                 │                  │                    │                  │
+ │  Pay on Square │                 │                  │                    │                  │
+ │────────────────────────────────────────────────────────────────────────▶│                  │
+ │                │                 │                  │                    │                  │
+ │                │    Square Webhook (payment.updated)│                    │                  │
+ │                │                 │◀─────────────────────────────────────│                  │
+ │                │                 │  finalizePayment(paymentId)          │                  │
+ │                │                 │─────────────────▶│                    │                  │
+ │                │                 │                  │  Update Registrant (isPaid=true)     │
+ │                │                 │                  │  addPersonToEvent()│                  │
+ │                │                 │                  │─────────────────────────────────────▶│
+ │                │                 │                  │                    │    M2 API call   │
+ │                │                 │                  │◀─────────────────────────────────────│
+ │                │                 │                  │  (on failure: sendM2FailureAlert)    │
+ │                │                 │                  │  addToTournamentEmailList()          │
+ │                │                 │◀─────────────────│                    │                  │
+ │                │                 │  200 OK          │                    │                  │
+```
+
+---
+
 ## Appendix: File References
 
 ### Existing System (CUFC-web + CUFC-Node)
