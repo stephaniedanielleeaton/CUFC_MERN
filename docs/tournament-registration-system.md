@@ -275,13 +275,15 @@ interface Registrant {
   isPaid: boolean;
   paidAt?: Date;
   amountPaidInCents?: number;     // Total amount paid
+  baseFeeChargedInCents?: number; // Base fee portion (for audit - 0 if exempt)
   
   // M2 Post Status (simple - no retry tracking)
   m2Posted: boolean;              // True if successfully posted to M2
   m2PostedAt?: Date;
   
-  // User Account (optional)
-  userId?: ObjectId;              // Reference to User if logged in
+  // User Account (optional - store both for flexibility)
+  userId?: ObjectId;              // Reference to MemberProfile if linked
+  auth0Id?: string;               // Auth0 ID for lookup before MemberProfile exists
   
   // Flags
   isRequestedAlternativeQualification: boolean;
@@ -854,11 +856,15 @@ FRONTEND_URL=https://www.columbusunitedfencing.com
 
 The tournament registration feature is designed as a **vertical slice** - a self-contained feature with minimal coupling to existing code. 
 
-**Integration Points (READ-ONLY from existing code):**
-- `MemberProfile` - Read user's display name, legal name, phone, guardian info for form auto-fill
+**Integration Points (existing code - minimal coupling):**
+- `MemberProfileService` - Read user's display name, legal name, phone, guardian for form auto-fill (if logged in)
 - `auth.ts` middleware - Use `checkJwt`, `getAuth0Id()` for authentication
-- `EmailList` model - Create/update tournament-specific email lists
+- `EmailList` model - Create tournament-specific email lists (pattern: `tournament-{m2TournamentId}`)
 - `emailService` - Send alert emails on M2 post failure
+
+**Auto-fill behavior:** Only pull from `MemberProfile` if user is logged in and linked. Do not pull from previous registration forms.
+
+**Email list naming:** `id: "tournament-{m2TournamentId}"`, `name: "{Tournament Name} Registrants"` - visible in admin email page.
 
 **No modifications to existing code required.**
 
@@ -899,7 +905,8 @@ The tournament registration feature is designed as a **vertical slice** - a self
 
                     INTEGRATION POINTS (Existing Code - Read Only)
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  MemberProfile (read)  │  auth.ts (use)  │  EmailList (write)  │  emailService │
+│ MemberProfileService   │  auth.ts (use)  │  EmailList (write)  │  emailService │
+│      (read)            │                 │                     │    (use)      │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1015,9 +1022,11 @@ The tournament registration feature is designed as a **vertical slice** - a self
                                           │ isPaid: boolean                 │
                                           │ paidAt?: Date                   │
                                           │ amountPaidInCents?: number      │
+                                          │ baseFeeChargedInCents?: number  │
                                           │ m2Posted: boolean               │
                                           │ m2PostedAt?: Date               │
                                           │ userId?: ObjectId               │
+                                          │ auth0Id?: string                │
                                           │ createdAt: Date                 │
                                           │ updatedAt: Date                 │
                                           └─────────────────────────────────┘
