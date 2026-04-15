@@ -35,4 +35,14 @@ export const env = {
 
   EMAIL_ACCOUNT: process.env.EMAIL_ACCOUNT,
   EMAIL_PASS: process.env.EMAIL_PASS,
+
+  SQUARE_SIGNATURE_KEY: process.env.SQUARE_SIGNATURE_KEY ?? '',
+
+  M2_CLIENT_ID: process.env.M2_CLIENT_ID ?? '',
+  M2_CLIENT_SECRET: process.env.M2_CLIENT_SECRET ?? '',
+  M2_BASE_URL: process.env.M2_BASE_URL ?? 'https://www.meyersquared.com/api/v1',
+  M2_AUTH_URL: process.env.M2_AUTH_URL ?? 'https://meyer-squared.us.auth0.com/oauth/token',
+  M2_CLUB_ID: Number(process.env.M2_CLUB_ID ?? 10),
+  M2_AUDIENCE: process.env.M2_AUDIENCE ?? 'https://meyersquared.com',
+  USE_M2_STUB: process.env.USE_M2_STUB === 'true',
 };
