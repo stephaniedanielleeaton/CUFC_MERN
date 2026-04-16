@@ -10,3 +10,4 @@ export * from './types/Checkout';
 export * from './types/Subscription';
 export * from './types/SendToListRequest';
 export * from './types/EmailList';
+export * from './types/Tournament';
