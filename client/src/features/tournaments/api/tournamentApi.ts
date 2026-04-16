@@ -3,6 +3,7 @@ import type {
   ClubDto,
   RegistrationRequestDto,
   RegistrationResponseDto,
+  UserRegistrationDto,
 } from '@cufc/shared';
 import { API_ENDPOINTS } from '../../../constants/api';
 
@@ -42,5 +43,15 @@ export async function submitRegistration(
     }
     throw new Error(message);
   }
+  return res.json();
+}
+
+export async function fetchUserRegistrations(
+  token: string
+): Promise<UserRegistrationDto[]> {
+  const res = await fetch(API_ENDPOINTS.TOURNAMENTS.USER_REGISTRATIONS, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch user registrations');
   return res.json();
 }

@@ -79,3 +79,12 @@ export interface RegistrationResponseDto {
   paymentId: string;
   paymentUrl: string;
 }
+
+export interface UserRegistrationDto {
+  registrantId: string;
+  m2TournamentId: number;
+  tournamentName: string;
+  events: SelectedEventDto[];
+  isPaid: boolean;
+  createdAt: string;
+}
