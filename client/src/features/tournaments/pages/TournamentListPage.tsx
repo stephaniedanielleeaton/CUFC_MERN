@@ -11,14 +11,15 @@ function stripHtml(html: string): string {
 function formatDateParts(dateStr: string) {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) {
-    return { month: '', day: 0, ordinal: '' };
+    return { month: '', day: 0, ordinal: '', year: '' };
   }
   const month = date.toLocaleDateString('en-US', { month: 'short' });
   const day = date.getDate();
+  const year = date.getFullYear().toString();
   const ordinal = day === 1 || day === 21 || day === 31 ? 'st' 
     : day === 2 || day === 22 ? 'nd' 
     : day === 3 || day === 23 ? 'rd' : 'th';
-  return { month, day, ordinal };
+  return { month, day, ordinal, year };
 }
 
 function formatCutoffDate(dateStr: string): string {
@@ -48,16 +49,17 @@ function TournamentRow({ tournament }: { tournament: TournamentDetailDto }) {
           <div className="text-2xl font-light text-gray-700">
             {start.day}<sup className="text-sm">{start.ordinal}</sup>
           </div>
+          <div className="text-gray-400 text-xs">{start.year}</div>
         </div>
         <div className="flex-grow min-w-0">
-          <h3 className="text-base font-medium text-gray-800 group-hover:text-Navy">
+          <h3 className="text-base font-medium text-gray-800 group-hover:text-navy">
             {tournament.name}
           </h3>
           {location && (
             <div className="text-xs text-gray-500 mt-1">{location}</div>
           )}
         </div>
-        <div className="flex-shrink-0 text-gray-400 group-hover:text-Navy transition-colors">
+        <div className="flex-shrink-0 text-gray-400 group-hover:text-navy transition-colors">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
@@ -71,9 +73,10 @@ function TournamentRow({ tournament }: { tournament: TournamentDetailDto }) {
           <div className="text-3xl font-light text-gray-700">
             {start.day}<sup className="text-lg">{start.ordinal}</sup>
           </div>
+          <div className="text-gray-400 text-sm">{start.year}</div>
         </div>
         <div className="flex-grow min-w-0">
-          <h3 className="text-lg font-medium text-gray-800 group-hover:text-Navy transition-colors">
+          <h3 className="text-lg font-medium text-gray-800 group-hover:text-navy transition-colors">
             {tournament.name}
           </h3>
           {tournament.description && (

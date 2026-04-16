@@ -4,19 +4,13 @@ import { SmallHero } from '../../../components/common/SmallHero';
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
+  if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleDateString('en-US', { 
     weekday: 'long',
     month: 'long', 
     day: 'numeric',
     year: 'numeric'
   });
-}
-
-function formatCurrency(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
 }
 
 export default function TournamentDetailPage() {
@@ -26,42 +20,27 @@ export default function TournamentDetailPage() {
 
   if (loading) {
     return (
-      <div className="bg-white min-h-screen py-16">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-100 rounded w-1/2" />
-            <div className="h-4 bg-gray-100 rounded w-3/4" />
-            <div className="h-4 bg-gray-100 rounded w-2/3" />
-            <div className="space-y-3 mt-8">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-12 bg-gray-100 rounded" />
-              ))}
-            </div>
+      <div className="bg-white min-h-screen">
+        <SmallHero pageTitle="Loading..." />
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-6 bg-gray-100 rounded w-1/3" />
+            <div className="h-4 bg-gray-100 rounded w-1/2" />
           </div>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error || !tournament) {
     return (
-      <div className="bg-white min-h-screen py-16">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-red-50 text-red-700 p-4 rounded-lg">{error}</div>
-          <Link to="/tournaments" className="text-Navy hover:underline mt-4 inline-block">
-            ← Back to Tournaments
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  if (!tournament) {
-    return (
-      <div className="bg-white min-h-screen py-16">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="text-gray-500">Tournament not found.</div>
-          <Link to="/tournaments" className="text-Navy hover:underline mt-4 inline-block">
+      <div className="bg-white min-h-screen">
+        <SmallHero pageTitle="Tournament" />
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-4">
+            {error || 'Tournament not found.'}
+          </div>
+          <Link to="/tournaments" className="text-navy hover:underline">
             ← Back to Tournaments
           </Link>
         </div>
@@ -73,74 +52,62 @@ export default function TournamentDetailPage() {
     ? `${tournament.address.city}, ${tournament.address.state}`
     : tournament.address?.city || tournament.address?.state || '';
 
+  const m2Url = `https://meyersquared.com/tournaments/${tournament.m2TournamentId}`;
+
   return (
     <div className="bg-white min-h-screen">
       <SmallHero pageTitle={tournament.name} />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <Link to="/tournaments" className="text-Navy hover:underline text-sm mb-6 inline-block">
+        <Link to="/tournaments" className="text-navy hover:underline text-sm mb-6 inline-block">
           ← Back to Tournaments
         </Link>
 
-        {/* Tournament Info */}
-        <div className="space-y-4 mb-8">
-          <div className="text-gray-600">
-            <span className="font-medium">Date:</span> {formatDate(tournament.startDate)}
-            {tournament.endDate !== tournament.startDate && (
-              <> – {formatDate(tournament.endDate)}</>
+        <h1 className="text-2xl md:text-3xl font-bold text-navy mb-8 text-center md:text-left">{tournament.name}</h1>
+
+        {/* About This Event */}
+        <div className="border border-gray-200 p-6 mb-8">
+          <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold">
+            About This Event
+          </span>
+          <div className="mt-4 space-y-3 text-gray-700">
+            <div>
+              <span className="font-semibold text-navy">Date:</span> {formatDate(tournament.startDate)}
+            </div>
+            {location && (
+              <div>
+                <span className="font-semibold text-navy">Location:</span> {location}
+              </div>
             )}
           </div>
-          {location && (
-            <div className="text-gray-600">
-              <span className="font-medium">Location:</span> {location}
-            </div>
-          )}
-          {tournament.address && (
-            <div className="text-gray-500 text-sm">
-              {tournament.address.name && <div>{tournament.address.name}</div>}
-              {tournament.address.address1 && <div>{tournament.address.address1}</div>}
-              {tournament.address.zip && (
-                <div>{tournament.address.city}, {tournament.address.state} {tournament.address.zip}</div>
-              )}
-            </div>
-          )}
-          <div className="text-gray-600">
-            <span className="font-medium">Registration closes:</span> {formatDate(tournament.registrationCutOff)}
-          </div>
-          {tournament.primaryContact && (
-            <div className="text-gray-600">
-              <span className="font-medium">Contact:</span> {tournament.primaryContact}
-            </div>
+          {tournament.description && (
+            <div 
+              className="prose prose-sm max-w-none mt-6 pt-6 border-t border-gray-100 text-gray-600"
+              dangerouslySetInnerHTML={{ __html: tournament.description }}
+            />
           )}
         </div>
 
-        {/* Description */}
-        {tournament.description && (
-          <div 
-            className="prose prose-sm max-w-none mb-8 text-gray-600"
-            dangerouslySetInnerHTML={{ __html: tournament.description }}
-          />
-        )}
-
-        {/* Events */}
-        {tournament.events && tournament.events.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-lg font-medium text-gray-800 mb-4">Events</h2>
-            <div className="border rounded-lg divide-y">
-              {tournament.events.map(event => (
-                <div key={event.m2EventId} className="p-4 flex justify-between items-center">
-                  <div>
-                    <div className="font-medium text-gray-800">{event.eventName}</div>
-                    <div className="text-sm text-gray-500">
-                      {event.weapon} • {event.participantsCount} registered
-                    </div>
-                  </div>
-                  <div className="text-gray-600">{formatCurrency(event.priceInCents)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* M2 Link */}
+        <div className="border border-gray-200 p-6 text-center">
+          <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold">
+            Full Event Details
+          </span>
+          <p className="text-gray-600 mt-4 mb-6">
+            View full event details, schedule, rosters, pools, brackets, and results:
+          </p>
+          <a
+            href={m2Url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block bg-navy text-white px-8 py-3 uppercase tracking-wider text-sm font-semibold hover:opacity-90 transition-opacity"
+          >
+            View on Meyer Squared
+          </a>
+          <p className="text-sm text-gray-500 mt-6">
+            Questions? <Link to="/contact" className="text-navy hover:underline">Contact us</Link>
+          </p>
+        </div>
       </div>
     </div>
   );
