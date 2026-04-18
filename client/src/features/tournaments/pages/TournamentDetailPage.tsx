@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useTournament } from '../hooks/useTournament';
+import { useTournament, useRegistration } from '../hooks';
+import { EventSelection, RegistrationForm } from '../components';
 import { SmallHero } from '../../../components/common/SmallHero';
+import type { SelectedEventDto, RegistrationRequestDto } from '@cufc/shared';
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
@@ -17,6 +20,24 @@ export default function TournamentDetailPage() {
   const { tournamentId } = useParams<{ tournamentId: string }>();
   const m2TournamentId = tournamentId ? Number.parseInt(tournamentId, 10) : undefined;
   const { tournament, loading, error } = useTournament(m2TournamentId);
+  const { register, loading: registering, error: regError } = useRegistration();
+  const [selectedEvents, setSelectedEvents] = useState<SelectedEventDto[]>([]);
+  const [showForm, setShowForm] = useState(false);
+
+  const handleRegistrationSubmit = async (request: RegistrationRequestDto) => {
+    try {
+      const response = await register(request);
+      // Redirect to M2 landing page
+      window.location.href = response.paymentUrl;
+    } catch {
+      // Error is handled by useRegistration hook
+    }
+  };
+
+  // Check if registration is still open
+  const isRegistrationOpen = tournament 
+    ? new Date(tournament.registrationCutOff) > new Date() 
+    : false;
 
   if (loading) {
     return (
@@ -89,7 +110,7 @@ export default function TournamentDetailPage() {
         </div>
 
         {/* M2 Link */}
-        <div className="border border-gray-200 p-6 text-center">
+        <div className="border border-gray-200 p-6 mb-8 text-center">
           <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold">
             Full Event Details
           </span>
@@ -108,6 +129,62 @@ export default function TournamentDetailPage() {
             Questions? <Link to="/contact" className="text-navy hover:underline">Contact us</Link>
           </p>
         </div>
+
+        {/* Registration Section */}
+        {isRegistrationOpen && tournament.events && tournament.events.length > 0 && (
+          <div className="border border-gray-200 p-6 mb-8">
+            <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold">
+              Registration
+            </span>
+            
+            {!showForm ? (
+              <div className="mt-4">
+                <p className="text-gray-600 mb-4">Select the events you want to register for:</p>
+                <EventSelection
+                  events={tournament.events}
+                  selectedEvents={selectedEvents}
+                  onSelectionChange={setSelectedEvents}
+                />
+                {selectedEvents.length > 0 && (
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="mt-6 w-full bg-navy text-white py-3 uppercase tracking-wider text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity"
+                  >
+                    Continue to Registration
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="mt-4">
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="text-navy hover:underline text-sm mb-4 inline-block"
+                >
+                  ← Back to Event Selection
+                </button>
+                <RegistrationForm
+                  m2TournamentId={tournament.m2TournamentId}
+                  selectedEvents={selectedEvents}
+                  onSubmit={handleRegistrationSubmit}
+                  loading={registering}
+                  error={regError}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Registration Closed Notice */}
+        {!isRegistrationOpen && (
+          <div className="border border-gray-200 p-6 bg-gray-50">
+            <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold">
+              Registration
+            </span>
+            <p className="text-gray-600 mt-4">
+              Registration for this event has closed.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
