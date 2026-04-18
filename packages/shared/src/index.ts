@@ -2,7 +2,7 @@
 export * from './types/MemberStatus';
 export * from './types/MemberUpdateData';
 
-// Type-only exports (interfaces and types only)
+// Type-only exports
 export type * from './types/MemberCheckIn';
 export type * from './types/MemberProfile';
 export type * from './types/AttendanceScreenMember';

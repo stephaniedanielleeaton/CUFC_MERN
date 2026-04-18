@@ -3,4 +3,4 @@ export const MemberStatus = {
   Full: 'Full',
 } as const;
 
-export type MemberStatus = typeof MemberStatus[keyof typeof MemberStatus];
+export type MemberStatus = (typeof MemberStatus)[keyof typeof MemberStatus];
