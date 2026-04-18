@@ -115,7 +115,7 @@ export default function TournamentDetailPage() {
             Full Event Details
           </span>
           <p className="text-gray-600 mt-4 mb-6">
-            View full event details, schedule, rosters, pools, brackets, and results:
+            View full event details, rules, schedule, rosters, pools, brackets, and results:
           </p>
           <a
             href={m2Url}
