@@ -1,4 +1,4 @@
-import type { MemberStatus } from './MemberStatus';
+import type { MemberStatus } from './MemberStatus.js';
 
 export type Address = {
   street?: string;

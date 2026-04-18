@@ -1,4 +1,4 @@
-import type { PersonalInfo, Guardian } from './MemberProfile';
+import type { PersonalInfo, Guardian } from './MemberProfile.js';
 
 export type MemberUpdateData = {
   auth0Id?: string;
