@@ -1,13 +1,15 @@
-// Types
+// Runtime values (contains classes, consts, or functions)
 export * from './types/MemberStatus';
-export * from './types/MemberCheckIn';
-export * from './types/MemberProfile';
 export * from './types/MemberUpdateData';
-export * from './types/AttendanceScreenMember';
-export * from './types/IntroClassDTO';
-export * from './types/Transaction';
-export * from './types/Checkout';
-export * from './types/Subscription';
-export * from './types/SendToListRequest';
-export * from './types/EmailList';
-export * from './types/Tournament';
+
+// Type-only exports (interfaces and types only)
+export type * from './types/MemberCheckIn';
+export type * from './types/MemberProfile';
+export type * from './types/AttendanceScreenMember';
+export type * from './types/IntroClassDTO';
+export type * from './types/Transaction';
+export type * from './types/Checkout';
+export type * from './types/Subscription';
+export type * from './types/SendToListRequest';
+export type * from './types/EmailList';
+export type * from './types/Tournament';
