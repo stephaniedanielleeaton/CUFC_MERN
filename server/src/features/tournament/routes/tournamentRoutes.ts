@@ -147,16 +147,11 @@ router.post('/:m2TournamentId/register', async (req: Request, res: Response) => 
 
     const auth0Id = getAuth0Id(req);
     let userId: string | undefined;
-    let baseFeeChargedInCents = tournament.basePriceInCents;
+    const baseFeeChargedInCents = 0; // No base fee - only event prices
 
     if (auth0Id) {
       const profile = await memberProfileService.getByAuth0Id(auth0Id);
       userId = profile?._id;
-
-      const hasExisting = await registrationService.hasExistingPaidRegistration(auth0Id, m2TournamentId);
-      if (hasExisting) {
-        baseFeeChargedInCents = 0;
-      }
     }
 
     const submitData: SubmitRegistrationData = {

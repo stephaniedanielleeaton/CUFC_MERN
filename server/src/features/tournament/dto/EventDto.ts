@@ -1,11 +1,11 @@
 export interface EventDto {
   m2EventId: number;
   eventName: string;
-  status: string;
   priceInCents: number;
   date: string;
   startTime: string;
   participantsCount: number;
+  participantsCap?: number;
   weapon: string;
 }
 
@@ -14,7 +14,7 @@ export interface AddressDto {
   address1: string;
   city: string;
   state: string;
-  zip: number;
+  zip: string;
 }
 
 export interface TournamentDetailDto {
@@ -24,10 +24,6 @@ export interface TournamentDetailDto {
   startDate: string;
   endDate: string;
   registrationCutOff: string;
-  basePriceInCents: number;
-  totalParticipants: number;
   events: EventDto[];
   address: AddressDto;
-  imageUrl?: string;
-  primaryContact: string;
 }
