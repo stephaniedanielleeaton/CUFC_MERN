@@ -1,7 +1,15 @@
-import { SquareClient } from 'square';
+import { SquareClient, Square } from 'square';
 import { env } from '../../config/env';
 import { getDateMonthsAgo, getTodayMidnight } from '../../utils/dateUtils';
 import { SquareOrderDto, mapOrderToDto } from './dto';
+
+// Orders with payments can be COMPLETED (fulfilled) or OPEN (paid but not yet fulfilled)
+const PAID_ORDER_STATES: Square.OrderState[] = ['COMPLETED', 'OPEN'];
+
+
+function filterforOrdersWithTender(orders: Square.Order[]): Square.Order[] {
+  return orders.filter(order => order.tenders && order.tenders.length > 0);
+}
 
 export class SquareOrdersService {
   private readonly client: SquareClient;
@@ -56,12 +64,12 @@ export class SquareOrdersService {
         query: {
           filter: {
             customerFilter: { customerIds: [customerId] },
-            stateFilter: { states: ['COMPLETED'] }
+            stateFilter: { states: PAID_ORDER_STATES }
           },
           sort: { sortField: 'CREATED_AT', sortOrder: 'DESC' },
         },
       });
-      return (response.orders ?? []).map(mapOrderToDto);
+      return filterforOrdersWithTender(response.orders ?? []).map(mapOrderToDto);
     } catch (error) {
       this.logError(error);
       throw error;
@@ -79,12 +87,12 @@ export class SquareOrdersService {
             dateTimeFilter: {
               createdAt: { startAt: startDate.toISOString() }
             },
-            stateFilter: { states: ['COMPLETED'] }
+            stateFilter: { states: PAID_ORDER_STATES }
           },
           sort: { sortField: 'CREATED_AT', sortOrder: 'DESC' },
         },
       });
-      return (response.orders ?? []).map(mapOrderToDto);
+      return filterforOrdersWithTender(response.orders ?? []).map(mapOrderToDto);
     } catch (error) {
       this.logError(error);
       throw error;

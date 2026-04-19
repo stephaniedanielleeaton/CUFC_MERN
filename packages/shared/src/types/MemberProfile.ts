@@ -1,4 +1,4 @@
-import type { MemberStatus } from './MemberStatus';
+import type { MemberStatus } from './MemberStatus.js';
 
 export type Address = {
   street?: string;
@@ -65,21 +65,6 @@ export type MemberProfileDTO = {
   isSubscriptionActive?: boolean;
   hasPaidDropInToday?: boolean;
   role?: string;
-};
-
-export type MemberUpdateData = {
-  auth0Id?: string;
-  displayFirstName?: string;
-  displayLastName?: string;
-  personalInfo?: PersonalInfo;
-  guardian?: Guardian;
-  profileComplete?: boolean;
-  isWaiverOnFile?: boolean;
-  isPaymentWaived?: boolean;
-  isArchived?: boolean;
-  memberStatus?: string;
-  squareCustomerId?: string;
-  notes?: string;
 };
 
 export type MemberProfileFormInput = MemberProfileDTO & {

@@ -1,6 +1,6 @@
 interface SearchBoxProps {
-  searchQuery: string
-  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  readonly searchQuery: string
+  readonly onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 
 export default function SearchBox({ searchQuery, onSearchChange }: SearchBoxProps) {

@@ -19,6 +19,8 @@ import AdminAttendancePage from './pages/admin/AdminAttendancePage'
 import AdminEmailPage from './pages/admin/AdminEmailPage'
 import NotificationsPage from './pages/NotificationsPage'
 import UnsubscribePage from './pages/UnsubscribePage'
+import TournamentListPage from './features/tournaments/pages/TournamentListPage'
+import TournamentDetailPage from './features/tournaments/pages/TournamentDetailPage'
 
 function App() {
   return (
@@ -40,6 +42,8 @@ function App() {
             <Route path="/dashboard/payments" element={<PaymentHistoryPage />} />
             <Route path="/dashboard/attendance" element={<AttendanceHistoryPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/tournaments" element={<TournamentListPage />} />
+            <Route path="/tournaments/:tournamentId" element={<TournamentDetailPage />} />
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminMembersPage />} />
               <Route path="members" element={<AdminMembersPage />} />

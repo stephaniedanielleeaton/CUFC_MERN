@@ -53,4 +53,12 @@ export const API_ENDPOINTS = {
     ALL_MEMBERS: '/api/email-lists/members/all',
     PROMOTIONAL_EMAILS: '/api/email-lists/promotional/emails',
   },
+  TOURNAMENTS: {
+    ROOT: '/api/tournaments',
+    CLUBS: '/api/tournaments/clubs',
+    BY_ID: (m2TournamentId: number) => `/api/tournaments/${m2TournamentId}`,
+    REGISTER: (m2TournamentId: number) => `/api/tournaments/${m2TournamentId}/register`,
+    USER_REGISTRATIONS: '/api/tournaments/user/registrations',
+    USER_PROFILE_DATA: '/api/tournaments/user/profile-data',
+  },
 } as const;

@@ -117,15 +117,15 @@ class AdminService {
       return [];
     }
 
-    const orders = await squareOrdersService.getByCustomerId(squareCustomerId);
+    const orders = await squareOrdersService.getRecentByCustomerId(squareCustomerId, 3);
     
     if (orders.length > 0) {
-      return orders.slice(0, 20).map(mapOrderToTransaction);
+      return orders.map(mapOrderToTransaction);
     }
 
     const payments = await squarePaymentsService.getRecentPaymentsPaginated(20);
     const customerPayments = payments.filter(p => p.customerId === squareCustomerId);
-    return customerPayments.slice(0, 20).map(mapPaymentToTransaction);
+    return customerPayments.map(mapPaymentToTransaction);
   }
 
   async getMemberIntroEnrollment(memberId: string): Promise<IntroEnrollmentDTO | null> {
