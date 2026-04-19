@@ -21,6 +21,7 @@ interface FormData {
   isMinor: boolean;
   guardianFirstName: string;
   guardianLastName: string;
+  dataSubmissionAgreement: boolean;
 }
 
 const initialFormData: FormData = {
@@ -34,6 +35,7 @@ const initialFormData: FormData = {
   isMinor: false,
   guardianFirstName: '',
   guardianLastName: '',
+  dataSubmissionAgreement: false,
 };
 
 export function RegistrationForm({ 
@@ -84,6 +86,7 @@ export function RegistrationForm({
     formData.legalLastName.trim() !== '' &&
     formData.email.trim() !== '' &&
     selectedEvents.length > 0 &&
+    formData.dataSubmissionAgreement &&
     (!formData.isMinor || (formData.guardianFirstName.trim() !== '' && formData.guardianLastName.trim() !== ''));
 
   return (
@@ -95,10 +98,10 @@ export function RegistrationForm({
       )}
 
       {/* Legal Name */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+      <fieldset>
+        <legend className="block text-sm font-medium text-gray-700 mb-2">
           Legal Name <span className="text-red-500">*</span>
-        </label>
+        </legend>
         <div className="grid grid-cols-2 gap-4">
           <input
             type="text"
@@ -106,6 +109,7 @@ export function RegistrationForm({
             value={formData.legalFirstName}
             onChange={handleChange}
             placeholder="First name"
+            aria-label="Legal first name"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
             required
           />
@@ -115,11 +119,12 @@ export function RegistrationForm({
             value={formData.legalLastName}
             onChange={handleChange}
             placeholder="Last name"
+            aria-label="Legal last name"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
             required
           />
         </div>
-      </div>
+      </fieldset>
 
       {/* Preferred Name Toggle */}
       <div>
@@ -136,10 +141,10 @@ export function RegistrationForm({
 
       {/* Preferred Name (if different) */}
       {!useLegalName && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <fieldset>
+          <legend className="block text-sm font-medium text-gray-700 mb-2">
             Preferred Name
-          </label>
+          </legend>
           <div className="grid grid-cols-2 gap-4">
             <input
               type="text"
@@ -147,6 +152,7 @@ export function RegistrationForm({
               value={formData.preferredFirstName}
               onChange={handleChange}
               placeholder="First name"
+              aria-label="Preferred first name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
             />
             <input
@@ -155,19 +161,21 @@ export function RegistrationForm({
               value={formData.preferredLastName}
               onChange={handleChange}
               placeholder="Last name"
+              aria-label="Preferred last name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
             />
           </div>
-        </div>
+        </fieldset>
       )}
 
       {/* Email */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
           Email <span className="text-red-500">*</span>
         </label>
         <input
           type="email"
+          id="email"
           name="email"
           value={formData.email}
           onChange={handleChange}
@@ -179,11 +187,12 @@ export function RegistrationForm({
 
       {/* Phone */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
           Phone Number
         </label>
         <input
           type="tel"
+          id="phoneNumber"
           name="phoneNumber"
           value={formData.phoneNumber}
           onChange={handleChange}
@@ -194,10 +203,11 @@ export function RegistrationForm({
 
       {/* Club Affiliation */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="clubId" className="block text-sm font-medium text-gray-700 mb-2">
           Club Affiliation
         </label>
         <select
+          id="clubId"
           name="clubId"
           value={formData.clubId}
           onChange={handleChange}
@@ -231,10 +241,10 @@ export function RegistrationForm({
 
       {/* Guardian Info (if minor) */}
       {formData.isMinor && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <fieldset>
+          <legend className="block text-sm font-medium text-gray-700 mb-2">
             Parent/Guardian Name <span className="text-red-500">*</span>
-          </label>
+          </legend>
           <div className="grid grid-cols-2 gap-4">
             <input
               type="text"
@@ -242,6 +252,7 @@ export function RegistrationForm({
               value={formData.guardianFirstName}
               onChange={handleChange}
               placeholder="First name"
+              aria-label="Guardian first name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
               required
             />
@@ -251,12 +262,40 @@ export function RegistrationForm({
               value={formData.guardianLastName}
               onChange={handleChange}
               placeholder="Last name"
+              aria-label="Guardian last name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
               required
             />
           </div>
-        </div>
+        </fieldset>
       )}
+
+      {/* Data Submission Consent */}
+      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            name="dataSubmissionAgreement"
+            checked={formData.dataSubmissionAgreement}
+            onChange={handleChange}
+            className="mt-1 h-4 w-4 text-navy rounded border-gray-300 focus:ring-navy"
+            aria-label="Data submission consent agreement"
+            required
+          />
+          <span className="text-sm text-gray-700">
+            <p className="font-semibold mb-1">Data Submission Consent</p>
+            <p className="mb-2">
+              By participating in this tournament, you acknowledge and agree that your match results and relevant participant information may be submitted to third-party rating platforms, including but not limited to HEMA Ratings and Meyer Squared.
+            </p>
+            <p className="mb-2">
+              These platforms may use your data for rankings, analytics, and historical recordkeeping. For more information on how your data is handled, please refer to their respective privacy policies.
+            </p>
+            <p>
+              Participants who wish to have their data anonymized should contact the respective platform(s) directly.
+            </p>
+          </span>
+        </label>
+      </div>
 
       {/* Submit */}
       <button

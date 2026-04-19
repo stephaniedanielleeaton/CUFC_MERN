@@ -8,7 +8,7 @@ export interface M2ClubTournamentsResponse {
   EndDate: string;
   RegistrationCutOff: string;
   Description: string;
-  BasePrice: number | null;
+  BasePrice: string | null; // Decimal string e.g. "25.00"
   Address: {
     AddressId: number;
     Name: string;
@@ -42,10 +42,11 @@ export function mapM2ClubTournamentsToDto(t: M2ClubTournamentsResponse): Tournam
     startDate: t.StartDate,
     endDate: t.EndDate,
     registrationCutOff: t.RegistrationCutOff,
+    basePriceInCents: t.BasePrice ? Math.round(Number.parseFloat(t.BasePrice) * 100) : 0,
     events: (t.Events ?? []).map((e): EventDto => ({
       m2EventId: e.EventId,
       eventName: e.EventName,
-      priceInCents: e.EventPrice ? Math.round(parseFloat(e.EventPrice) * 100) : 0,
+      priceInCents: e.EventPrice ? Math.round(Number.parseFloat(e.EventPrice) * 100) : 0,
       date: e.Date,
       startTime: e.StartTime,
       participantsCount: e.RegisteredCount,

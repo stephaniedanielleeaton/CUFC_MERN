@@ -10,6 +10,7 @@ export class M2ServiceStub implements IM2Service {
       startDate: '2026-05-16',
       endDate: '2026-05-16',
       registrationCutOff: '2026-05-15',
+      basePriceInCents: 2500,
       events: [
         {
           m2EventId: 200,

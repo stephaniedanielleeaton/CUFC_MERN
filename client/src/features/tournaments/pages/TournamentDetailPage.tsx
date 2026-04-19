@@ -28,7 +28,7 @@ export default function TournamentDetailPage() {
     try {
       const response = await register(request);
       // Redirect to M2 landing page
-      window.location.href = response.paymentUrl;
+      globalThis.location.href = response.paymentUrl;
     } catch {
       // Error is handled by useRegistration hook
     }
@@ -137,24 +137,7 @@ export default function TournamentDetailPage() {
               Registration
             </span>
             
-            {!showForm ? (
-              <div className="mt-4">
-                <p className="text-gray-600 mb-4">Select the events you want to register for:</p>
-                <EventSelection
-                  events={tournament.events}
-                  selectedEvents={selectedEvents}
-                  onSelectionChange={setSelectedEvents}
-                />
-                {selectedEvents.length > 0 && (
-                  <button
-                    onClick={() => setShowForm(true)}
-                    className="mt-6 w-full bg-navy text-white py-3 uppercase tracking-wider text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity"
-                  >
-                    Continue to Registration
-                  </button>
-                )}
-              </div>
-            ) : (
+            {showForm ? (
               <div className="mt-4">
                 <button
                   onClick={() => setShowForm(false)}
@@ -169,6 +152,24 @@ export default function TournamentDetailPage() {
                   loading={registering}
                   error={regError}
                 />
+              </div>
+            ) : (
+              <div className="mt-4">
+                <p className="text-gray-600 mb-4">Select the events you want to register for:</p>
+                <EventSelection
+                  events={tournament.events}
+                  selectedEvents={selectedEvents}
+                  onSelectionChange={setSelectedEvents}
+                  basePriceInCents={tournament.basePriceInCents}
+                />
+                {selectedEvents.length > 0 && (
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="mt-6 w-full bg-navy text-white py-3 uppercase tracking-wider text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity"
+                  >
+                    Continue to Registration
+                  </button>
+                )}
               </div>
             )}
           </div>

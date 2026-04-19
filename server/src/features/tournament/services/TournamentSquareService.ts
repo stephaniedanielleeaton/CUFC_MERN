@@ -65,25 +65,17 @@ export class TournamentSquareService {
   }
 
   private buildLineItems(data: CreateOrderData): Square.OrderLineItem[] {
-    const items: Square.OrderLineItem[] = [];
+    const eventNames = data.selectedEvents.map((e) => e.eventName).join(', ');
+    const itemName = `${data.tournamentName} - ${eventNames}`;
+    const totalCents = data.baseFeeInCents + data.selectedEvents.reduce((sum, e) => sum + e.priceInCents, 0);
 
-    if (data.baseFeeInCents > 0) {
-      items.push({
-        name: `${data.tournamentName} Registration Fee`,
+    return [
+      {
+        name: itemName,
         quantity: '1',
-        basePriceMoney: { amount: BigInt(data.baseFeeInCents), currency: 'USD' },
-      });
-    }
-
-    for (const event of data.selectedEvents) {
-      items.push({
-        name: event.eventName,
-        quantity: '1',
-        basePriceMoney: { amount: BigInt(event.priceInCents), currency: 'USD' },
-      });
-    }
-
-    return items;
+        basePriceMoney: { amount: BigInt(totalCents), currency: 'USD' },
+      },
+    ];
   }
 
   verifyWebhookSignature(body: string, signature: string): boolean {

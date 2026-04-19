@@ -24,6 +24,7 @@ export interface TournamentDetailDto {
   startDate: string;
   endDate: string;
   registrationCutOff: string;
+  basePriceInCents: number;
   events: EventDto[];
   address: AddressDto;
 }
