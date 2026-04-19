@@ -12,7 +12,7 @@ interface PendingEnrollment {
   timestamp: number
 }
 
-const ENROLLMENT_EXPIRY_MS = 30 * 60 * 1000 // 30 minutes
+const ENROLLMENT_EXPIRY_MS = 30 * 60 * 1000
 
 function getPendingEnrollment(): PendingEnrollment | null {
   try {
@@ -21,7 +21,6 @@ function getPendingEnrollment(): PendingEnrollment | null {
     
     const parsed: PendingEnrollment = JSON.parse(stored)
     
-    // Check if expired (30 minutes)
     if (Date.now() - parsed.timestamp > ENROLLMENT_EXPIRY_MS) {
       sessionStorage.removeItem('pendingIntroEnrollment')
       return null
@@ -47,36 +46,27 @@ export default function PendingEnrollmentPage() {
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [showProfileForm, setShowProfileForm] = useState(false)
 
-  // Load pending enrollment on mount
   useEffect(() => {
     const enrollment = getPendingEnrollment()
     setPendingEnrollment(enrollment)
     
-    // If no pending enrollment, redirect to dashboard
     if (!enrollment && !authLoading) {
       navigate('/dashboard')
     }
   }, [authLoading, navigate])
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       loginWithRedirect({ appState: { returnTo: '/enroll/pending' } })
     }
   }, [authLoading, isAuthenticated, loginWithRedirect])
 
-  // Check profile status and proceed accordingly
   useEffect(() => {
     if (authLoading || profileLoading || !pendingEnrollment || !isAuthenticated) return
     
-    if (!profile) {
-      // No profile yet - show profile form
-      setShowProfileForm(true)
-    } else if (!profile.profileComplete) {
-      // Profile exists but incomplete - show profile form
+    if (!profile?.profileComplete) {
       setShowProfileForm(true)
     } else {
-      // Profile complete - proceed to checkout
       proceedToCheckout()
     }
   }, [authLoading, profileLoading, profile, pendingEnrollment, isAuthenticated])
@@ -95,9 +85,7 @@ export default function PendingEnrollmentPage() {
         redirectUrl: `${globalThis.location.origin}/dashboard`
       })
       
-      // Clear pending enrollment before redirect
       clearPendingEnrollment()
-      
       globalThis.location.href = data.checkoutUrl
     } catch (err) {
       setIsCheckingOut(false)
@@ -108,30 +96,24 @@ export default function PendingEnrollmentPage() {
   const handleProfileSaved = useCallback(async () => {
     await refreshProfile()
     setShowProfileForm(false)
-    // Profile is now complete, useEffect will trigger checkout
   }, [refreshProfile])
 
-  // Loading states
   if (authLoading || profileLoading) {
     return <LoadingSpinner />
   }
 
-  // Redirecting to login
   if (!isAuthenticated) {
     return <RedirectingOverlay message="Redirecting to sign in..." />
   }
 
-  // No pending enrollment
   if (!pendingEnrollment) {
     return <RedirectingOverlay message="Redirecting to dashboard..." />
   }
 
-  // Checkout in progress
   if (isCheckingOut) {
     return <RedirectingOverlay message="Redirecting to checkout..." />
   }
 
-  // Show profile form
   if (showProfileForm) {
     return (
       <div className="bg-gray-50 min-h-screen py-10">
@@ -166,6 +148,5 @@ export default function PendingEnrollmentPage() {
     )
   }
 
-  // Default: processing
   return <RedirectingOverlay message="Processing enrollment..." />
 }
