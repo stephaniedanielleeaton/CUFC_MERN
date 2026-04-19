@@ -34,7 +34,13 @@ export async function getProfileForUser(auth0Id: string): Promise<MemberProfileD
 
 export async function createProfileForUser(
   auth0Id: string,
-  initialData?: { displayFirstName?: string; displayLastName?: string; personalInfo?: { email?: string }; guardian?: { firstName?: string; lastName?: string } }
+  initialData?: { 
+    displayFirstName?: string; 
+    displayLastName?: string; 
+    personalInfo?: { email?: string }; 
+    guardian?: { firstName?: string; lastName?: string };
+    profileComplete?: boolean;
+  }
 ): Promise<MemberProfileDTO> {
   const email = initialData?.personalInfo?.email?.toLowerCase().trim();
 

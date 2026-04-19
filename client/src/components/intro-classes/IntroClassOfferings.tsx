@@ -74,6 +74,13 @@ export const IntroClassOfferings: React.FC<IntroClassOfferingsProps> = ({
 
   const handleGuestEnrollClick = () => {
     if (!selectedVariationId) return
+    
+    // Persist class selection before potential sign-in redirect
+    sessionStorage.setItem('pendingIntroEnrollment', JSON.stringify({
+      classId: selectedVariationId,
+      timestamp: Date.now()
+    }))
+    
     setShowGuestModal(true)
   }
 
@@ -185,7 +192,7 @@ export const IntroClassOfferings: React.FC<IntroClassOfferingsProps> = ({
         isOpen={showGuestModal}
         onClose={() => setShowGuestModal(false)}
         onGuestProfileCreated={handleGuestProfileCreated}
-        returnTo="/dashboard"
+        returnTo="/enroll/pending"
       />
     </div>
   )
