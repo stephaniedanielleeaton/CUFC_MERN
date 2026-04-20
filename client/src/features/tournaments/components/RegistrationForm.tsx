@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import type { SelectedEventDto, RegistrationRequestDto } from '@cufc/shared';
+import { useState, useEffect } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
+import type { SelectedEventDto, RegistrationRequestDto, MemberProfileDTO } from '@cufc/shared';
 import { useClubs } from '../hooks/useClubs';
 
 interface RegistrationFormProps {
@@ -8,6 +9,9 @@ interface RegistrationFormProps {
   readonly onSubmit: (request: RegistrationRequestDto) => void;
   readonly loading: boolean;
   readonly error: string | null;
+  readonly profile?: MemberProfileDTO | null;
+  readonly onSignInClick?: () => void;
+  readonly onCompleteProfileClick?: () => void;
 }
 
 interface FormData {
@@ -43,11 +47,39 @@ export function RegistrationForm({
   selectedEvents, 
   onSubmit, 
   loading, 
-  error 
+  error,
+  profile,
+  onSignInClick,
+  onCompleteProfileClick,
 }: RegistrationFormProps) {
+  const { isAuthenticated, loginWithRedirect } = useAuth0();
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [useLegalName, setUseLegalName] = useState(true);
   const { clubs } = useClubs();
+
+  // Auto-populate form from profile when available
+  useEffect(() => {
+    if (profile) {
+      const hasPreferredName = profile.displayFirstName && profile.displayLastName &&
+        (profile.displayFirstName !== profile.personalInfo?.legalFirstName ||
+         profile.displayLastName !== profile.personalInfo?.legalLastName);
+      
+      setFormData({
+        legalFirstName: profile.personalInfo?.legalFirstName ?? '',
+        legalLastName: profile.personalInfo?.legalLastName ?? '',
+        preferredFirstName: hasPreferredName ? (profile.displayFirstName ?? '') : '',
+        preferredLastName: hasPreferredName ? (profile.displayLastName ?? '') : '',
+        email: profile.personalInfo?.email ?? '',
+        phoneNumber: profile.personalInfo?.phone ?? '',
+        clubId: '',
+        isMinor: false,
+        guardianFirstName: profile.guardian?.firstName ?? '',
+        guardianLastName: profile.guardian?.lastName ?? '',
+        dataSubmissionAgreement: false,
+      });
+      setUseLegalName(!hasPreferredName);
+    }
+  }, [profile]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -94,6 +126,50 @@ export function RegistrationForm({
       {error && (
         <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm">
           {error}
+        </div>
+      )}
+
+      {/* Sign In Prompt - Not authenticated */}
+      {!isAuthenticated && (
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <p className="text-sm text-blue-800 mb-3">
+            <strong>Have an account?</strong> Sign in to auto-fill your information and save it for future registrations.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              onSignInClick?.();
+              loginWithRedirect({ appState: { returnTo: globalThis.location.pathname } });
+            }}
+            className="text-sm font-semibold text-navy hover:underline"
+          >
+            Sign in or create an account →
+          </button>
+        </div>
+      )}
+
+      {/* Complete Profile Prompt - Authenticated but profile incomplete */}
+      {isAuthenticated && !profile?.profileComplete && (
+        <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+          <p className="text-sm text-amber-800 mb-3">
+            <strong>Complete your profile</strong> to auto-fill registration forms and speed up future checkouts.
+          </p>
+          <button
+            type="button"
+            onClick={onCompleteProfileClick}
+            className="text-sm font-semibold text-navy hover:underline"
+          >
+            Complete your profile →
+          </button>
+        </div>
+      )}
+
+      {/* Signed In Confirmation - Authenticated with complete profile */}
+      {isAuthenticated && profile?.profileComplete && (
+        <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+          <p className="text-sm text-green-800">
+            ✓ Signed in as <strong>{profile?.personalInfo?.email}</strong>. Your information has been auto-filled.
+          </p>
         </div>
       )}
 
