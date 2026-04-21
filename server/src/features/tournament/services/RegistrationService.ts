@@ -1,12 +1,24 @@
 import { getM2Service, M2AddPersonData } from './meyerSquared';
+import { tournamentService } from './TournamentService';
+import { tournamentSquareService } from './TournamentSquareService';
 import { tournamentDAO, registrantDAO, CreateRegistrantData } from '../dao';
 import { 
   RegistrantDto, 
   RegistrantDetailDto, 
   SelectedEventDto,
   ClubAffiliationDto,
+  RegistrationRequestDto,
+  RegistrationResponseDto,
 } from '../dto';
 import { EmailList } from '../../../models/EmailList';
+import { memberProfileService } from '../../../services/memberProfileService';
+
+export class RegistrationError extends Error {
+  constructor(message: string, public statusCode: number = 400) {
+    super(message);
+    this.name = 'RegistrationError';
+  }
+}
 
 export interface SubmitRegistrationData {
   m2TournamentId: number;
@@ -29,7 +41,62 @@ export interface SubmitRegistrationData {
 }
 
 export class RegistrationService {
-  async submitRegistration(data: SubmitRegistrationData): Promise<{ registrant: RegistrantDetailDto; paymentId: string }> {
+  
+  async processRegistration(
+    m2TournamentId: number,
+    request: RegistrationRequestDto,
+    auth0Id?: string
+  ): Promise<RegistrationResponseDto> {
+    const tournament = await tournamentService.getTournamentDetails(m2TournamentId);
+    if (!tournament) {
+      throw new RegistrationError('Tournament not found', 404);
+    }
+
+    let userId: string | undefined;
+    if (auth0Id) {
+      const profile = await memberProfileService.getByAuth0Id(auth0Id);
+      userId = profile?._id;
+    }
+
+    const submitData: SubmitRegistrationData = {
+      m2TournamentId,
+      tournamentName: tournament.name,
+      selectedEvents: request.selectedEvents,
+      preferredFirstName: request.preferredFirstName,
+      preferredLastName: request.preferredLastName,
+      legalFirstName: request.legalFirstName,
+      legalLastName: request.legalLastName,
+      email: request.email,
+      phoneNumber: request.phoneNumber,
+      clubAffiliation: request.clubAffiliation,
+      isMinor: request.isMinor,
+      guardianFirstName: request.guardianFirstName,
+      guardianLastName: request.guardianLastName,
+      baseFeeChargedInCents: tournament.basePriceInCents,
+      userId,
+      auth0Id,
+      isRequestedAlternativeQualification: request.isRequestedAlternativeQualification,
+    };
+
+    const { registrant, paymentId } = await this.createRegistrant(submitData);
+
+    const { paymentUrl } = await tournamentSquareService.createOrderWithPaymentLink({
+      tournamentName: tournament.name,
+      selectedEvents: request.selectedEvents,
+      baseFeeInCents: tournament.basePriceInCents,
+      paymentId,
+      m2TournamentId,
+      registrantId: registrant.id,
+    });
+
+    return {
+      registrantId: registrant.id,
+      paymentId,
+      paymentUrl,
+    };
+  }
+
+  private async createRegistrant(data: SubmitRegistrationData): Promise<{ registrant: RegistrantDetailDto; paymentId: string }> {
     const tournament = await tournamentDAO.findOrCreate(data.m2TournamentId, data.tournamentName);
     const paymentId = this.generatePaymentId(data.m2TournamentId);
 
@@ -41,6 +108,13 @@ export class RegistrationService {
 
     const registrant = await registrantDAO.create(createData);
     return { registrant, paymentId };
+  }
+
+  /**
+   * @deprecated Use processRegistration instead
+   */
+  async submitRegistration(data: SubmitRegistrationData): Promise<{ registrant: RegistrantDetailDto; paymentId: string }> {
+    return this.createRegistrant(data);
   }
 
   async hasExistingPaidRegistration(auth0Id: string, m2TournamentId: number): Promise<boolean> {

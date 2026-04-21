@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { tournamentService, registrationService, tournamentSquareService, SubmitRegistrationData } from '../services';
+import { tournamentService, registrationService, RegistrationError } from '../services';
 import { RegistrationRequestDto } from '../dto';
 import { checkJwt, getAuth0Id, requireRole } from '../../../middleware/auth';
 import { memberProfileService } from '../../../services/memberProfileService';
@@ -139,58 +139,14 @@ router.post('/:m2TournamentId/register', async (req: Request, res: Response) => 
     }
 
     const body: RegistrationRequestDto = req.body;
-
-    const tournament = await tournamentService.getTournamentDetails(m2TournamentId);
-    if (!tournament) {
-      return res.status(404).json({ error: 'Tournament not found' });
-    }
-
     const auth0Id = getAuth0Id(req);
-    let userId: string | undefined;
-    const baseFeeChargedInCents = tournament.basePriceInCents;
 
-    if (auth0Id) {
-      const profile = await memberProfileService.getByAuth0Id(auth0Id);
-      userId = profile?._id;
-    }
-
-    const submitData: SubmitRegistrationData = {
-      m2TournamentId,
-      tournamentName: tournament.name,
-      selectedEvents: body.selectedEvents,
-      preferredFirstName: body.preferredFirstName,
-      preferredLastName: body.preferredLastName,
-      legalFirstName: body.legalFirstName,
-      legalLastName: body.legalLastName,
-      email: body.email,
-      phoneNumber: body.phoneNumber,
-      clubAffiliation: body.clubAffiliation,
-      isMinor: body.isMinor,
-      guardianFirstName: body.guardianFirstName,
-      guardianLastName: body.guardianLastName,
-      baseFeeChargedInCents,
-      userId,
-      auth0Id,
-      isRequestedAlternativeQualification: body.isRequestedAlternativeQualification,
-    };
-
-    const { registrant, paymentId } = await registrationService.submitRegistration(submitData);
-
-    const { paymentUrl } = await tournamentSquareService.createOrderWithPaymentLink({
-      tournamentName: tournament.name,
-      selectedEvents: body.selectedEvents,
-      baseFeeInCents: baseFeeChargedInCents,
-      paymentId,
-      m2TournamentId,
-      registrantId: registrant.id,
-    });
-
-    res.json({
-      registrantId: registrant.id,
-      paymentId,
-      paymentUrl,
-    });
+    const result = await registrationService.processRegistration(m2TournamentId, body, auth0Id);
+    res.json(result);
   } catch (error) {
+    if (error instanceof RegistrationError) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
     console.error('Error submitting registration:', error);
     res.status(500).json({ error: 'Failed to submit registration' });
   }
