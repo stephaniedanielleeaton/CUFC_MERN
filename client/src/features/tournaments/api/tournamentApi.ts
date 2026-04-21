@@ -55,3 +55,32 @@ export async function fetchUserRegistrations(
   if (!res.ok) throw new Error('Failed to fetch user registrations');
   return res.json();
 }
+
+export type TournamentWithStatus = TournamentDetailDto & { isEnabled: boolean };
+
+export async function fetchTournamentsForAdmin(
+  token: string
+): Promise<TournamentWithStatus[]> {
+  const res = await fetch('/api/tournaments/admin/all', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to fetch tournaments');
+  return res.json();
+}
+
+export async function toggleTournamentVisibility(
+  token: string,
+  m2TournamentId: number,
+  name: string,
+  isEnabled: boolean
+): Promise<void> {
+  const res = await fetch(`/api/tournaments/admin/${m2TournamentId}/toggle`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ isEnabled, name }),
+  });
+  if (!res.ok) throw new Error('Failed to update tournament visibility');
+}

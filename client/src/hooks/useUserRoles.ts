@@ -1,13 +1,29 @@
 import { useState, useEffect } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 
+interface UseUserRolesResult {
+  roles: string[];
+  isLoading: boolean;
+}
+
 export function useUserRoles(): string[] {
-  const { isAuthenticated, getAccessTokenSilently } = useAuth0()
+  const { roles } = useUserRolesWithLoading()
+  return roles
+}
+
+export function useUserRolesWithLoading(): UseUserRolesResult {
+  const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently } = useAuth0()
   const [roles, setRoles] = useState<string[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
     if (!isAuthenticated) {
       setRoles([])
+      setIsLoading(false)
       return
     }
 
@@ -23,11 +39,13 @@ export function useUserRoles(): string[] {
         }
       } catch {
         setRoles([])
+      } finally {
+        setIsLoading(false)
       }
     }
 
     fetchRoles()
-  }, [isAuthenticated, getAccessTokenSilently])
+  }, [isAuthenticated, authLoading, getAccessTokenSilently])
 
-  return roles
+  return { roles, isLoading }
 }
