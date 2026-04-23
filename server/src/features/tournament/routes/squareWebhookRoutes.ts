@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { registrationService, tournamentSquareService } from '../services';
+import { squareWebhookService } from '../../../services/square/SquareWebhookService';
 
 const router = Router();
 
@@ -52,7 +53,7 @@ router.post('/square', async (req: SquareWebhookRequest, res: Response<WebhookRe
     const webhookUrl = `https://${req.headers.host}${req.originalUrl}`;
     console.log('[Square Webhook] Webhook URL:', webhookUrl);
 
-    const isValid = tournamentSquareService.verifyWebhookSignature(rawBody, signature, webhookUrl);
+    const isValid = squareWebhookService.verifyWebhookSignature(rawBody, signature, webhookUrl);
     console.log('[Square Webhook] Signature valid:', isValid);
 
     if (!isValid) {

@@ -1,9 +1,5 @@
 import { SquareClient, Square } from 'square';
 import { env } from '../../../config/env';
-
-// WebhooksHelper is not properly exported in TypeScript types, use require pattern
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { WebhooksHelper } = require('square');
 import { SelectedEventDto } from '../dto';
 
 export interface CreateOrderData {
@@ -79,23 +75,6 @@ export class TournamentSquareService {
         basePriceMoney: { amount: BigInt(totalCents), currency: 'USD' },
       },
     ];
-  }
-
-  verifyWebhookSignature(body: string, signature: string, webhookUrl: string): boolean {
-    try {
-      // Ensure HTTPS for webhook URL
-      const normalizedUrl = webhookUrl.replace('http://', 'https://');
-
-      return WebhooksHelper.isValidWebhookEventSignature(
-        body,
-        signature,
-        env.SQUARE_SIGNATURE_KEY,
-        normalizedUrl
-      );
-    } catch (error) {
-      console.error('Error verifying webhook signature:', error);
-      return false;
-    }
   }
 
   async getOrderMetadata(orderId: string): Promise<WebhookOrderMetadata | null> {
