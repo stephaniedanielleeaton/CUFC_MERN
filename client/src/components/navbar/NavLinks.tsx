@@ -5,8 +5,7 @@ export const NAV_LINKS = [
   { href: "/join", label: "Join", isJoin: true },
   { href: "/about", label: "About" },
   { href: "/schedule", label: "Schedule" },
-  { href: "/events", label: "Events" },
-  { href: "/tournaments", label: "Tournaments" },
+  { href: "/tournaments", label: "Events" },
   { href: "/contact", label: "Contact" },
   { href: "/notifications", label: "Notifications" },
 ]

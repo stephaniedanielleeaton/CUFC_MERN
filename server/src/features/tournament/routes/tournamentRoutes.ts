@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { tournamentService, registrationService, tournamentSquareService, SubmitRegistrationData } from '../services';
+import { tournamentService, registrationService, RegistrationError } from '../services';
 import { RegistrationRequestDto } from '../dto';
-import { checkJwt, getAuth0Id } from '../../../middleware/auth';
+import { checkJwt, getAuth0Id, requireRole } from '../../../middleware/auth';
 import { memberProfileService } from '../../../services/memberProfileService';
 
 const router = Router();
@@ -139,65 +139,59 @@ router.post('/:m2TournamentId/register', async (req: Request, res: Response) => 
     }
 
     const body: RegistrationRequestDto = req.body;
+    const auth0Id = getAuth0Id(req);
 
-    const tournament = await tournamentService.getTournamentDetails(m2TournamentId);
-    if (!tournament) {
-      return res.status(404).json({ error: 'Tournament not found' });
+    const result = await registrationService.processRegistration(m2TournamentId, body, auth0Id);
+    res.json(result);
+  } catch (error) {
+    if (error instanceof RegistrationError) {
+      return res.status(error.statusCode).json({ error: error.message });
+    }
+    console.error('Error submitting registration:', error);
+    res.status(500).json({ error: 'Failed to submit registration' });
+  }
+});
+
+/**
+ * GET /api/tournaments/admin/all
+ * Get all tournaments including disabled ones (admin only)
+ */
+router.get('/admin/all', checkJwt, requireRole('club-admin'), async (_req: Request, res: Response) => {
+  try {
+    const tournaments = await tournamentService.getClubTournamentsForAdmin();
+    res.json(tournaments);
+  } catch (error) {
+    console.error('Error fetching tournaments for admin:', error);
+    res.status(500).json({ error: 'Failed to fetch tournaments' });
+  }
+});
+
+/**
+ * PATCH /api/tournaments/admin/:m2TournamentId/toggle
+ * Toggle tournament visibility (admin only)
+ */
+router.patch('/admin/:m2TournamentId/toggle', checkJwt, requireRole('club-admin'), async (req: Request, res: Response) => {
+  try {
+    const m2TournamentId = Number.parseInt(req.params.m2TournamentId, 10);
+    if (Number.isNaN(m2TournamentId)) {
+      return res.status(400).json({ error: 'Invalid tournament ID' });
+    }
+
+    const { isEnabled, name } = req.body;
+    if (typeof isEnabled !== 'boolean') {
+      return res.status(400).json({ error: 'isEnabled must be a boolean' });
+    }
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'name is required' });
     }
 
     const auth0Id = getAuth0Id(req);
-    let userId: string | undefined;
-    let baseFeeChargedInCents = tournament.basePriceInCents;
+    const updated = await tournamentService.setTournamentEnabled(m2TournamentId, name, isEnabled, auth0Id);
 
-    if (auth0Id) {
-      const profile = await memberProfileService.getByAuth0Id(auth0Id);
-      userId = profile?._id;
-
-      const hasExisting = await registrationService.hasExistingPaidRegistration(auth0Id, m2TournamentId);
-      if (hasExisting) {
-        baseFeeChargedInCents = 0;
-      }
-    }
-
-    const submitData: SubmitRegistrationData = {
-      m2TournamentId,
-      tournamentName: tournament.name,
-      selectedEvents: body.selectedEvents,
-      preferredFirstName: body.preferredFirstName,
-      preferredLastName: body.preferredLastName,
-      legalFirstName: body.legalFirstName,
-      legalLastName: body.legalLastName,
-      email: body.email,
-      phoneNumber: body.phoneNumber,
-      clubAffiliation: body.clubAffiliation,
-      isMinor: body.isMinor,
-      guardianFirstName: body.guardianFirstName,
-      guardianLastName: body.guardianLastName,
-      baseFeeChargedInCents,
-      userId,
-      auth0Id,
-      isRequestedAlternativeQualification: body.isRequestedAlternativeQualification,
-    };
-
-    const { registrant, paymentId } = await registrationService.submitRegistration(submitData);
-
-    const { paymentUrl } = await tournamentSquareService.createOrderWithPaymentLink({
-      tournamentName: tournament.name,
-      selectedEvents: body.selectedEvents,
-      baseFeeInCents: baseFeeChargedInCents,
-      paymentId,
-      m2TournamentId,
-      registrantId: registrant.id,
-    });
-
-    res.json({
-      registrantId: registrant.id,
-      paymentId,
-      paymentUrl,
-    });
+    res.json(updated);
   } catch (error) {
-    console.error('Error submitting registration:', error);
-    res.status(500).json({ error: 'Failed to submit registration' });
+    console.error('Error toggling tournament visibility:', error);
+    res.status(500).json({ error: 'Failed to update tournament' });
   }
 });
 

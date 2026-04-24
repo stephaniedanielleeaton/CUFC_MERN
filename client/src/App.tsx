@@ -11,6 +11,7 @@ import SchedulePage from './pages/SchedulePage'
 import AttendancePage from './pages/AttendancePage'
 import DashboardPage from './pages/DashboardPage'
 import ProfilePage from './pages/ProfilePage'
+import PendingEnrollmentPage from './pages/PendingEnrollmentPage'
 import PaymentHistoryPage from './pages/PaymentHistoryPage'
 import AttendanceHistoryPage from './pages/AttendanceHistoryPage'
 import AdminLayout from './components/admin/AdminLayout'
@@ -42,6 +43,7 @@ function App() {
             <Route path="/dashboard/payments" element={<PaymentHistoryPage />} />
             <Route path="/dashboard/attendance" element={<AttendanceHistoryPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/enroll/pending" element={<PendingEnrollmentPage />} />
             <Route path="/tournaments" element={<TournamentListPage />} />
             <Route path="/tournaments/:tournamentId" element={<TournamentDetailPage />} />
             <Route path="/admin" element={<AdminLayout />}>

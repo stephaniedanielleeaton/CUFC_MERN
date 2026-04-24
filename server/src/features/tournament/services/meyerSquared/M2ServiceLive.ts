@@ -1,12 +1,10 @@
 import axios from 'axios';
 import { IM2Service, M2AddPersonData } from './IM2Service';
 import { 
-  M2TournamentListResponse, 
-  M2TournamentDetailResponse, 
+  M2ClubTournamentsResponse,
   M2ClubResponse, 
   M2AddPersonRequest,
-  mapM2TournamentListToDto,
-  mapM2TournamentDetailToDto,
+  mapM2ClubTournamentsToDto,
   mapM2ClubToDto,
 } from './m2Types';
 import { TournamentDetailDto, ClubDto } from '../../dto';
@@ -38,24 +36,15 @@ export class M2ServiceLive implements IM2Service {
   }
 
   async getClubTournaments(): Promise<TournamentDetailDto[]> {
-    const response = await axios.get<M2TournamentListResponse[]>(
-      `${env.M2_BASE_URL}/tournament/public/club/${env.M2_CLUB_ID}`
+    const response = await axios.get<M2ClubTournamentsResponse[]>(
+      `${env.M2_BASE_URL}/tournament/public/clubwithevents/${env.M2_CLUB_ID}`
     );
-    return response.data.map(mapM2TournamentListToDto);
+    return response.data.map((t) => mapM2ClubTournamentsToDto(t));
   }
 
   async getTournament(tournamentId: number): Promise<TournamentDetailDto | null> {
-    try {
-      const response = await axios.get<M2TournamentDetailResponse>(
-        `${env.M2_BASE_URL}/tournament/public/${tournamentId}`
-      );
-      return mapM2TournamentDetailToDto(response.data);
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        return null;
-      }
-      throw error;
-    }
+    const tournaments = await this.getClubTournaments();
+    return tournaments.find((t) => t.m2TournamentId === tournamentId) ?? null;
   }
 
   async getAllClubs(): Promise<ClubDto[]> {

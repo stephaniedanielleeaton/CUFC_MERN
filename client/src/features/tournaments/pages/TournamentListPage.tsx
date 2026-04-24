@@ -1,6 +1,9 @@
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { useTournaments } from '../hooks/useTournaments';
+import { useAuth0 } from '@auth0/auth0-react';
 import { SmallHero } from '../../../components/common/SmallHero';
+import { useUserRolesWithLoading } from '../../../hooks/useUserRoles';
+import { fetchTournamentsForAdmin, toggleTournamentVisibility, TournamentWithStatus } from '../api/tournamentApi';
 import type { TournamentDetailDto } from '@cufc/shared';
 
 function stripHtml(html: string): string {
@@ -30,18 +33,21 @@ function formatCutoffDate(dateStr: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function TournamentRow({ tournament }: { tournament: TournamentDetailDto }) {
+interface TournamentRowProps {
+  readonly tournament: TournamentWithStatus;
+  readonly isAdmin?: boolean;
+  readonly onToggle?: (m2TournamentId: number, name: string, isEnabled: boolean) => void;
+}
+
+function TournamentRow({ tournament, isAdmin, onToggle }: TournamentRowProps) {
   const start = formatDateParts(tournament.startDate);
   const location = tournament.address?.city && tournament.address?.state
     ? `${tournament.address.city}, ${tournament.address.state}`
     : tournament.address?.city || tournament.address?.state || '';
   const cutoffDate = formatCutoffDate(tournament.registrationCutOff);
 
-  return (
-    <Link
-      to={`/tournaments/${tournament.m2TournamentId}`}
-      className="group block border-t border-gray-200 py-5 hover:bg-gray-50 transition-colors"
-    >
+  const content = (
+    <>
       {/* Mobile layout */}
       <div className="flex gap-4 md:hidden items-center">
         <div className="w-14 flex-shrink-0 text-center">
@@ -100,12 +106,88 @@ function TournamentRow({ tournament }: { tournament: TournamentDetailDto }) {
           )}
         </div>
       </div>
-    </Link>
+    </>
+  );
+
+  return (
+    <div className={`group border-t border-gray-200 py-5 ${!tournament.isEnabled && isAdmin ? 'opacity-50' : ''}`}>
+      <div className="flex items-center gap-4">
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => onToggle?.(tournament.m2TournamentId, tournament.name, !tournament.isEnabled)}
+            className={`flex-shrink-0 w-12 h-6 rounded-full transition-colors relative ${
+              tournament.isEnabled ? 'bg-green-500' : 'bg-gray-300'
+            }`}
+            title={tournament.isEnabled ? 'Click to hide from users' : 'Click to show to users'}
+          >
+            <span
+              className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                tournament.isEnabled ? 'left-6' : 'left-0.5'
+              }`}
+            />
+          </button>
+        )}
+        <Link
+          to={`/tournaments/${tournament.m2TournamentId}`}
+          className="flex-grow hover:bg-gray-50 transition-colors"
+        >
+          {content}
+        </Link>
+      </div>
+    </div>
   );
 }
 
 export default function TournamentListPage() {
-  const { tournaments, loading, error } = useTournaments();
+  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+  const { roles, isLoading: rolesLoading } = useUserRolesWithLoading();
+  const isAdmin = roles.includes('club-admin');
+
+  const [tournaments, setTournaments] = useState<TournamentWithStatus[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadTournaments = useCallback(async () => {
+    try {
+      setLoading(true);
+      if (isAdmin && isAuthenticated) {
+        const token = await getAccessTokenSilently();
+        const data = await fetchTournamentsForAdmin(token);
+        setTournaments(data);
+      } else {
+        const res = await fetch('/api/tournaments');
+        if (!res.ok) throw new Error('Failed to fetch tournaments');
+        const data = await res.json();
+        // Public endpoint doesn't include isEnabled, default to true for display
+        setTournaments(data.map((t: TournamentDetailDto) => ({ ...t, isEnabled: true })));
+      }
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load tournaments');
+    } finally {
+      setLoading(false);
+    }
+  }, [isAdmin, isAuthenticated, getAccessTokenSilently]);
+
+  useEffect(() => {
+    if (!rolesLoading) {
+      loadTournaments();
+    }
+  }, [loadTournaments, rolesLoading]);
+
+  const handleToggle = useCallback(async (m2TournamentId: number, name: string, isEnabled: boolean) => {
+    try {
+      const token = await getAccessTokenSilently();
+      await toggleTournamentVisibility(token, m2TournamentId, name, isEnabled);
+      setTournaments(prev => prev.map(t => 
+        t.m2TournamentId === m2TournamentId ? { ...t, isEnabled } : t
+      ));
+    } catch (err) {
+      console.error('Failed to toggle tournament visibility:', err);
+      alert('Failed to update tournament visibility');
+    }
+  }, [getAccessTokenSilently]);
 
   if (loading) {
     return (
@@ -174,7 +256,12 @@ export default function TournamentListPage() {
         ) : (
           <div>
             {upcoming.map(t => (
-              <TournamentRow key={t.m2TournamentId} tournament={t} />
+              <TournamentRow 
+                key={t.m2TournamentId} 
+                tournament={t} 
+                isAdmin={isAdmin}
+                onToggle={handleToggle}
+              />
             ))}
           </div>
         )}
@@ -185,7 +272,12 @@ export default function TournamentListPage() {
             <h2 className="text-lg font-light text-gray-400 mb-4">Past Tournaments</h2>
             <div className="opacity-50">
               {past.map(t => (
-                <TournamentRow key={t.m2TournamentId} tournament={t} />
+                <TournamentRow 
+                  key={t.m2TournamentId} 
+                  tournament={t}
+                  isAdmin={isAdmin}
+                  onToggle={handleToggle}
+                />
               ))}
             </div>
           </div>

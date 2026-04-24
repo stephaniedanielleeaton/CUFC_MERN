@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useTournament, useRegistration } from '../hooks';
 import { EventSelection, RegistrationForm } from '../components';
 import { SmallHero } from '../../../components/common/SmallHero';
+import { useMemberProfile } from '../../../context/ProfileContext';
+import { UnifiedProfileForm } from '../../../components/profile/UnifiedProfileForm';
 import type { SelectedEventDto, RegistrationRequestDto } from '@cufc/shared';
 
 function formatDate(dateStr: string): string {
@@ -16,19 +19,36 @@ function formatDate(dateStr: string): string {
   });
 }
 
+type RegistrationStep = 'events' | 'profile' | 'form';
+
 export default function TournamentDetailPage() {
   const { tournamentId } = useParams<{ tournamentId: string }>();
   const m2TournamentId = tournamentId ? Number.parseInt(tournamentId, 10) : undefined;
+  
   const { tournament, loading, error } = useTournament(m2TournamentId);
   const { register, loading: registering, error: regError } = useRegistration();
+  const { isAuthenticated } = useAuth0();
+  const { profile, refreshProfile } = useMemberProfile();
+  
   const [selectedEvents, setSelectedEvents] = useState<SelectedEventDto[]>([]);
-  const [showForm, setShowForm] = useState(false);
+  const [step, setStep] = useState<RegistrationStep>('events');
+
+  const needsProfile = isAuthenticated && !profile?.profileComplete;
+
+  const handleContinueToRegistration = () => {
+    const nextStep = needsProfile ? 'profile' : 'form';
+    setStep(nextStep);
+  };
+
+  const handleProfileSaved = async () => {
+    await refreshProfile();
+    setStep('form');
+  };
 
   const handleRegistrationSubmit = async (request: RegistrationRequestDto) => {
     try {
       const response = await register(request);
-      // Redirect to M2 landing page
-      window.location.href = response.paymentUrl;
+      globalThis.location.href = response.paymentUrl;
     } catch {
       // Error is handled by useRegistration hook
     }
@@ -137,27 +157,53 @@ export default function TournamentDetailPage() {
               Registration
             </span>
             
-            {!showForm ? (
+            {/* Step 1: Event Selection */}
+            {step === 'events' && (
               <div className="mt-4">
                 <p className="text-gray-600 mb-4">Select the events you want to register for:</p>
                 <EventSelection
                   events={tournament.events}
                   selectedEvents={selectedEvents}
                   onSelectionChange={setSelectedEvents}
+                  basePriceInCents={tournament.basePriceInCents}
                 />
                 {selectedEvents.length > 0 && (
                   <button
-                    onClick={() => setShowForm(true)}
+                    onClick={handleContinueToRegistration}
                     className="mt-6 w-full bg-navy text-white py-3 uppercase tracking-wider text-sm font-semibold rounded-lg hover:opacity-90 transition-opacity"
                   >
                     Continue to Registration
                   </button>
                 )}
               </div>
-            ) : (
+            )}
+
+            {/* Step 2: Complete Profile (if needed) */}
+            {step === 'profile' && (
               <div className="mt-4">
                 <button
-                  onClick={() => setShowForm(false)}
+                  onClick={() => setStep('events')}
+                  className="text-navy hover:underline text-sm mb-4 inline-block"
+                >
+                  ← Back to Event Selection
+                </button>
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-bold text-navy">Complete Your Profile</h2>
+                  <p className="text-gray-600 mt-2">Fill out your profile to speed up this and future registrations.</p>
+                </div>
+                <UnifiedProfileForm 
+                  mode="authenticated" 
+                  onSaved={handleProfileSaved}
+                  submitLabel="Save & Continue"
+                />
+              </div>
+            )}
+
+            {/* Step 3: Registration Form */}
+            {step === 'form' && (
+              <div className="mt-4">
+                <button
+                  onClick={() => setStep('events')}
                   className="text-navy hover:underline text-sm mb-4 inline-block"
                 >
                   ← Back to Event Selection
@@ -168,6 +214,11 @@ export default function TournamentDetailPage() {
                   onSubmit={handleRegistrationSubmit}
                   loading={registering}
                   error={regError}
+                  profile={profile}
+                  onSignInClick={() => {
+                    // No-op - user will need to re-select events after sign-in
+                  }}
+                  onCompleteProfileClick={() => setStep('profile')}
                 />
               </div>
             )}

@@ -4,6 +4,7 @@ interface EventSelectionProps {
   readonly events: EventDto[];
   readonly selectedEvents: SelectedEventDto[];
   readonly onSelectionChange: (events: SelectedEventDto[]) => void;
+  readonly basePriceInCents: number;
 }
 
 function formatPrice(cents: number): string {
@@ -21,7 +22,7 @@ function formatEventDate(dateStr: string, timeStr: string): string {
   return timeStr ? `${formattedDate} at ${timeStr}` : formattedDate;
 }
 
-export function EventSelection({ events, selectedEvents, onSelectionChange }: EventSelectionProps) {
+export function EventSelection({ events, selectedEvents, onSelectionChange, basePriceInCents }: EventSelectionProps) {
   const selectedIds = new Set(selectedEvents.map(e => e.m2EventId));
 
   const handleToggle = (event: EventDto) => {
@@ -39,7 +40,8 @@ export function EventSelection({ events, selectedEvents, onSelectionChange }: Ev
     }
   };
 
-  const totalPrice = selectedEvents.reduce((sum, e) => sum + e.priceInCents, 0);
+  const eventsTotal = selectedEvents.reduce((sum, e) => sum + e.priceInCents, 0);
+  const totalPrice = eventsTotal + basePriceInCents;
 
   if (!events || events.length === 0) {
     return (
@@ -87,14 +89,26 @@ export function EventSelection({ events, selectedEvents, onSelectionChange }: Ev
         })}
       </div>
 
-      {selectedEvents.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center">
-          <span className="text-gray-600">
-            {selectedEvents.length} event{selectedEvents.length !== 1 ? 's' : ''} selected
-          </span>
-          <span className="text-xl font-bold text-navy">
-            Total: {formatPrice(totalPrice)}
-          </span>
+      {selectedEvents.length >= 1 && (
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <div className="space-y-2 text-sm text-gray-600">
+            {basePriceInCents > 0 && (
+              <div className="flex justify-between">
+                <span>Registration Fee</span>
+                <span>{formatPrice(basePriceInCents)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span>{selectedEvents.length} event{selectedEvents.length === 1 ? '' : 's'}</span>
+              <span>{formatPrice(eventsTotal)}</span>
+            </div>
+          </div>
+          <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+            <span className="font-semibold text-gray-800">Total</span>
+            <span className="text-xl font-bold text-navy">
+              {formatPrice(totalPrice)}
+            </span>
+          </div>
         </div>
       )}
     </div>

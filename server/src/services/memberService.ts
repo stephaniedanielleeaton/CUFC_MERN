@@ -44,6 +44,7 @@ class MemberService {
       displayLastName?: string;
       personalInfo?: { email?: string };
       guardian?: { firstName?: string; lastName?: string };
+      profileComplete?: boolean;
     }
   ): Promise<MemberProfileDTO> {
     return memberProfileService.create(auth0Id, data);

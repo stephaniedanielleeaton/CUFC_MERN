@@ -1,5 +1,4 @@
 import { SquareClient, Square } from 'square';
-import crypto from 'node:crypto';
 import { env } from '../../../config/env';
 import { SelectedEventDto } from '../dto';
 
@@ -65,36 +64,17 @@ export class TournamentSquareService {
   }
 
   private buildLineItems(data: CreateOrderData): Square.OrderLineItem[] {
-    const items: Square.OrderLineItem[] = [];
+    const eventNames = data.selectedEvents.map((e) => e.eventName).join(', ');
+    const itemName = `${data.tournamentName} - ${eventNames}`;
+    const totalCents = data.baseFeeInCents + data.selectedEvents.reduce((sum, e) => sum + e.priceInCents, 0);
 
-    if (data.baseFeeInCents > 0) {
-      items.push({
-        name: `${data.tournamentName} Registration Fee`,
+    return [
+      {
+        name: itemName,
         quantity: '1',
-        basePriceMoney: { amount: BigInt(data.baseFeeInCents), currency: 'USD' },
-      });
-    }
-
-    for (const event of data.selectedEvents) {
-      items.push({
-        name: event.eventName,
-        quantity: '1',
-        basePriceMoney: { amount: BigInt(event.priceInCents), currency: 'USD' },
-      });
-    }
-
-    return items;
-  }
-
-  verifyWebhookSignature(body: string, signature: string): boolean {
-    const hmac = crypto.createHmac('sha256', env.SQUARE_SIGNATURE_KEY);
-    hmac.update(body);
-    const expectedSignature = hmac.digest('base64');
-
-    return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
-    );
+        basePriceMoney: { amount: BigInt(totalCents), currency: 'USD' },
+      },
+    ];
   }
 
   async getOrderMetadata(orderId: string): Promise<WebhookOrderMetadata | null> {
