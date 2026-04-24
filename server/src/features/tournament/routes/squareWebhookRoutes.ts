@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { registrationService, tournamentSquareService } from '../services';
 import { squareWebhookService } from '../../../services/square/SquareWebhookService';
+import { introClassEnrollmentService } from '../../../services/introClassEnrollmentService';
 
 const router = Router();
 
@@ -77,15 +78,19 @@ router.post('/square', async (req: SquareWebhookRequest, res: Response<WebhookRe
       return res.status(200).json({ received: true });
     }
 
+    // Try to handle as intro class enrollment first
+    await introClassEnrollmentService.handlePaymentCompleted(orderId);
+
+    // Then try to handle as tournament registration
     const metadata = await tournamentSquareService.getOrderMetadata(orderId);
     if (!metadata) {
-      console.warn('No tournament metadata found for order:', orderId);
+      console.log('[Square Webhook] No tournament metadata found for order:', orderId);
       return res.status(200).json({ received: true });
     }
 
     const amountPaidInCents = await tournamentSquareService.getOrderTotal(orderId);
     if (amountPaidInCents === null) {
-      console.error('Failed to get order total for:', orderId);
+      console.error('[Square Webhook] Failed to get order total for:', orderId);
       return res.status(200).json({ received: true });
     }
 

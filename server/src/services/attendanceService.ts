@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import { APP_TIMEZONE } from '../config/appTime';
 import { MemberCheckIn, AttendanceScreenMember, AttendanceRecord } from '@cufc/shared';
 import { dbConnect } from '../config/database';
-import { attendanceDAO } from './attendanceDAO';
+import { attendanceDAO } from '../dao/attendanceDAO';
 import { memberProfileService } from './memberProfileService';
 
 export interface RecentAttendanceDTO {

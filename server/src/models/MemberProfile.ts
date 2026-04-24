@@ -88,7 +88,7 @@ const MemberProfileSchema = new Schema<IMemberProfile>({
   isArchived: { type: Boolean, default: false },
   notes: String,
   lastAttendanceCheckIn: Date,
-  memberStatus: { type: String, enum: ['New', 'Full'], default: 'New' },
+  memberStatus: { type: String, enum: ['New', 'Enrolled', 'Full'], default: 'New' },
   profileComplete: { type: Boolean, default: false },
   squareCustomerId: String,
 }, { timestamps: true });
