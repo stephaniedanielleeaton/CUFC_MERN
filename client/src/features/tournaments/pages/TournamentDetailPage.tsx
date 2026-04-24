@@ -93,7 +93,7 @@ export default function TournamentDetailPage() {
     ? `${tournament.address.city}, ${tournament.address.state}`
     : tournament.address?.city || tournament.address?.state || '';
 
-  const m2Url = `https://meyersquared.com/tournaments/${tournament.m2TournamentId}`;
+  const m2Url = `https://www.meyersquared.com/tournamentdetail/${tournament.m2TournamentId}`;
 
   return (
     <div className="bg-white min-h-screen">

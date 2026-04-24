@@ -49,7 +49,7 @@ export class TournamentSquareService {
         },
       },
       checkoutOptions: {
-        redirectUrl: `${env.APP_BASE_URL}/tournaments/payment-success?paymentId=${data.paymentId}`,
+        redirectUrl: `https://www.meyersquared.com/tournamentdetail/${data.m2TournamentId}`,
       },
     });
 
