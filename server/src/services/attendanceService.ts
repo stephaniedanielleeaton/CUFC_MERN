@@ -1,7 +1,7 @@
 import { MemberProfile } from '../models/MemberProfile';
 import { DateTime } from 'luxon';
 import { APP_TIMEZONE } from '../config/appTime';
-import { MemberCheckIn, AttendanceScreenMember, AttendanceRecord } from '@cufc/shared';
+import { MemberCheckIn, AttendanceScreenMember, AttendanceRecord, MemberStatus } from '@cufc/shared';
 import { dbConnect } from '../config/database';
 import { attendanceDAO } from '../dao/attendanceDAO';
 import { memberProfileService } from './memberProfileService';
@@ -14,7 +14,10 @@ export interface RecentAttendanceDTO {
 export async function getMembersWithCheckInStatus(): Promise<MemberCheckIn[]> {
   await dbConnect();
   const members = await MemberProfile.find(
-    { isArchived: { $ne: true } },
+    { 
+      isArchived: { $ne: true },
+      memberStatus: { $in: [MemberStatus.Enrolled, MemberStatus.Full] }
+    },
     {
       displayFirstName: 1,
       displayLastName: 1,
