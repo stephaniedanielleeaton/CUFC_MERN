@@ -35,6 +35,20 @@ class AdminService {
     return memberProfileService.delete(memberId);
   }
 
+  async createMember(data: { 
+    displayFirstName: string; 
+    displayLastName: string; 
+    email?: string;
+    memberStatus?: string;
+  }) {
+    return memberProfileService.createGuest({
+      displayFirstName: data.displayFirstName,
+      displayLastName: data.displayLastName,
+      personalInfo: data.email ? { email: data.email } : undefined,
+      profileComplete: false,
+    });
+  }
+
   async getMemberAttendance(memberId: string): Promise<AttendanceRecord[]> {
     return attendanceService.getMemberHistory(memberId);
   }
