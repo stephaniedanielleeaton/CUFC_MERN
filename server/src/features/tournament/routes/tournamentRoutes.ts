@@ -96,6 +96,30 @@ router.get('/:m2TournamentId/registrants', async (req: Request, res: Response) =
 });
 
 /**
+ * GET /api/tournaments/user/has-registration/:m2TournamentId
+ * Check if user has existing paid registration for a tournament
+ */
+router.get('/user/has-registration/:m2TournamentId', checkJwt, async (req: Request, res: Response) => {
+  try {
+    const auth0Id = getAuth0Id(req);
+    if (!auth0Id) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const m2TournamentId = Number.parseInt(req.params.m2TournamentId, 10);
+    if (Number.isNaN(m2TournamentId)) {
+      return res.status(400).json({ error: 'Invalid tournament ID' });
+    }
+
+    const hasRegistration = await registrationService.hasExistingPaidRegistration(auth0Id, m2TournamentId);
+    res.json({ hasRegistration });
+  } catch (error) {
+    console.error('Error checking registration:', error);
+    res.status(500).json({ error: 'Failed to check registration' });
+  }
+});
+
+/**
  * GET /api/tournaments/user/profile-data
  * Get user profile data for form auto-fill
  */

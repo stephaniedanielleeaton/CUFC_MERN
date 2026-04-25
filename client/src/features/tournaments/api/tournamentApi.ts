@@ -84,3 +84,15 @@ export async function toggleTournamentVisibility(
   });
   if (!res.ok) throw new Error('Failed to update tournament visibility');
 }
+
+export async function checkHasRegistration(
+  token: string,
+  m2TournamentId: number
+): Promise<boolean> {
+  const res = await fetch(`/api/tournaments/user/has-registration/${m2TournamentId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.hasRegistration === true;
+}

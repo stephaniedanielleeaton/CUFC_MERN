@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useTournament, useRegistration } from '../hooks';
@@ -6,6 +6,7 @@ import { EventSelection, RegistrationForm } from '../components';
 import { SmallHero } from '../../../components/common/SmallHero';
 import { useMemberProfile } from '../../../context/ProfileContext';
 import { UnifiedProfileForm } from '../../../components/profile/UnifiedProfileForm';
+import { checkHasRegistration } from '../api/tournamentApi';
 import type { SelectedEventDto, RegistrationRequestDto } from '@cufc/shared';
 
 function formatDate(dateStr: string): string {
@@ -27,11 +28,32 @@ export default function TournamentDetailPage() {
   
   const { tournament, loading, error } = useTournament(m2TournamentId);
   const { register, loading: registering, error: regError } = useRegistration();
-  const { isAuthenticated } = useAuth0();
+  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
   const { profile, refreshProfile } = useMemberProfile();
   
   const [selectedEvents, setSelectedEvents] = useState<SelectedEventDto[]>([]);
   const [step, setStep] = useState<RegistrationStep>('events');
+  const [hasExistingRegistration, setHasExistingRegistration] = useState(false);
+
+  // Check if user already has a paid registration for this tournament
+  useEffect(() => {
+    if (!isAuthenticated || !m2TournamentId) {
+      setHasExistingRegistration(false);
+      return;
+    }
+
+    async function checkRegistration() {
+      try {
+        const token = await getAccessTokenSilently();
+        const hasReg = await checkHasRegistration(token, m2TournamentId!);
+        setHasExistingRegistration(hasReg);
+      } catch {
+        setHasExistingRegistration(false);
+      }
+    }
+
+    checkRegistration();
+  }, [isAuthenticated, m2TournamentId, getAccessTokenSilently]);
 
   const needsProfile = isAuthenticated && !profile?.profileComplete;
 
@@ -166,6 +188,7 @@ export default function TournamentDetailPage() {
                   selectedEvents={selectedEvents}
                   onSelectionChange={setSelectedEvents}
                   basePriceInCents={tournament.basePriceInCents}
+                  skipBaseFee={hasExistingRegistration}
                 />
                 {selectedEvents.length > 0 && (
                   <button
