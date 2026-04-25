@@ -195,6 +195,9 @@ export default function DashboardPage() {
               onEnroll={handleEnrollClick}
             />
           )}
+          <p className="text-xs text-gray-500 px-1 mt-2 text-center">
+            Interested in a family plan? Contact our team to get started.
+          </p>
         </div>
 
         {/* Section: Tools */}
