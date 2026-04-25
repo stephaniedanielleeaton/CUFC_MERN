@@ -1,8 +1,15 @@
 import { useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import type { MemberProfileDTO, Transaction, AttendanceRecord } from '@cufc/shared'
+import { MemberStatus } from '@cufc/shared'
 import { TextInput } from '../../common/TextInput'
 import SaveButton, { SaveStatus } from '../../common/SaveButton'
+
+const MEMBER_STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: MemberStatus.New, label: 'New' },
+  { value: MemberStatus.Enrolled, label: 'Enrolled' },
+  { value: MemberStatus.Full, label: 'Full' },
+]
 
 type Props = {
   readonly member: MemberProfileDTO
@@ -171,11 +178,8 @@ export default function MemberDetailsInline({ member, onSubmit, onDelete, saveSt
                 <Dropdown
                   label="Member Status"
                   name="memberStatus"
-                  defaultValue={member.memberStatus ?? "New"}
-                  options={[
-                    { value: "New", label: "New" },
-                    { value: "Full", label: "Full" },
-                  ]}
+                  defaultValue={member.memberStatus ?? MemberStatus.New}
+                  options={MEMBER_STATUS_OPTIONS}
                 />
                 <TextInput label="Square Customer ID" name="squareCustomerId" defaultValue={member.squareCustomerId ?? ""} />
               </div>
