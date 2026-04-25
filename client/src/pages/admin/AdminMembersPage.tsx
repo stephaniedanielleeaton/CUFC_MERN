@@ -257,10 +257,10 @@ export default function AdminMembersPage() {
             </a>
           </div>
         </div>
-        
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-          <span className="text-sm font-medium text-dark-gray whitespace-nowrap">Filter by status:</span>
-          <div className="flex flex-wrap items-center gap-2">
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-medium-gray uppercase tracking-wide hidden sm:inline">Status</span>
             <div className="inline-flex rounded-lg border border-light-gray overflow-hidden shadow-sm">
               {(['New', 'Enrolled', 'Full'] as const).map((status, index) => {
                 const isSelected = statusFilter.includes(status)
@@ -296,63 +296,97 @@ export default function AdminMembersPage() {
                 All
               </button>
             </div>
+          </div>
 
-            <button
-              onClick={() => setShowArchived((prev) => !prev)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg border shadow-sm transition-colors ${
-                showArchived
-                  ? 'bg-light-pink text-dark-red border-medium-pink'
-                  : 'bg-white text-dark-gray border-light-gray hover:bg-light-pink/20'
-              }`}
-            >
-              {showArchived ? '✓ Show Archived' : 'Show Archived'}
-            </button>
-            
-            <button
-              onClick={() => setCheckedInOnly((prev) => !prev)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-lg border shadow-sm transition-colors ${
-                checkedInOnly
-                  ? 'bg-light-pink text-dark-red border-medium-pink'
-                  : 'bg-white text-dark-gray border-light-gray hover:bg-light-pink/20'
-              }`}
-            >
-              {checkedInOnly ? '✓ Show Checked In' : 'Show Checked In'}
-            </button>
+          <div className="flex items-center gap-2">
+            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border shadow-sm transition-colors cursor-pointer select-none bg-white text-dark-gray border-light-gray hover:bg-light-pink/20 has-[:checked]:bg-light-pink has-[:checked]:text-dark-red has-[:checked]:border-medium-pink">
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={showArchived}
+                onChange={() => setShowArchived((prev) => !prev)}
+              />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {showArchived ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                )}
+              </svg>
+              <span>Archived</span>
+            </label>
+
+            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border shadow-sm transition-colors cursor-pointer select-none bg-white text-dark-gray border-light-gray hover:bg-light-pink/20 has-[:checked]:bg-light-pink has-[:checked]:text-dark-red has-[:checked]:border-medium-pink">
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={checkedInOnly}
+                onChange={() => setCheckedInOnly((prev) => !prev)}
+              />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {checkedInOnly ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                )}
+              </svg>
+              <span>Checked In Today</span>
+            </label>
           </div>
         </div>
       </div>
 
       {showAddForm && (
-        <div className="max-w-2xl mx-auto mb-6 p-4 bg-white border border-light-gray rounded-lg shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              placeholder="First Name *"
-              value={newMember.firstName}
-              onChange={(e) => setNewMember(prev => ({ ...prev, firstName: e.target.value }))}
-              className="flex-1 px-3 py-2 border border-light-gray rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-medium-pink"
-            />
-            <input
-              type="text"
-              placeholder="Last Name *"
-              value={newMember.lastName}
-              onChange={(e) => setNewMember(prev => ({ ...prev, lastName: e.target.value }))}
-              className="flex-1 px-3 py-2 border border-light-gray rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-medium-pink"
-            />
-            <input
-              type="email"
-              placeholder="Email (optional)"
-              value={newMember.email}
-              onChange={(e) => setNewMember(prev => ({ ...prev, email: e.target.value }))}
-              className="flex-1 px-3 py-2 border border-light-gray rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-medium-pink"
-            />
-            <button
-              onClick={handleAddMember}
-              disabled={!newMember.firstName.trim() || !newMember.lastName.trim()}
-              className="px-4 py-2 text-sm font-medium rounded-lg bg-navy text-white hover:bg-dark-gray disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-            >
-              Add Member
-            </button>
+        <div className="w-full mb-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">New Member</h3>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="space-y-1.5">
+                <label htmlFor="newMemberFirstName" className="block text-sm font-semibold text-gray-800">
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="newMemberFirstName"
+                  type="text"
+                  value={newMember.firstName}
+                  onChange={(e) => setNewMember(prev => ({ ...prev, firstName: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="newMemberLastName" className="block text-sm font-semibold text-gray-800">
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="newMemberLastName"
+                  type="text"
+                  value={newMember.lastName}
+                  onChange={(e) => setNewMember(prev => ({ ...prev, lastName: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="newMemberEmail" className="block text-sm font-semibold text-gray-800">Email</label>
+                <input
+                  id="newMemberEmail"
+                  type="email"
+                  value={newMember.email}
+                  onChange={(e) => setNewMember(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={handleAddMember}
+                disabled={!newMember.firstName.trim() || !newMember.lastName.trim()}
+                className="px-5 py-2.5 text-sm font-medium rounded-md bg-navy text-white hover:bg-dark-gray disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Add Member
+              </button>
+            </div>
           </div>
         </div>
       )}
