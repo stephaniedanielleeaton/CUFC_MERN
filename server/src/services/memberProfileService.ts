@@ -1,5 +1,5 @@
 import { MemberProfileDTO, MemberUpdateData, GuestProfileInput, MemberUpdateDataMapper } from '@cufc/shared';
-import { memberProfileDAO } from './memberProfileDAO';
+import { memberProfileDAO } from '../dao/memberProfileDAO';
 import { squareCustomersService } from './square';
 
 async function createSquareCustomerIfEmailProvided(

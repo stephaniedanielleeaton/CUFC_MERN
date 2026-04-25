@@ -26,6 +26,8 @@ function Auth0ProviderWithNavigate({ children }: Readonly<{ children: React.Reac
         scope: 'openid profile email'
       }}
       onRedirectCallback={onRedirectCallback}
+      cacheLocation="localstorage"
+      useRefreshTokens={true}
     >
       {children}
     </Auth0Provider>
