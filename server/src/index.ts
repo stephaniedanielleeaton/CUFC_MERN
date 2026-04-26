@@ -27,7 +27,7 @@ app.use(
 );
 
 // Capture raw body for webhook signature verification
-app.use('/api/tournaments/webhooks', express.json({
+app.use('/api/square/webhook', express.json({
   verify: (req: express.Request, _res, buf) => {
     (req as express.Request & { rawBody?: string }).rawBody = buf.toString();
   }
@@ -50,7 +50,7 @@ app.use('/api/email-lists', emailListRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/tournaments', tournamentRoutes);
-app.use('/api/tournaments/webhooks', squareWebhookRoutes);
+app.use('/api/square/webhook', squareWebhookRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
