@@ -39,3 +39,17 @@ export function getAuth0Email(req: Request): string | undefined {
   // Check common locations for email in Auth0 tokens
   return payload?.email ?? payload?.['https://cufc.app/email'] ?? undefined;
 }
+
+export function checkJwtOptional(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return next();
+  }
+
+  checkJwt(req, res, (err) => {
+    if (err) {
+      return next();
+    }
+    next();
+  });
+}

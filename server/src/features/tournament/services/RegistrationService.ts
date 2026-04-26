@@ -53,10 +53,14 @@ export class RegistrationService {
     }
 
     let userId: string | undefined;
+    let hasExistingRegistration = false;
     if (auth0Id) {
       const profile = await memberProfileService.getByAuth0Id(auth0Id);
       userId = profile?._id;
+      hasExistingRegistration = await this.hasExistingPaidRegistration(auth0Id, m2TournamentId);
     }
+
+    const baseFeeToCharge = hasExistingRegistration ? 0 : tournament.basePriceInCents;
 
     const submitData: SubmitRegistrationData = {
       m2TournamentId,
@@ -72,7 +76,7 @@ export class RegistrationService {
       isMinor: request.isMinor,
       guardianFirstName: request.guardianFirstName,
       guardianLastName: request.guardianLastName,
-      baseFeeChargedInCents: tournament.basePriceInCents,
+      baseFeeChargedInCents: baseFeeToCharge,
       userId,
       auth0Id,
       isRequestedAlternativeQualification: request.isRequestedAlternativeQualification,
@@ -83,7 +87,7 @@ export class RegistrationService {
     const { paymentUrl } = await tournamentSquareService.createOrderWithPaymentLink({
       tournamentName: tournament.name,
       selectedEvents: request.selectedEvents,
-      baseFeeInCents: tournament.basePriceInCents,
+      baseFeeInCents: baseFeeToCharge,
       paymentId,
       m2TournamentId,
       registrantId: registrant.id,
@@ -117,9 +121,28 @@ export class RegistrationService {
     return this.createRegistrant(data);
   }
 
-  async hasExistingPaidRegistration(auth0Id: string, m2TournamentId: number): Promise<boolean> {
-    const existing = await registrantDAO.findPaidByUserAndTournament(auth0Id, m2TournamentId);
-    return existing !== null;
+  async hasExistingPaidRegistration(auth0Id: string, m2TournamentId: number, email?: string): Promise<boolean> {
+    const profile = await memberProfileService.getByAuth0Id(auth0Id);
+    if (profile?._id) {
+      const byUserId = await registrantDAO.findPaidByUserIdAndTournament(profile._id.toString(), m2TournamentId);
+      if (byUserId) {
+        return true;
+      }
+    }
+
+    const byAuth0 = await registrantDAO.findPaidByAuth0AndTournament(auth0Id, m2TournamentId);
+    if (byAuth0) {
+      return true;
+    }
+
+    if (email) {
+      const byEmail = await registrantDAO.findPaidByEmailAndTournament(email, m2TournamentId);
+      if (byEmail) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   async getRegistrantsByTournament(m2TournamentId: number): Promise<RegistrantDto[]> {

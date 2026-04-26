@@ -753,6 +753,16 @@ const existingPaidRegistration = await Registrant.findOne({
 const shouldChargeBaseFee = !existingPaidRegistration;
 ```
 
+**API Endpoint:** `GET /api/tournaments/user/has-registration/:m2TournamentId`
+- Returns `{ hasRegistration: boolean }`
+- Used by frontend to conditionally show/hide base fee in price breakdown
+
+**Frontend Implementation:**
+- `EventSelection` component accepts `skipBaseFee` prop (boolean)
+- When `skipBaseFee=true`, the "Registration Fee" line item is hidden from the price breakdown
+- When `skipBaseFee=true`, the total is calculated as `eventsTotal` only (no base fee added)
+- The `TournamentDetailPage` fetches this status on load via `checkHasRegistration(token, m2TournamentId)` and passes it to `EventSelection`
+
 ### API Endpoints Summary
 
 #### Public
@@ -765,7 +775,7 @@ const shouldChargeBaseFee = !existingPaidRegistration;
 - `GET /api/users/me/registrations` - User's registration history
 - `GET /api/users/me/tournament-profile` - Get saved profile
 - `PUT /api/users/me/tournament-profile` - Update saved profile
-- `GET /api/tournaments/:m2Id/my-registration` - Check existing registration
+- `GET /api/tournaments/user/has-registration/:m2Id` - Check if user already registered for tournament
 
 #### Admin
 - `GET /api/admin/tournaments` - List local tournament records
@@ -780,13 +790,19 @@ const shouldChargeBaseFee = !existingPaidRegistration;
 
 ### Resolved Design Decisions
 
-1. **Prices**: M2 will provide `BasePrice` and `EventPrice` in cents - use directly
+1. **Prices**: M2 provides `BasePrice` and `EventPrice` in cents - use directly
 2. **Registration Cutoff**: Use M2's `RegistrationCutOff` field
 3. **Discount Rules**: Removed from scope - not currently used
 4. **Data Retention**: Store snapshots in Registrant record for:
    - Audit: "What did they pay for?"
    - Manual recovery: All data needed to manually add to M2 if post failed
 5. **M2 Post Failure**: Send email alert, no automatic retry
+6. **Base Fee Logic**: Implemented
+   - Backend: `RegistrationService.processRegistration()` checks `hasExistingPaidRegistration(auth0Id, m2TournamentId)`
+   - If user already has a paid registration for this tournament: `baseFeeToCharge = 0`
+   - Frontend: `EventSelection` component accepts `skipBaseFee` prop to hide base fee from UI
+   - API: `GET /api/tournaments/user/has-registration/:m2Id` returns `{ hasRegistration: boolean }`
+   - The `baseFeeChargedInCents` field is stored on the registrant record for audit purposes
 
 ### Migration Steps
 
@@ -1183,6 +1199,14 @@ User          Frontend       tournamentRoutes    RegistrationSvc    TournamentSq
  │                │◀────────────────│                  │                    │                  │
  │◀───────────────│                 │                  │                    │                  │
  │                │                 │                  │                    │                  │
+ │                │ GET /user/has-registration/:id     │                    │                  │
+ │                │────────────────▶│                  │                    │                  │
+ │                │                 │  hasExistingPaidRegistration()         │                  │
+ │                │                 │─────────────────▶│                    │                  │
+ │                │                 │◀─────────────────│ { hasReg: true }   │                  │
+ │                │◀────────────────│                  │                    │                  │
+ │                │                 │                  │                    │                  │
+ │                │                 │                  │                    │                  │
  │  Submit Form   │                 │                  │                    │                  │
  │───────────────▶│                 │                  │                    │                  │
  │                │  POST /tournaments/:id/register    │                    │                  │
@@ -1239,19 +1263,27 @@ User          Frontend       tournamentRoutes    RegistrationSvc    TournamentSq
 | Price Calculator | `cufc-web/src/views/tournaments/utils/calculatePrice.ts` |
 | Types | `cufc-web/src/views/tournaments/types/types.ts` |
 
-### New System (CUFC-MERN) - Planned
+### New System (CUFC-MERN) - Implemented
 
-| Component | Planned Path |
-|-----------|--------------|
-| Tournament Model | `server/src/models/Tournament.ts` |
-| Registrant Model | `server/src/models/Registrant.ts` |
-| User Extension | `server/src/models/User.ts` |
-| M2 Interface | `server/src/services/meyerSquared/IM2Service.ts` |
-| M2 Live Service | `server/src/services/meyerSquared/M2ServiceLive.ts` |
-| M2 Stub Service | `server/src/services/meyerSquared/M2ServiceStub.ts` |
-| M2 Factory | `server/src/services/meyerSquared/index.ts` |
-| Square Service | `server/src/services/squareService.ts` |
-| Registration Service | `server/src/services/registrationService.ts` |
-| Tournament Routes | `server/src/routes/tournamentRoutes.ts` |
-| Square Routes | `server/src/routes/squareRoutes.ts` |
-| Registration Components | `client/src/features/tournaments/` |
+| Component | Actual Path |
+|-----------|-------------|
+| Tournament Model | `server/src/features/tournament/models/Tournament.ts` |
+| Registrant Model | `server/src/features/tournament/models/Registrant.ts` |
+| Tournament DAO | `server/src/features/tournament/dao/TournamentDAO.ts` |
+| Registrant DAO | `server/src/features/tournament/dao/RegistrantDAO.ts` |
+| M2 Service Interface | `server/src/features/tournament/services/meyerSquared/IM2Service.ts` |
+| M2 Live Service | `server/src/features/tournament/services/meyerSquared/M2ServiceLive.ts` |
+| M2 Stub Service | `server/src/features/tournament/services/meyerSquared/M2ServiceStub.ts` |
+| M2 Factory | `server/src/features/tournament/services/meyerSquared/index.ts` |
+| Tournament Service | `server/src/features/tournament/services/TournamentService.ts` |
+| Registration Service | `server/src/features/tournament/services/RegistrationService.ts` |
+| Square Service | `server/src/features/tournament/services/TournamentSquareService.ts` |
+| Tournament Routes | `server/src/features/tournament/routes/tournamentRoutes.ts` |
+| Square Webhook Routes | `server/src/features/tournament/routes/squareWebhookRoutes.ts` |
+| Registration DTOs | `server/src/features/tournament/dto/` |
+| EventSelection | `client/src/features/tournaments/components/EventSelection.tsx` |
+| RegistrationForm | `client/src/features/tournaments/components/RegistrationForm.tsx` |
+| TournamentDetailPage | `client/src/features/tournaments/pages/TournamentDetailPage.tsx` |
+| Tournament API | `client/src/features/tournaments/api/tournamentApi.ts` |
+| Registration Hook | `client/src/features/tournaments/hooks/useRegistration.ts` |
+| Tournament Hook | `client/src/features/tournaments/hooks/useTournament.ts` |

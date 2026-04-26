@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth0 } from '@auth0/auth0-react';
 import type { RegistrationRequestDto, RegistrationResponseDto } from '@cufc/shared';
 import { submitRegistration } from '../api/tournamentApi';
 
@@ -14,14 +15,16 @@ export function useRegistration(): UseRegistrationReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
 
   const register = async (request: RegistrationRequestDto): Promise<RegistrationResponseDto> => {
     setLoading(true);
     setError(null);
     setSuccess(false);
-    
+
     try {
-      const response = await submitRegistration(request);
+      const token = isAuthenticated ? await getAccessTokenSilently() : undefined;
+      const response = await submitRegistration(request, token);
       setSuccess(true);
       return response;
     } catch (err) {

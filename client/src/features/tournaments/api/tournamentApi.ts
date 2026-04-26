@@ -26,11 +26,16 @@ export async function fetchClubs(): Promise<ClubDto[]> {
 }
 
 export async function submitRegistration(
-  request: RegistrationRequestDto
+  request: RegistrationRequestDto,
+  token?: string
 ): Promise<RegistrationResponseDto> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   const res = await fetch(API_ENDPOINTS.TOURNAMENTS.REGISTER(request.m2TournamentId), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(request),
   });
   if (!res.ok) {
@@ -83,4 +88,16 @@ export async function toggleTournamentVisibility(
     body: JSON.stringify({ isEnabled, name }),
   });
   if (!res.ok) throw new Error('Failed to update tournament visibility');
+}
+
+export async function checkHasRegistration(
+  token: string,
+  m2TournamentId: number
+): Promise<boolean> {
+  const res = await fetch(`/api/tournaments/user/has-registration/${m2TournamentId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.hasRegistration === true;
 }
