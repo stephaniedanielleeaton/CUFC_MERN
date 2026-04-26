@@ -31,7 +31,7 @@ interface WebhookResponse {
  * POST /api/tournaments/webhooks/square
  * Handle Square payment webhooks
  */
-router.post('/square', async (req: SquareWebhookRequest, res: Response<WebhookResponse>) => {
+router.post('/', async (req: SquareWebhookRequest, res: Response<WebhookResponse>) => {
   try {
     const signature = req.headers['x-square-hmacsha256-signature'] as string;
     const rawBody = req.rawBody;
