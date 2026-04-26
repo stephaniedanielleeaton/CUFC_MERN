@@ -23,14 +23,14 @@ function toFormInput(p: MemberProfileDTO): MemberProfileFormInput {
 }
 
 export function MemberProfileProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently } = useAuth0()
+  const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently, loginWithRedirect } = useAuth0()
   const [profile, setProfile] = useState<MemberProfileFormInput | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchProfile = useCallback(async () => {
     if (authLoading) return
-    
+
     if (!isAuthenticated) {
       setProfile(null)
       setLoading(false)
@@ -51,12 +51,19 @@ export function MemberProfileProvider({ children }: Readonly<{ children: ReactNo
       const fetched: MemberProfileDTO | null = data.profile ?? null
       setProfile(fetched ? toFormInput(fetched) : null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      // Silent auth fails on Safari/iPhone due to third-party cookie blocking
+      // Trigger a fresh login instead of showing an error
+      if (errorMessage.includes('login_required') || errorMessage.includes('consent_required')) {
+        loginWithRedirect()
+        return
+      }
+      setError(errorMessage)
       setProfile(null)
     } finally {
       setLoading(false)
     }
-  }, [isAuthenticated, authLoading, getAccessTokenSilently])
+  }, [isAuthenticated, authLoading, getAccessTokenSilently, loginWithRedirect])
 
   useEffect(() => {
     fetchProfile()
