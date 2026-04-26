@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { useAuth0 } from '@auth0/auth0-react'
 import { useJoinNavigation } from '../../hooks/useJoinNavigation'
 
 const DROP_IN_URL = 'https://checkout.square.site/merchant/MLKW7ZG52B9ZV/order/Wm5I8FGH457zzxpSZVwOLkeCfwHZY'
@@ -20,7 +19,6 @@ type NavLinksProps = Readonly<{
 
 export function NavLinks({ onClick, className = "" }: NavLinksProps) {
   const { handleJoinClick } = useJoinNavigation()
-  const { isAuthenticated } = useAuth0()
 
   const onJoinClick = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -50,20 +48,18 @@ export function NavLinks({ onClick, className = "" }: NavLinksProps) {
           </Link>
         )
       ))}
-      {!isAuthenticated && (
-        <div className="flex flex-col items-center">
-          <span className="text-xs text-gray-400 normal-case tracking-normal">Current Members Only</span>
-          <a
-            href={DROP_IN_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`hover:text-[#904F69] uppercase tracking-widest whitespace-nowrap ${className}`}
-            onClick={onClick}
-          >
-            Drop-In
-          </a>
-        </div>
-      )}
+      <div className="flex flex-col items-center">
+        <span className="text-xs text-gray-400 normal-case tracking-normal">Current Members Only</span>
+        <a
+          href={DROP_IN_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`hover:text-[#904F69] uppercase tracking-widest whitespace-nowrap ${className}`}
+          onClick={onClick}
+        >
+          Drop-In
+        </a>
+      </div>
     </>
   )
 }
