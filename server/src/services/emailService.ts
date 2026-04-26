@@ -91,6 +91,19 @@ class EmailService extends EventEmitter {
     return this.activeJobs.get(jobId);
   }
 
+  async sendAlertEmail(to: string, subject: string, htmlContent: string): Promise<boolean> {
+    try {
+      const transporter = await this.getTransporter();
+      const mailOptions = this.createMailOptions(subject, htmlContent, to);
+      await transporter.sendMail(mailOptions);
+      console.log(`[EmailService] Alert email sent to ${to}: ${subject}`);
+      return true;
+    } catch (error) {
+      console.error('[EmailService] Failed to send alert email:', error);
+      return false;
+    }
+  }
+
   private updateJobProgress(jobId: string, progress: Partial<BatchProgress>) {
     const job = this.activeJobs.get(jobId);
     if (job) {

@@ -4,6 +4,7 @@ import { INTRO_CLASS_CATALOG_OBJECT_ID } from '../config/constants';
 import { memberProfileDAO } from '../dao/memberProfileDAO';
 import { squareCatalogService } from './square';
 import { MemberStatus } from '@cufc/shared';
+import { emailService } from './emailService';
 
 interface IntroClassOrderMetadata {
   memberProfileId: string;
@@ -138,6 +139,42 @@ export class IntroClassEnrollmentService {
     }
 
     await this.updateMemberStatusToEnrolled(metadata.memberProfileId, metadata.variationName);
+    await this.sendEnrollmentAlert(metadata.memberProfileId, metadata.variationName, orderId);
+  }
+
+  private async sendEnrollmentAlert(memberProfileId: string, variationName: string | undefined, orderId: string): Promise<void> {
+    if (!env.EMAIL_ACCOUNT) {
+      console.warn('[IntroClassEnrollmentService] No EMAIL_ACCOUNT configured, skipping alert');
+      return;
+    }
+
+    try {
+      const profile = await memberProfileDAO.findById(memberProfileId);
+      if (!profile) {
+        console.warn(`[IntroClassEnrollmentService] Profile not found for alert: ${memberProfileId}`);
+        return;
+      }
+
+      const emailContent = `
+New Intro Class Registration
+
+Member Information:
+• Preferred Name: ${profile.displayFirstName} ${profile.displayLastName}
+• Legal Name: ${profile.personalInfo?.legalFirstName || 'N/A'} ${profile.personalInfo?.legalLastName || 'N/A'}
+• Email: ${profile.personalInfo?.email || 'N/A'}
+• Phone: ${profile.personalInfo?.phone || 'N/A'}
+
+Class Details:
+• Class: ${variationName || 'Intro Class'}
+• Square Order ID: ${orderId}
+• Member Profile ID: ${memberProfileId}
+• Status Updated To: Enrolled
+      `;
+
+      await emailService.sendAlertEmail(env.EMAIL_ACCOUNT, `New Registration - Intro Class`, emailContent);
+    } catch (error) {
+      console.error('[IntroClassEnrollmentService] Failed to send enrollment alert:', error);
+    }
   }
 }
 

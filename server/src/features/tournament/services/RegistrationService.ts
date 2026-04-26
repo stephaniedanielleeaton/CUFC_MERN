@@ -12,6 +12,8 @@ import {
 } from '../dto';
 import { EmailList } from '../../../models/EmailList';
 import { memberProfileService } from '../../../services/memberProfileService';
+import { emailService } from '../../../services/emailService';
+import { env } from '../../../config/env';
 
 export class RegistrationError extends Error {
   constructor(message: string, public statusCode: number = 400) {
@@ -171,6 +173,7 @@ export class RegistrationService {
     if (registrant) {
       await this.postToM2(registrant);
       await this.addToTournamentEmailList(registrant);
+      await this.sendRegistrationAlert(registrant);
     }
 
     return registrant;
@@ -243,6 +246,48 @@ export class RegistrationService {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
     return `${m2TournamentId}-${timestamp}-${random}`;
+  }
+
+  private async sendRegistrationAlert(registrant: RegistrantDetailDto): Promise<void> {
+    if (!env.EMAIL_ACCOUNT) {
+      console.warn('[RegistrationService] No EMAIL_ACCOUNT configured, skipping alert');
+      return;
+    }
+
+    try {
+      const eventsList = registrant.selectedEvents
+        .map(event => `• ${event.eventName}`)
+        .join('\n');
+
+      const qualificationNote = registrant.isRequestedAlternativeQualification
+        ? '\n\nNOTE: This registrant has requested to use their URG or women\'s rating to qualify for a higher division.'
+        : '';
+
+      const emailContent = `
+New Tournament Registration
+
+Tournament: ${registrant.tournamentName}
+Registrant Information:
+• Preferred Name: ${registrant.preferredFirstName} ${registrant.preferredLastName}
+• Legal Name: ${registrant.legalFirstName} ${registrant.legalLastName}
+• Email: ${registrant.email}
+• Phone: ${registrant.phoneNumber || 'N/A'}${
+        registrant.guardianFirstName ? `
+• Guardian Name: ${registrant.guardianFirstName} ${registrant.guardianLastName}` : ''
+      }
+
+Registered Events:
+${eventsList}${qualificationNote}
+
+Amount Paid: $${((registrant.amountPaidInCents || 0) / 100).toFixed(2)}
+Payment ID: ${registrant.paymentId}
+Square Order ID: ${registrant.squareOrderId || 'N/A'}
+      `;
+
+      await emailService.sendAlertEmail(env.EMAIL_ACCOUNT, `New Registration - ${registrant.tournamentName}`, emailContent);
+    } catch (error) {
+      console.error('[RegistrationService] Failed to send registration alert:', error);
+    }
   }
 }
 
