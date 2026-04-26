@@ -255,26 +255,36 @@ export class RegistrationService {
     }
 
     try {
-      const subject = `[CUFC Alert] Tournament Registration Completed - ${registrant.displayName}`;
-      const eventsList = registrant.selectedEvents.map(e => `<li>${e.eventName}</li>`).join('');
-      const altQualLine = registrant.isRequestedAlternativeQualification
-        ? '<p><strong>Alternative Qualification Requested:</strong> YES</p>'
+      const eventsList = registrant.selectedEvents
+        .map(event => `• ${event.eventName}`)
+        .join('\n');
+
+      const qualificationNote = registrant.isRequestedAlternativeQualification
+        ? '\n\nNOTE: This registrant has requested to use their URG or women\'s rating to qualify for a higher division.'
         : '';
-      const message = `
-        <h2>Tournament Registration Payment Completed</h2>
-        <p><strong>Registrant:</strong> ${registrant.displayName}</p>
-        <p><strong>Email:</strong> ${registrant.email}</p>
-        <p><strong>Phone:</strong> ${registrant.phoneNumber || 'N/A'}</p>
-        <p><strong>Tournament:</strong> ${registrant.tournamentName}</p>
-        <p><strong>Events:</strong></p>
-        <ul>${eventsList}</ul>
-        ${altQualLine}
-        <p><strong>Amount Paid:</strong> $${(registrant.amountPaidInCents || 0) / 100}</p>
-        <p><strong>Payment ID:</strong> ${registrant.paymentId}</p>
-        <p><strong>Square Order ID:</strong> ${registrant.squareOrderId || 'N/A'}</p>
+
+      const emailContent = `
+New Tournament Registration
+
+Tournament: ${registrant.tournamentName}
+Registrant Information:
+• Preferred Name: ${registrant.preferredFirstName} ${registrant.preferredLastName}
+• Legal Name: ${registrant.legalFirstName} ${registrant.legalLastName}
+• Email: ${registrant.email}
+• Phone: ${registrant.phoneNumber || 'N/A'}${
+        registrant.guardianFirstName ? `
+• Guardian Name: ${registrant.guardianFirstName} ${registrant.guardianLastName}` : ''
+      }
+
+Registered Events:
+${eventsList}${qualificationNote}
+
+Amount Paid: $${((registrant.amountPaidInCents || 0) / 100).toFixed(2)}
+Payment ID: ${registrant.paymentId}
+Square Order ID: ${registrant.squareOrderId || 'N/A'}
       `;
 
-      await emailService.sendAlertEmail(env.EMAIL_ACCOUNT, subject, message);
+      await emailService.sendAlertEmail(env.EMAIL_ACCOUNT, `New Registration - ${registrant.tournamentName}`, emailContent);
     } catch (error) {
       console.error('[RegistrationService] Failed to send registration alert:', error);
     }

@@ -155,18 +155,23 @@ export class IntroClassEnrollmentService {
         return;
       }
 
-      const subject = `[CUFC Alert] Intro Class Payment Completed - ${profile.displayFirstName} ${profile.displayLastName}`;
-      const message = `
-        <h2>Intro Class Payment Completed</h2>
-        <p><strong>Member:</strong> ${profile.displayFirstName} ${profile.displayLastName}</p>
-        <p><strong>Email:</strong> ${profile.personalInfo?.email || 'N/A'}</p>
-        <p><strong>Class:</strong> ${variationName || 'Intro Class'}</p>
-        <p><strong>Square Order ID:</strong> ${orderId}</p>
-        <p><strong>Member Profile ID:</strong> ${memberProfileId}</p>
-        <p><strong>Status Updated To:</strong> Enrolled</p>
+      const emailContent = `
+New Intro Class Registration
+
+Member Information:
+• Preferred Name: ${profile.displayFirstName} ${profile.displayLastName}
+• Legal Name: ${profile.personalInfo?.legalFirstName || 'N/A'} ${profile.personalInfo?.legalLastName || 'N/A'}
+• Email: ${profile.personalInfo?.email || 'N/A'}
+• Phone: ${profile.personalInfo?.phone || 'N/A'}
+
+Class Details:
+• Class: ${variationName || 'Intro Class'}
+• Square Order ID: ${orderId}
+• Member Profile ID: ${memberProfileId}
+• Status Updated To: Enrolled
       `;
 
-      await emailService.sendAlertEmail(env.EMAIL_ACCOUNT, subject, message);
+      await emailService.sendAlertEmail(env.EMAIL_ACCOUNT, `New Registration - Intro Class`, emailContent);
     } catch (error) {
       console.error('[IntroClassEnrollmentService] Failed to send enrollment alert:', error);
     }
