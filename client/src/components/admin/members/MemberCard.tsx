@@ -19,7 +19,8 @@ export default function MemberCard({ member, lastCheckIn, onToggle, isExpanded, 
   const hasPaidDropIn = !!member.hasPaidDropInToday
   const role = member.role
   const isCoach = role === "coach"
-  const hasActiveAccess = isSubscribed || isCoach || hasPaidDropIn
+  const isStaff = member.memberStatus === "Staff"
+  const hasActiveAccess = isSubscribed || isCoach || hasPaidDropIn || isStaff
 
   let checkInDate: Date | undefined = undefined
   if (lastCheckIn) {

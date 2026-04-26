@@ -16,7 +16,7 @@ export async function getMembersWithCheckInStatus(): Promise<MemberCheckIn[]> {
   const members = await MemberProfile.find(
     { 
       isArchived: { $ne: true },
-      memberStatus: { $in: [MemberStatus.Enrolled, MemberStatus.Full] }
+      memberStatus: { $in: [MemberStatus.Enrolled, MemberStatus.Full, MemberStatus.Staff] }
     },
     {
       displayFirstName: 1,
