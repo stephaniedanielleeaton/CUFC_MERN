@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { ShieldCheck } from 'lucide-react'
-import { 
-  fetchMemberSubscriptions, 
-  getSubscriptionCheckoutUrl,
-  type MemberSubscriptionDTO
-} from '../../services/dashboardService'
+import { fetchMemberSubscriptions, type MemberSubscriptionDTO } from '../../services/dashboardService'
+import { createSubscriptionCheckout } from '../../services/checkoutService'
 
 
 interface DashboardSubscriptionCardProps {
@@ -46,7 +43,7 @@ export function DashboardSubscriptionCard({ memberProfileId }: Readonly<Dashboar
     try {
       setIsProcessing(true)
       const token = await getAccessTokenSilently()
-      const checkoutUrl = await getSubscriptionCheckoutUrl(token)
+      const checkoutUrl = await createSubscriptionCheckout(token)
       globalThis.location.href = checkoutUrl
     } catch (error) {
       setIsProcessing(false)

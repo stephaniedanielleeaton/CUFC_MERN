@@ -1,5 +1,5 @@
 interface SendButtonProps {
-  isLoading: boolean
+  readonly isLoading: boolean
 }
 
 export function SendButton({ isLoading }: SendButtonProps) {

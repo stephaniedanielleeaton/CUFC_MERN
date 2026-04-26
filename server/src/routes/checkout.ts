@@ -40,6 +40,39 @@ router.post('/intro', checkJwt, async (req: Request<{}, {}, IntroClassCheckoutRe
   }
 });
 
+router.post('/intro-guest', async (req: Request<{}, {}, IntroClassCheckoutRequest>, res: Response<CheckoutResponse | ErrorResponse>) => {
+  try {
+    const { catalogObjectId, memberProfileId, redirectUrl } = req.body;
+
+    if (!catalogObjectId || !memberProfileId) {
+      return res.status(400).json({
+        error: 'Missing required parameters: catalogObjectId and memberProfileId are required'
+      });
+    }
+
+    const profile = await getMemberProfileById(memberProfileId);
+    if (!profile) {
+      return res.status(404).json({ error: 'Member profile not found' });
+    }
+
+    const checkoutUrl = await squareCheckoutService.createPaymentLink(
+      catalogObjectId, 
+      memberProfileId, 
+      profile.squareCustomerId || undefined, 
+      redirectUrl
+    );
+
+    if (!checkoutUrl) {
+      return res.status(500).json({ error: 'Failed to create checkout link' });
+    }
+
+    res.json({ checkoutUrl });
+  } catch (error) {
+    console.error('Error in guest intro class checkout:', error);
+    res.status(500).json({ error: 'An error occurred while processing your request' });
+  }
+});
+
 router.post('/dropin', checkJwt, async (req: Request<{}, {}, SingleClassCheckoutRequest>, res: Response<CheckoutResponse | ErrorResponse>) => {
   const { memberProfileId, redirectUrl } = req.body;
 

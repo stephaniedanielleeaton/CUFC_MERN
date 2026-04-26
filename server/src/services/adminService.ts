@@ -35,6 +35,20 @@ class AdminService {
     return memberProfileService.delete(memberId);
   }
 
+  async createMember(data: { 
+    displayFirstName: string; 
+    displayLastName: string; 
+    email?: string;
+    memberStatus?: string;
+  }) {
+    return memberProfileService.createGuest({
+      displayFirstName: data.displayFirstName,
+      displayLastName: data.displayLastName,
+      personalInfo: data.email ? { email: data.email } : undefined,
+      profileComplete: false,
+    });
+  }
+
   async getMemberAttendance(memberId: string): Promise<AttendanceRecord[]> {
     return attendanceService.getMemberHistory(memberId);
   }
@@ -117,15 +131,15 @@ class AdminService {
       return [];
     }
 
-    const orders = await squareOrdersService.getByCustomerId(squareCustomerId);
+    const orders = await squareOrdersService.getRecentByCustomerId(squareCustomerId, 3);
     
     if (orders.length > 0) {
-      return orders.slice(0, 20).map(mapOrderToTransaction);
+      return orders.map(mapOrderToTransaction);
     }
 
     const payments = await squarePaymentsService.getRecentPaymentsPaginated(20);
     const customerPayments = payments.filter(p => p.customerId === squareCustomerId);
-    return customerPayments.slice(0, 20).map(mapPaymentToTransaction);
+    return customerPayments.map(mapPaymentToTransaction);
   }
 
   async getMemberIntroEnrollment(memberId: string): Promise<IntroEnrollmentDTO | null> {

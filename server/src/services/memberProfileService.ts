@@ -1,5 +1,5 @@
-import { MemberProfileDTO, MemberUpdateData } from '@cufc/shared';
-import { memberProfileDAO } from './memberProfileDAO';
+import { MemberProfileDTO, MemberUpdateData, GuestProfileInput, MemberUpdateDataMapper } from '@cufc/shared';
+import { memberProfileDAO } from '../dao/memberProfileDAO';
 import { squareCustomersService } from './square';
 
 async function createSquareCustomerIfEmailProvided(
@@ -20,38 +20,6 @@ async function createSquareCustomerIfEmailProvided(
   }
 }
 
-function buildMemberMongoUpdateSet(data: MemberUpdateData) {
-  return {
-    ...(data.displayFirstName !== undefined && { displayFirstName: data.displayFirstName }),
-    ...(data.displayLastName !== undefined && { displayLastName: data.displayLastName }),
-    ...(data.personalInfo?.legalFirstName !== undefined && { 'personalInfo.legalFirstName': data.personalInfo.legalFirstName }),
-    ...(data.personalInfo?.legalLastName !== undefined && { 'personalInfo.legalLastName': data.personalInfo.legalLastName }),
-    ...(data.personalInfo?.email !== undefined && { 'personalInfo.email': data.personalInfo.email }),
-    ...(data.personalInfo?.phone !== undefined && { 'personalInfo.phone': data.personalInfo.phone }),
-    ...(data.personalInfo?.dateOfBirth !== undefined && { 'personalInfo.dateOfBirth': data.personalInfo.dateOfBirth || null }),
-    ...(data.personalInfo?.address !== undefined && {
-      'personalInfo.address.street': data.personalInfo.address?.street,
-      'personalInfo.address.city': data.personalInfo.address?.city,
-      'personalInfo.address.state': data.personalInfo.address?.state,
-      'personalInfo.address.zip': data.personalInfo.address?.zip,
-      'personalInfo.address.country': data.personalInfo.address?.country,
-    }),
-    ...(data.guardian !== undefined && {
-      guardian: {
-        firstName: data.guardian?.firstName ?? '',
-        lastName: data.guardian?.lastName ?? '',
-      },
-    }),
-    ...(data.profileComplete !== undefined && { profileComplete: data.profileComplete }),
-    ...(data.isWaiverOnFile !== undefined && { isWaiverOnFile: data.isWaiverOnFile }),
-    ...(data.isPaymentWaived !== undefined && { isPaymentWaived: data.isPaymentWaived }),
-    ...(data.isArchived !== undefined && { isArchived: data.isArchived }),
-    ...(data.memberStatus !== undefined && { memberStatus: data.memberStatus }),
-    ...(data.squareCustomerId !== undefined && { squareCustomerId: data.squareCustomerId }),
-    ...(data.notes !== undefined && { notes: data.notes }),
-  };
-}
-
 export async function getAllMemberProfiles(): Promise<MemberProfileDTO[]> {
   return memberProfileDAO.findAll();
 }
@@ -66,7 +34,13 @@ export async function getProfileForUser(auth0Id: string): Promise<MemberProfileD
 
 export async function createProfileForUser(
   auth0Id: string,
-  initialData?: { displayFirstName?: string; displayLastName?: string; personalInfo?: { email?: string }; guardian?: { firstName?: string; lastName?: string } }
+  initialData?: { 
+    displayFirstName?: string; 
+    displayLastName?: string; 
+    personalInfo?: { email?: string }; 
+    guardian?: { firstName?: string; lastName?: string };
+    profileComplete?: boolean;
+  }
 ): Promise<MemberProfileDTO> {
   const email = initialData?.personalInfo?.email?.toLowerCase().trim();
 
@@ -103,7 +77,7 @@ export async function updateMemberProfileById(
   id: string,
   data: MemberUpdateData
 ): Promise<MemberProfileDTO | null> {
-  return memberProfileDAO.updateById(id, buildMemberMongoUpdateSet(data));
+  return memberProfileDAO.updateById(id, MemberUpdateDataMapper.toMongoSet(data));
 }
 
 export async function deleteMemberProfileById(id: string): Promise<boolean> {
@@ -120,6 +94,58 @@ export async function getMembersWithSquareCustomerId(): Promise<{ memberId: stri
 
 export async function getAllMemberEmails(): Promise<string[]> {
   return memberProfileDAO.findAllEmails();
+}
+
+export async function createGuestProfile(data: GuestProfileInput): Promise<MemberProfileDTO> {
+  const email = data.personalInfo?.email?.toLowerCase().trim();
+
+  // Check if an existing profile with this email exists
+  if (email) {
+    const existingProfile = await memberProfileDAO.findByEmailUnlinked(email);
+    if (existingProfile) {
+      // Update the existing profile with the new data
+      const updated = await memberProfileDAO.updateById(existingProfile._id, {
+        displayFirstName: data.displayFirstName,
+        displayLastName: data.displayLastName,
+        'personalInfo.legalFirstName': data.personalInfo?.legalFirstName,
+        'personalInfo.legalLastName': data.personalInfo?.legalLastName,
+        'personalInfo.phone': data.personalInfo?.phone,
+        'personalInfo.dateOfBirth': data.personalInfo?.dateOfBirth,
+        'personalInfo.address.street': data.personalInfo?.address?.street,
+        'personalInfo.address.city': data.personalInfo?.address?.city,
+        'personalInfo.address.state': data.personalInfo?.address?.state,
+        'personalInfo.address.zip': data.personalInfo?.address?.zip,
+        'personalInfo.address.country': data.personalInfo?.address?.country,
+        ...(data.guardian ? { guardian: data.guardian } : {}),
+        profileComplete: data.profileComplete ?? true,
+      });
+      if (updated) return updated;
+    }
+  }
+
+  // Create Square customer if email provided
+  const squareCustomerId = await createSquareCustomerIfEmailProvided(email, data);
+
+  // Create new guest profile (no auth0Id)
+  return memberProfileDAO.create({
+    displayFirstName: data.displayFirstName,
+    displayLastName: data.displayLastName,
+    personalInfo: data.personalInfo
+      ? {
+          legalFirstName: data.personalInfo.legalFirstName,
+          legalLastName: data.personalInfo.legalLastName,
+          email: data.personalInfo.email,
+          phone: data.personalInfo.phone,
+          dateOfBirth: data.personalInfo.dateOfBirth
+            ? new Date(data.personalInfo.dateOfBirth)
+            : undefined,
+          address: data.personalInfo.address,
+        }
+      : undefined,
+    guardian: data.guardian,
+    profileComplete: data.profileComplete ?? true,
+    ...(squareCustomerId ? { squareCustomerId } : {}),
+  });
 }
 
 export async function findAndLinkByEmail(auth0Id: string, email: string): Promise<MemberProfileDTO | null> {
@@ -145,6 +171,7 @@ export const memberProfileService = {
   getById: getMemberProfileById,
   getByAuth0Id: getProfileForUser,
   create: createProfileForUser,
+  createGuest: createGuestProfile,
   update: updateMemberProfileById,
   delete: deleteMemberProfileById,
   getSquareCustomerId: getSquareCustomerIdForMember,

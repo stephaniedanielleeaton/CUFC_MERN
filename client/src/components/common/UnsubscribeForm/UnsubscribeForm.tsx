@@ -1,6 +1,25 @@
 import type { FormEvent, ReactElement } from 'react'
 import { Link } from 'react-router-dom'
 import { useUnsubscribe } from '../../../hooks/useUnsubscribe'
+import { SquareButton } from '../SquareButton'
+
+function CheckIcon() {
+  return (
+    <svg
+      className="h-5 w-5 text-green-500"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+        clipRule="evenodd"
+      />
+    </svg>
+  )
+}
 
 export function UnsubscribeForm(): ReactElement {
   const {
@@ -24,45 +43,34 @@ export function UnsubscribeForm(): ReactElement {
 
   if (isSuccess) {
     return (
-      <div className="w-full rounded-xl bg-gray-100/50 text-navy py-10 md:py-12 px-6 md:px-12">
-        <div className="max-w-2xl mx-auto">
-          <div className="rounded-md bg-green-50 p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-green-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">
-                  Successfully Unsubscribed
-                </h3>
-                <div className="mt-2 text-sm text-green-700">
-                  <p>
-                    You have been removed from our mailing list. You will no longer
-                    receive promotional emails from us.
-                  </p>
-                </div>
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    onClick={reset}
-                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  >
-                    Unsubscribe another email
-                  </button>
-                </div>
-              </div>
+      <div className="w-full px-4 md:px-0">
+        <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+          <div>
+            <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold">
+              Email Preferences
+            </span>
+            <h3 className="text-2xl md:text-3xl font-extrabold text-navy mt-2 mb-3">
+              Unsubscribed
+            </h3>
+            <p className="text-gray-600 text-sm md:text-base leading-relaxed">
+              You have been removed from our mailing list. You will no longer
+              receive promotional emails from us.
+            </p>
+          </div>
+          <div className="flex flex-col justify-center">
+            <div className="p-4 bg-green-50 border border-green-200 text-green-800 text-base flex items-center gap-3 mb-4">
+              <CheckIcon />
+              <span>Successfully unsubscribed!</span>
+            </div>
+            <div className="flex justify-center md:justify-start">
+              <SquareButton
+                onClick={reset}
+                variant="white"
+                className="w-full md:w-auto"
+                style={{ minWidth: 180 }}
+              >
+                UNSUBSCRIBE ANOTHER
+              </SquareButton>
             </div>
           </div>
         </div>
@@ -71,30 +79,39 @@ export function UnsubscribeForm(): ReactElement {
   }
 
   return (
-    <div className="w-full rounded-xl bg-gray-100/50 text-navy py-10 md:py-12 px-6 md:px-12">
-      <div className="max-w-2xl mx-auto">
-        <h3 className="text-lg font-bold mb-2">Unsubscribe from Notifications</h3>
-        <p className="text-sm text-navy/80 mb-4">
-          Enter your email address below to unsubscribe from our mailing list.
-        </p>
+    <div className="w-full px-4 md:px-0">
+      <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+        {/* Left Column - Text */}
+        <div>
+          <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold">
+            Email Preferences
+          </span>
+          <h3 className="text-2xl md:text-3xl font-extrabold text-navy mt-2 mb-3">
+            Unsubscribe
+          </h3>
+          <p className="text-gray-600 text-sm md:text-base leading-relaxed">
+            Enter your email address below to unsubscribe from our mailing list.
+          </p>
+          <p className="mt-3 text-xs text-gray-500">
+            Changed your mind?{' '}
+            <Link to="/notifications" className="text-navy underline hover:text-navy/80">
+              Sign up for notifications
+            </Link>
+          </p>
+        </div>
 
-        <form onSubmit={onSubmit} className="space-y-3" noValidate>
-          <div>
-            <label
-              htmlFor="unsubscribe-email"
-              className="block text-sm font-medium mb-1 text-gray-700"
-            >
-              Email Address
-            </label>
+        {/* Right Column - Form */}
+        <div className="flex flex-col justify-center">
+          <form onSubmit={onSubmit} className="space-y-4" noValidate>
             <input
               type="email"
               id="unsubscribe-email"
               value={email}
               onChange={(e) => handleEmailChange(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-navy focus:border-navy transition-all duration-200 ${
+              className={`w-full px-4 py-3 border focus:outline-none focus:border-navy transition-colors ${
                 error ? 'border-red-500' : 'border-gray-300'
               }`}
-              placeholder="Enter your email"
+              placeholder="Email Address*"
               required
               aria-invalid={!!error}
               aria-describedby={error ? 'unsubscribe-email-error' : undefined}
@@ -103,36 +120,26 @@ export function UnsubscribeForm(): ReactElement {
             {error && (
               <p
                 id="unsubscribe-email-error"
-                className="mt-1 text-sm text-red-600"
+                className="text-sm text-red-600"
                 aria-live="polite"
               >
                 {error}
               </p>
             )}
-          </div>
 
-          <button
-            type="submit"
-            disabled={isDisabled}
-            className={`w-full px-6 py-3 font-bold rounded-lg transition-all duration-300 shadow-md flex items-center justify-center gap-2
-              bg-navy text-white hover:bg-navy/90
-              ${isDisabled ? 'opacity-75 cursor-not-allowed' : 'hover:scale-105'}`}
-            aria-busy={isLoading}
-          >
-            {isLoading ? (
-              <span>Processing...</span>
-            ) : (
-              <span>Unsubscribe</span>
-            )}
-          </button>
-
-          <p className="mt-2 text-xs text-gray-500">
-            Changed your mind?{' '}
-            <Link to="/notifications" className="text-navy underline hover:text-navy/80">
-              Sign up for notifications
-            </Link>
-          </p>
-        </form>
+            <div className="flex justify-center md:justify-start">
+              <SquareButton
+                type="submit"
+                variant="white"
+                disabled={isDisabled}
+                className="w-full md:w-auto"
+                style={{ minWidth: 180 }}
+              >
+                {isLoading ? 'PROCESSING...' : 'UNSUBSCRIBE'}
+              </SquareButton>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )

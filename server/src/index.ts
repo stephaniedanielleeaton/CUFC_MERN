@@ -13,6 +13,8 @@ import checkoutRoutes from './routes/checkout';
 import contactRoutes from './routes/contact';
 import emailListRoutes from './routes/emailLists';
 import emailRoutes from './routes/email';
+import scheduleRoutes from './routes/schedule';
+import { tournamentRoutes, squareWebhookRoutes } from './features/tournament';
 
 const app = express();
 
@@ -23,6 +25,13 @@ app.use(
     credentials: true,
   })
 );
+
+// Capture raw body for webhook signature verification
+app.use('/api/square/webhook', express.json({
+  verify: (req: express.Request, _res, buf) => {
+    (req as express.Request & { rawBody?: string }).rawBody = buf.toString();
+  }
+}));
 
 app.use(express.json());
 
@@ -39,6 +48,9 @@ app.use('/api/checkout', checkoutRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/email-lists', emailListRoutes);
 app.use('/api/email', emailRoutes);
+app.use('/api/schedule', scheduleRoutes);
+app.use('/api/tournaments', tournamentRoutes);
+app.use('/api/square/webhook', squareWebhookRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });

@@ -11,10 +11,10 @@ interface FailedEmail {
 }
 
 interface SendResultDisplayProps {
-  summary: EmailSendSummary
-  blockedEmails: string[]
-  failedEmails: FailedEmail[]
-  onSendAnother: () => void
+  readonly summary: EmailSendSummary
+  readonly blockedEmails: string[]
+  readonly failedEmails: FailedEmail[]
+  readonly onSendAnother: () => void
 }
 
 export function SendResultDisplay({

@@ -91,4 +91,14 @@ router.delete('/members/:id', checkJwt, requireRole('club-admin'), async (req: R
   }
 });
 
+router.post('/members', checkJwt, requireRole('club-admin'), async (req: Request, res: Response) => {
+  try {
+    const member = await adminService.createMember(req.body);
+    res.status(201).json({ success: true, data: member });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 export default router;

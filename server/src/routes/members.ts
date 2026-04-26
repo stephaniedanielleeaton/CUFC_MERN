@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { checkJwt, getAuth0Id, getAuth0Email } from '../middleware/auth';
 import { memberService } from '../services/memberService';
+import type { GuestProfileInput } from '@cufc/shared';
 
 const router = Router();
 
@@ -43,6 +44,7 @@ router.post('/me', checkJwt, async (req: Request, res: Response) => {
       displayLastName?: string;
       personalInfo?: { email?: string };
       guardian?: { firstName?: string; lastName?: string };
+      profileComplete?: boolean;
     } = req.body;
 
     const profile = await memberService.createProfile(auth0Id, {
@@ -50,11 +52,33 @@ router.post('/me', checkJwt, async (req: Request, res: Response) => {
       displayLastName: body.displayLastName,
       personalInfo: body.personalInfo,
       guardian: body.guardian,
+      profileComplete: body.profileComplete,
     });
 
     res.status(201).json(profile);
   } catch (error) {
     console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// POST /api/members/guest - Create a guest profile (no auth required)
+router.post('/guest', async (req: Request, res: Response) => {
+  try {
+    const body: GuestProfileInput = req.body;
+
+    // Validate required fields
+    if (!body.displayFirstName || !body.displayLastName) {
+      return res.status(400).json({ error: 'Display first and last name are required' });
+    }
+    if (!body.personalInfo?.email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const profile = await memberService.createGuestProfile(body);
+    res.status(201).json({ profile });
+  } catch (error) {
+    console.error('Error creating guest profile:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

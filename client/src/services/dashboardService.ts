@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from '../constants/api'
 import type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO, Transaction, AttendanceRecord } from '@cufc/shared'
 
 export type { MemberSubscriptionDTO, IntroEnrollmentDTO, LastCheckInDTO, Transaction, AttendanceRecord } from '@cufc/shared'
@@ -9,21 +10,11 @@ export interface CreateProfilePayload {
   guardian?: { firstName: string; lastName: string }
 }
 
-export interface DropInCheckoutPayload {
-  memberProfileId: string
-  redirectUrl: string
-}
-
-export interface DropInCheckoutResponse {
-  checkoutUrl: string
-  error?: string
-}
-
 export async function fetchMemberSubscriptions(
   token: string,
   memberProfileId: string
 ): Promise<MemberSubscriptionDTO[]> {
-  const res = await fetch(`/api/members/me/subscriptions?memberProfileId=${memberProfileId}`, {
+  const res = await fetch(`${API_ENDPOINTS.MEMBERS.SUBSCRIPTIONS}?memberProfileId=${memberProfileId}`, {
     headers: { Authorization: `Bearer ${token}` }
   })
   if (!res.ok) {
@@ -37,7 +28,7 @@ export async function fetchLastCheckIn(
   token: string,
   memberProfileId: string
 ): Promise<LastCheckInDTO | null> {
-  const res = await fetch(`/api/members/last-checkin?memberProfileId=${memberProfileId}`, {
+  const res = await fetch(`${API_ENDPOINTS.MEMBERS.LAST_CHECKIN}?memberProfileId=${memberProfileId}`, {
     headers: { Authorization: `Bearer ${token}` }
   })
   const data = await res.json()
@@ -50,7 +41,7 @@ export async function fetchLastCheckIn(
 export async function fetchIntroEnrollment(
   token: string
 ): Promise<IntroEnrollmentDTO | null> {
-  const res = await fetch('/api/members/me/intro-enrollment', {
+  const res = await fetch(API_ENDPOINTS.MEMBERS.INTRO_ENROLLMENT, {
     headers: { Authorization: `Bearer ${token}` }
   })
   const data = await res.json()
@@ -61,7 +52,7 @@ export async function createMemberProfile(
   token: string,
   payload: CreateProfilePayload
 ): Promise<void> {
-  const res = await fetch('/api/members/me', {
+  const res = await fetch(API_ENDPOINTS.MEMBERS.ME, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -74,47 +65,10 @@ export async function createMemberProfile(
   }
 }
 
-export async function createDropInCheckout(
-  token: string,
-  payload: DropInCheckoutPayload
-): Promise<DropInCheckoutResponse> {
-  const res = await fetch('/api/checkout/dropin', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify(payload)
-  })
-  const data = await res.json()
-  if (!res.ok) {
-    throw new Error(data.error || 'Failed to create checkout')
-  }
-  return data
-}
-
-export async function getSubscriptionCheckoutUrl(
-  token: string
-): Promise<string> {
-  const res = await fetch('/api/checkout/subscription', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({})
-  })
-  const data = await res.json()
-  if (!res.ok) {
-    throw new Error(data.error || 'Failed to get checkout URL')
-  }
-  return data.checkoutUrl
-}
-
 export async function fetchTransactions(
   token: string
 ): Promise<Transaction[]> {
-  const res = await fetch('/api/members/me/transactions', {
+  const res = await fetch(API_ENDPOINTS.MEMBERS.TRANSACTIONS, {
     headers: { Authorization: `Bearer ${token}` }
   })
   if (!res.ok) {
@@ -127,7 +81,7 @@ export async function fetchTransactions(
 export async function fetchAttendanceHistory(
   token: string
 ): Promise<AttendanceRecord[]> {
-  const res = await fetch('/api/members/me/attendance', {
+  const res = await fetch(API_ENDPOINTS.MEMBERS.ATTENDANCE, {
     headers: { Authorization: `Bearer ${token}` }
   })
   if (!res.ok) {

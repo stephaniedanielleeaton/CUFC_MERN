@@ -20,15 +20,17 @@ export default function Navbar() {
   const displayName = loading || error ? "" : `${profile?.displayFirstName || ""} ${profile?.displayLastName || ""}`.trim()
   const profileComplete = loading || error ? false : (profile?.profileComplete ?? false)
   const isAdmin = roles.includes("club-admin")
+  const canCheckIn = roles.includes("club-admin") || roles.includes("kiosk")
 
   const handleLogin = () => loginWithRedirect()
-  const handleLogout = () => logout({ logoutParams: { returnTo: window.location.origin } })
+  const handleLogout = () => logout({ logoutParams: { returnTo: globalThis.location.origin } })
 
   return (
     <>
       <MobileNavbar
         user={user as Auth0User | null}
         isAdmin={isAdmin}
+        canCheckIn={canCheckIn}
         displayName={displayName}
         profileComplete={profileComplete}
         menuOpen={menuOpen}
@@ -39,8 +41,8 @@ export default function Navbar() {
       <DesktopNavbar
         user={user as Auth0User | null}
         isAdmin={isAdmin}
+        canCheckIn={canCheckIn}
         displayName={displayName}
-        profileComplete={profileComplete}
         onLogin={handleLogin}
         onLogout={handleLogout}
       />

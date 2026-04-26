@@ -1,3 +1,5 @@
+import { SquareButton } from '../../common/SquareButton'
+
 interface SuccessMessageProps {
   onSendAnother: () => void;
 }
@@ -25,12 +27,13 @@ export function SuccessMessage({ onSendAnother }: SuccessMessageProps) {
       <p className="text-gray-600 mb-6">
         Thank you for reaching out. We will get back to you soon.
       </p>
-      <button
+      <SquareButton
         onClick={onSendAnother}
-        className="py-2 px-6 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+        variant="white"
+        style={{ minWidth: 200 }}
       >
         Send Another Message
-      </button>
+      </SquareButton>
     </div>
   );
 }

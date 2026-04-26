@@ -91,3 +91,28 @@ export async function updateMemberById(
     throw new Error('Failed to update member')
   }
 }
+
+export interface CreateMemberData {
+  displayFirstName: string
+  displayLastName: string
+  email?: string
+}
+
+export async function createMember(
+  token: string,
+  data: CreateMemberData
+): Promise<MemberProfileDTO> {
+  const response = await fetch('/api/admin/members', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) {
+    throw new Error('Failed to create member')
+  }
+  const result = await response.json()
+  return result.data
+}

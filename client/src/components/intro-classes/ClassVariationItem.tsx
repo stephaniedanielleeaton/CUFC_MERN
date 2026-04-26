@@ -9,7 +9,7 @@ interface ClassVariationItemProps {
 }
 
 export const ClassVariationItem: React.FC<ClassVariationItemProps> = ({ variation, isSelected, onSelect }) => {
-  const hasSpots = parseInt(variation.quantity || '0') > 0
+  const hasSpots = Number.parseInt(variation.quantity || '0') > 0
   return (
     <li className="list-none">
       <button
