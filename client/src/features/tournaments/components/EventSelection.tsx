@@ -15,12 +15,13 @@ function formatPrice(cents: number): string {
 function formatEventDate(dateStr: string, timeStr: string): string {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) return '';
-  const formattedDate = date.toLocaleDateString('en-US', { 
+  const formattedDate = date.toLocaleDateString('en-US', {
     weekday: 'short',
-    month: 'short', 
+    month: 'short',
     day: 'numeric'
   });
-  return timeStr ? `${formattedDate} at ${timeStr}` : formattedDate;
+  const displayTime = timeStr ? timeStr.split(':').slice(0, 2).join(':') : '';
+  return displayTime ? `${formattedDate} at ${displayTime}` : formattedDate;
 }
 
 export function EventSelection({ events, selectedEvents, onSelectionChange, basePriceInCents, skipBaseFee = false }: EventSelectionProps) {
@@ -94,7 +95,12 @@ export function EventSelection({ events, selectedEvents, onSelectionChange, base
       {selectedEvents.length >= 1 && (
         <div className="mt-6 pt-4 border-t border-gray-200">
           <div className="space-y-2 text-sm text-gray-600">
-            {effectiveBaseFee > 0 && (
+            {skipBaseFee ? (
+              <div className="flex justify-between text-green-600">
+                <span>Registration Fee (paid)</span>
+                <span>{formatPrice(basePriceInCents)}</span>
+              </div>
+            ) : effectiveBaseFee > 0 && (
               <div className="flex justify-between">
                 <span>Registration Fee</span>
                 <span>{formatPrice(effectiveBaseFee)}</span>

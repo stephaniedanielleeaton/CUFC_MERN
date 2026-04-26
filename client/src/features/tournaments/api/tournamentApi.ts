@@ -26,11 +26,16 @@ export async function fetchClubs(): Promise<ClubDto[]> {
 }
 
 export async function submitRegistration(
-  request: RegistrationRequestDto
+  request: RegistrationRequestDto,
+  token?: string
 ): Promise<RegistrationResponseDto> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   const res = await fetch(API_ENDPOINTS.TOURNAMENTS.REGISTER(request.m2TournamentId), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(request),
   });
   if (!res.ok) {

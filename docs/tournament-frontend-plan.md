@@ -61,6 +61,7 @@ client/src/features/tournaments/
 | `/api/tournaments/:m2TournamentId/register` | POST | No | Submit registration |
 | `/api/tournaments/:m2TournamentId/registrants` | GET | No | List registrants |
 | `/api/tournaments/user/registrations` | GET | Yes | User's registrations |
+| `/api/tournaments/user/has-registration/:m2Id` | GET | Yes | Check if user already registered for tournament |
 | `/api/tournaments/user/profile-data` | GET | Yes | Profile data for auto-fill |
 
 ### API Response Types
@@ -203,7 +204,7 @@ interface FormState {
 }
 ```
 
-### 4. EventSelectionForm
+### 4. EventSelection
 
 **Features:**
 - Group events by date
@@ -213,14 +214,16 @@ interface FormState {
 - Disabled state for:
   - Registration past cutoff date
   - Event at capacity (when M2 provides cap) - show "Event Full" tooltip
+- Conditionally hides base fee when `skipBaseFee=true`
 
 **Props:**
 ```typescript
-interface EventSelectionFormProps {
+interface EventSelectionProps {
   events: EventDto[];
-  selectedEvents: SelectedEvent[];
-  onSelectionChange: (events: SelectedEvent[]) => void;
-  registrationClosed: boolean;
+  selectedEvents: SelectedEventDto[];
+  onSelectionChange: (events: SelectedEventDto[]) => void;
+  basePriceInCents: number;
+  skipBaseFee?: boolean;  // If true, hides base fee from price breakdown
 }
 ```
 
@@ -361,12 +364,16 @@ interface TournamentHeaderProps {
 1. User logs in
 2. Visits /tournaments
 3. Clicks on a tournament card
-4. Form auto-fills from profile data
+4. Frontend calls GET /api/tournaments/user/has-registration/:m2Id
 5. If user already has paid registration for this tournament:
-   - Base fee shows as "Waived - already registered"
-   - Only event fees charged
-6. User completes form and pays
-7. Registration linked to user account
+   - `skipBaseFee=true` passed to EventSelection component
+   - Base fee line item is hidden from price breakdown
+   - Total = sum of selected event fees only
+6. Form auto-fills from profile data (if profile complete)
+7. If profile incomplete, user must complete profile first
+8. User selects events, sees correct price (no base fee if returning)
+9. User completes form and pays
+10. Registration linked to user account
 ```
 
 ### Flow 3: User Views Registration History
@@ -565,21 +572,29 @@ The `MemberProfileDTO` does **not** have a `clubAffiliation` field. Options:
 
 ---
 
-## Testing Checklist
+## Implementation Status
 
-- [ ] Tournament list loads and displays correctly
-- [ ] Tournament detail page shows M2 link prominently
-- [ ] Contact CTA is visible
-- [ ] Event selection works (select/deselect)
+### ✅ Completed
+- [x] Tournament list loads and displays correctly
+- [x] Tournament detail page shows M2 link prominently
+- [x] Event selection works (select/deselect)
+- [x] Form validation prevents invalid submissions
+- [x] Price calculation is correct (base + events, no discounts)
+- [x] Registration submission creates payment link
+- [x] Square redirect works
+- [x] Logged-in user sees auto-filled data from MemberProfile
+- [x] Base fee exemption works for returning registrants
+  - Backend: `RegistrationService.hasExistingPaidRegistration()`
+  - Frontend: `EventSelection` component with `skipBaseFee` prop
+  - API: `GET /api/tournaments/user/has-registration/:m2Id`
+- [x] Mobile responsive design works
+- [x] Error states display correctly
+
+### 🔄 Partial / Needs Work
 - [ ] Event capacity disables full events (when M2 provides cap)
 - [ ] URG alternative qualification checkbox works
-- [ ] Form validation prevents invalid submissions
-- [ ] Price calculation is correct (base + events, no discounts)
-- [ ] Registration submission creates payment link
-- [ ] Square redirect works
 - [ ] User redirected to M2 tournament page after payment
-- [ ] Logged-in user sees auto-filled data from MemberProfile
-- [ ] Base fee exemption works for returning registrants
+
+### 📋 Not Started
 - [ ] Registration history displays on dashboard
-- [ ] Mobile responsive design works
-- [ ] Error states display correctly
+- [ ] Contact CTA component

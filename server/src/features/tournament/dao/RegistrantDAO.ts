@@ -49,8 +49,18 @@ export class RegistrantDAO {
     return docs.map(mapRegistrantToDto);
   }
 
-  async findPaidByUserAndTournament(auth0Id: string, m2TournamentId: number): Promise<RegistrantDto | null> {
+  async findPaidByAuth0AndTournament(auth0Id: string, m2TournamentId: number): Promise<RegistrantDto | null> {
     const doc = await Registrant.findOne({ auth0Id, m2TournamentId, isPaid: true });
+    return doc ? mapRegistrantToDto(doc) : null;
+  }
+
+  async findPaidByUserIdAndTournament(userId: string, m2TournamentId: number): Promise<RegistrantDto | null> {
+    const doc = await Registrant.findOne({ userId: new Types.ObjectId(userId), m2TournamentId, isPaid: true });
+    return doc ? mapRegistrantToDto(doc) : null;
+  }
+
+  async findPaidByEmailAndTournament(email: string, m2TournamentId: number): Promise<RegistrantDto | null> {
+    const doc = await Registrant.findOne({ email: email.toLowerCase(), m2TournamentId, isPaid: true });
     return doc ? mapRegistrantToDto(doc) : null;
   }
 

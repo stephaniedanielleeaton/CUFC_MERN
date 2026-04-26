@@ -121,9 +121,28 @@ export class RegistrationService {
     return this.createRegistrant(data);
   }
 
-  async hasExistingPaidRegistration(auth0Id: string, m2TournamentId: number): Promise<boolean> {
-    const existing = await registrantDAO.findPaidByUserAndTournament(auth0Id, m2TournamentId);
-    return existing !== null;
+  async hasExistingPaidRegistration(auth0Id: string, m2TournamentId: number, email?: string): Promise<boolean> {
+    const profile = await memberProfileService.getByAuth0Id(auth0Id);
+    if (profile?._id) {
+      const byUserId = await registrantDAO.findPaidByUserIdAndTournament(profile._id.toString(), m2TournamentId);
+      if (byUserId) {
+        return true;
+      }
+    }
+
+    const byAuth0 = await registrantDAO.findPaidByAuth0AndTournament(auth0Id, m2TournamentId);
+    if (byAuth0) {
+      return true;
+    }
+
+    if (email) {
+      const byEmail = await registrantDAO.findPaidByEmailAndTournament(email, m2TournamentId);
+      if (byEmail) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   async getRegistrantsByTournament(m2TournamentId: number): Promise<RegistrantDto[]> {

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { tournamentService, registrationService, RegistrationError } from '../services';
 import { RegistrationRequestDto } from '../dto';
-import { checkJwt, getAuth0Id, requireRole } from '../../../middleware/auth';
+import { checkJwt, checkJwtOptional, getAuth0Id, getAuth0Email, requireRole } from '../../../middleware/auth';
 import { memberProfileService } from '../../../services/memberProfileService';
 
 const router = Router();
@@ -111,7 +111,8 @@ router.get('/user/has-registration/:m2TournamentId', checkJwt, async (req: Reque
       return res.status(400).json({ error: 'Invalid tournament ID' });
     }
 
-    const hasRegistration = await registrationService.hasExistingPaidRegistration(auth0Id, m2TournamentId);
+    const email = getAuth0Email(req);
+    const hasRegistration = await registrationService.hasExistingPaidRegistration(auth0Id, m2TournamentId, email);
     res.json({ hasRegistration });
   } catch (error) {
     console.error('Error checking registration:', error);
@@ -155,7 +156,7 @@ router.get('/user/profile-data', checkJwt, async (req: Request, res: Response) =
  * POST /api/tournaments/:m2TournamentId/register
  * Submit tournament registration
  */
-router.post('/:m2TournamentId/register', async (req: Request, res: Response) => {
+router.post('/:m2TournamentId/register', checkJwtOptional, async (req: Request, res: Response) => {
   try {
     const m2TournamentId = Number.parseInt(req.params.m2TournamentId, 10);
     if (Number.isNaN(m2TournamentId)) {

@@ -28,7 +28,7 @@ export default function TournamentDetailPage() {
   
   const { tournament, loading, error } = useTournament(m2TournamentId);
   const { register, loading: registering, error: regError } = useRegistration();
-  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently } = useAuth0();
   const { profile, refreshProfile } = useMemberProfile();
   
   const [selectedEvents, setSelectedEvents] = useState<SelectedEventDto[]>([]);
@@ -37,7 +37,10 @@ export default function TournamentDetailPage() {
 
   // Check if user already has a paid registration for this tournament
   useEffect(() => {
-    if (!isAuthenticated || !m2TournamentId) {
+    if (authLoading || !m2TournamentId) {
+      return;
+    }
+    if (!isAuthenticated) {
       setHasExistingRegistration(false);
       return;
     }
@@ -53,7 +56,7 @@ export default function TournamentDetailPage() {
     }
 
     checkRegistration();
-  }, [isAuthenticated, m2TournamentId, getAccessTokenSilently]);
+  }, [isAuthenticated, authLoading, m2TournamentId, getAccessTokenSilently]);
 
   const needsProfile = isAuthenticated && !profile?.profileComplete;
 
