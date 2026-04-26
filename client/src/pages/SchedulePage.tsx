@@ -19,8 +19,7 @@ function groupByDay(items: ScheduleItem[]): Record<string, ScheduleItem[]> {
 }
 
 function formatEventDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  return dateStr
 }
 
 export default function SchedulePage() {
@@ -321,7 +320,7 @@ export default function SchedulePage() {
                           <div className="flex justify-between">
                             <div>
                               <h4 className="font-bold text-navy">{closure.reason}</h4>
-                              <p className="text-sm text-medium-pink">{formatEventDate(closure.date)}</p>
+                              <p className="text-sm text-medium-pink">{formatEventDate(closure.dates || '')}</p>
                             </div>
                             {isAdmin && (
                               <div className="flex gap-2 flex-shrink-0">
