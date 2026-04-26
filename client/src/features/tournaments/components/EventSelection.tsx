@@ -97,8 +97,8 @@ export function EventSelection({ events, selectedEvents, onSelectionChange, base
           <div className="space-y-2 text-sm text-gray-600">
             {skipBaseFee ? (
               <div className="flex justify-between text-green-600">
-                <span>Registration Fee (paid)</span>
-                <span>{formatPrice(basePriceInCents)}</span>
+                <span>Registration Fee (already paid)</span>
+                <span>{formatPrice(0)}</span>
               </div>
             ) : effectiveBaseFee > 0 && (
               <div className="flex justify-between">
