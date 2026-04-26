@@ -4,6 +4,7 @@ import { INTRO_CLASS_CATALOG_OBJECT_ID } from '../config/constants';
 import { memberProfileDAO } from '../dao/memberProfileDAO';
 import { squareCatalogService } from './square';
 import { MemberStatus } from '@cufc/shared';
+import { emailService } from './emailService';
 
 interface IntroClassOrderMetadata {
   memberProfileId: string;
@@ -138,6 +139,37 @@ export class IntroClassEnrollmentService {
     }
 
     await this.updateMemberStatusToEnrolled(metadata.memberProfileId, metadata.variationName);
+    await this.sendEnrollmentAlert(metadata.memberProfileId, metadata.variationName, orderId);
+  }
+
+  private async sendEnrollmentAlert(memberProfileId: string, variationName: string | undefined, orderId: string): Promise<void> {
+    if (!env.EMAIL_ACCOUNT) {
+      console.warn('[IntroClassEnrollmentService] No EMAIL_ACCOUNT configured, skipping alert');
+      return;
+    }
+
+    try {
+      const profile = await memberProfileDAO.findById(memberProfileId);
+      if (!profile) {
+        console.warn(`[IntroClassEnrollmentService] Profile not found for alert: ${memberProfileId}`);
+        return;
+      }
+
+      const subject = `[CUFC Alert] Intro Class Payment Completed - ${profile.displayFirstName} ${profile.displayLastName}`;
+      const message = `
+        <h2>Intro Class Payment Completed</h2>
+        <p><strong>Member:</strong> ${profile.displayFirstName} ${profile.displayLastName}</p>
+        <p><strong>Email:</strong> ${profile.personalInfo?.email || 'N/A'}</p>
+        <p><strong>Class:</strong> ${variationName || 'Intro Class'}</p>
+        <p><strong>Square Order ID:</strong> ${orderId}</p>
+        <p><strong>Member Profile ID:</strong> ${memberProfileId}</p>
+        <p><strong>Status Updated To:</strong> Enrolled</p>
+      `;
+
+      await emailService.sendAlertEmail(env.EMAIL_ACCOUNT, subject, message);
+    } catch (error) {
+      console.error('[IntroClassEnrollmentService] Failed to send enrollment alert:', error);
+    }
   }
 }
 

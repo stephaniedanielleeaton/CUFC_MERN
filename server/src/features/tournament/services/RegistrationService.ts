@@ -12,6 +12,8 @@ import {
 } from '../dto';
 import { EmailList } from '../../../models/EmailList';
 import { memberProfileService } from '../../../services/memberProfileService';
+import { emailService } from '../../../services/emailService';
+import { env } from '../../../config/env';
 
 export class RegistrationError extends Error {
   constructor(message: string, public statusCode: number = 400) {
@@ -171,6 +173,7 @@ export class RegistrationService {
     if (registrant) {
       await this.postToM2(registrant);
       await this.addToTournamentEmailList(registrant);
+      await this.sendRegistrationAlert(registrant);
     }
 
     return registrant;
@@ -243,6 +246,38 @@ export class RegistrationService {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
     return `${m2TournamentId}-${timestamp}-${random}`;
+  }
+
+  private async sendRegistrationAlert(registrant: RegistrantDetailDto): Promise<void> {
+    if (!env.EMAIL_ACCOUNT) {
+      console.warn('[RegistrationService] No EMAIL_ACCOUNT configured, skipping alert');
+      return;
+    }
+
+    try {
+      const subject = `[CUFC Alert] Tournament Registration Completed - ${registrant.displayName}`;
+      const eventsList = registrant.selectedEvents.map(e => `<li>${e.eventName}</li>`).join('');
+      const altQualLine = registrant.isRequestedAlternativeQualification
+        ? '<p><strong>Alternative Qualification Requested:</strong> YES</p>'
+        : '';
+      const message = `
+        <h2>Tournament Registration Payment Completed</h2>
+        <p><strong>Registrant:</strong> ${registrant.displayName}</p>
+        <p><strong>Email:</strong> ${registrant.email}</p>
+        <p><strong>Phone:</strong> ${registrant.phoneNumber || 'N/A'}</p>
+        <p><strong>Tournament:</strong> ${registrant.tournamentName}</p>
+        <p><strong>Events:</strong></p>
+        <ul>${eventsList}</ul>
+        ${altQualLine}
+        <p><strong>Amount Paid:</strong> $${(registrant.amountPaidInCents || 0) / 100}</p>
+        <p><strong>Payment ID:</strong> ${registrant.paymentId}</p>
+        <p><strong>Square Order ID:</strong> ${registrant.squareOrderId || 'N/A'}</p>
+      `;
+
+      await emailService.sendAlertEmail(env.EMAIL_ACCOUNT, subject, message);
+    } catch (error) {
+      console.error('[RegistrationService] Failed to send registration alert:', error);
+    }
   }
 }
 
