@@ -7,6 +7,7 @@ import { MemberStatus } from '@cufc/shared';
 
 interface IntroClassOrderMetadata {
   memberProfileId: string;
+  variationName?: string;
 }
 
 export class IntroClassEnrollmentService {
@@ -34,7 +35,9 @@ export class IntroClassEnrollmentService {
         return null;
       }
 
-      return { memberProfileId };
+      const variationName = lineItems[0]?.variationName || lineItems[0]?.name || undefined;
+
+      return { memberProfileId, variationName };
     } catch (error) {
       console.error('[IntroClassEnrollmentService] Failed to get order metadata:', error);
       return null;
@@ -83,10 +86,10 @@ export class IntroClassEnrollmentService {
     }
   }
 
-  async updateMemberStatusToEnrolled(memberProfileId: string): Promise<boolean> {
+  async updateMemberStatusToEnrolled(memberProfileId: string, variationName?: string): Promise<boolean> {
     try {
       const profile = await memberProfileDAO.findById(memberProfileId);
-      
+
       if (!profile) {
         console.warn(`[IntroClassEnrollmentService] Profile not found: ${memberProfileId}`);
         return false;
@@ -97,12 +100,22 @@ export class IntroClassEnrollmentService {
         return true;
       }
 
-      if (profile.memberStatus === MemberStatus.Enrolled) {
-        console.log(`[IntroClassEnrollmentService] Profile ${memberProfileId} is already Enrolled, skipping`);
-        return true;
+      const updateSet: Record<string, unknown> = {};
+
+      if (profile.memberStatus !== MemberStatus.Enrolled) {
+        updateSet.memberStatus = MemberStatus.Enrolled;
       }
 
-      await memberProfileDAO.updateById(memberProfileId, { memberStatus: MemberStatus.Enrolled });
+      if (variationName) {
+        const existingNotes = profile.notes || '';
+        const noteLine = `Intro class enrollment: ${variationName}`;
+        updateSet.notes = existingNotes ? `${existingNotes}\n${noteLine}` : noteLine;
+      }
+
+      if (Object.keys(updateSet).length > 0) {
+        await memberProfileDAO.updateById(memberProfileId, updateSet);
+      }
+
       console.log(`[IntroClassEnrollmentService] Updated profile ${memberProfileId} to Enrolled`);
       return true;
     } catch (error) {
@@ -124,7 +137,7 @@ export class IntroClassEnrollmentService {
       return;
     }
 
-    await this.updateMemberStatusToEnrolled(metadata.memberProfileId);
+    await this.updateMemberStatusToEnrolled(metadata.memberProfileId, metadata.variationName);
   }
 }
 
