@@ -64,6 +64,8 @@ export const MemberStatus = {
   Enrolled: 'Enrolled',
   /** Member has full club privileges (manually set by admin) */
   Full: 'Full',
+  /** Staff member - exempt from subscription/drop-in checks */
+  Staff: 'Staff',
 } as const;
 
 export type MemberStatus = (typeof MemberStatus)[keyof typeof MemberStatus];

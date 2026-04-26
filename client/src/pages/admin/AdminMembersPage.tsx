@@ -22,7 +22,7 @@ export default function AdminMembersPage() {
   const [search, setSearch] = useState("")
   const [checkedInOnly, setCheckedInOnly] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
-  const [statusFilter, setStatusFilter] = useState<string[]>(['Enrolled', 'Full'])
+  const [statusFilter, setStatusFilter] = useState<string[]>(['Enrolled', 'Full', 'Staff'])
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [newMember, setNewMember] = useState({ firstName: '', lastName: '', email: '' })
@@ -262,7 +262,7 @@ export default function AdminMembersPage() {
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-medium-gray uppercase tracking-wide hidden sm:inline">Status</span>
             <div className="inline-flex rounded-lg border border-light-gray overflow-hidden shadow-sm">
-              {(['New', 'Enrolled', 'Full'] as const).map((status, index) => {
+              {(['New', 'Enrolled', 'Full', 'Staff'] as const).map((status, index) => {
                 const isSelected = statusFilter.includes(status)
                 const toggleStatus = () => {
                   setStatusFilter((prev) =>

@@ -9,6 +9,7 @@ const MEMBER_STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: MemberStatus.New, label: 'New' },
   { value: MemberStatus.Enrolled, label: 'Enrolled' },
   { value: MemberStatus.Full, label: 'Full' },
+  { value: MemberStatus.Staff, label: 'Staff' },
 ]
 
 type Props = {
