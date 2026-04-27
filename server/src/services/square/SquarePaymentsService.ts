@@ -18,6 +18,16 @@ export class SquarePaymentsService {
     console.error('Square Payments API Error:', error);
   }
 
+  async getById(paymentId: string): Promise<SquarePaymentDto | null> {
+    try {
+      const response = await this.client.payments.get({ paymentId });
+      return response.payment ? mapPaymentToDto(response.payment) : null;
+    } catch (error) {
+      this.logError(error);
+      return null;
+    }
+  }
+
   async getTodaysPayments(): Promise<SquarePaymentDto[]> {
     try {
       const todayMidnight = getTodayMidnight();
