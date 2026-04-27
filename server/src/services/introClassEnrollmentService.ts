@@ -11,6 +11,19 @@ interface IntroClassOrderMetadata {
   variationName?: string;
 }
 
+interface EnrollmentResult {
+  success: boolean;
+  statusUpdated: boolean;
+  error?: string;
+}
+
+type MemberProfile = Exclude<Awaited<ReturnType<typeof memberProfileDAO.findById>>, null>;
+
+interface UpdateResult {
+  profile: MemberProfile;
+  statusUpdated: boolean;
+}
+
 export class IntroClassEnrollmentService {
   private readonly client: SquareClient;
   private introClassVariationIds: Set<string> | null = null;
@@ -22,12 +35,21 @@ export class IntroClassEnrollmentService {
     });
   }
 
-  async getOrderMetadata(orderId: string): Promise<IntroClassOrderMetadata | null> {
+  private async getIntroClassOrderMetadata(orderId: string): Promise<IntroClassOrderMetadata | null> {
     try {
       const response = await this.client.orders.get({ orderId });
       const lineItems = response.order?.lineItems;
 
       if (!lineItems || lineItems.length === 0) {
+        return null;
+      }
+
+      const introClassVariations = await this.getIntroClassVariationIds();
+      const isIntroClass = lineItems.some(item => 
+        item.catalogObjectId && introClassVariations.has(item.catalogObjectId)
+      );
+
+      if (!isIntroClass) {
         return null;
       }
 
@@ -45,26 +67,6 @@ export class IntroClassEnrollmentService {
     }
   }
 
-  async isIntroClassOrder(orderId: string): Promise<boolean> {
-    try {
-      const response = await this.client.orders.get({ orderId });
-      const lineItems = response.order?.lineItems;
-
-      if (!lineItems || lineItems.length === 0) {
-        return false;
-      }
-
-      const introClassVariations = await this.getIntroClassVariationIds();
-
-      return lineItems.some(item => 
-        item.catalogObjectId && introClassVariations.has(item.catalogObjectId)
-      );
-    } catch (error) {
-      console.error('[IntroClassEnrollmentService] Failed to check if intro class order:', error);
-      return false;
-    }
-  }
-
   private async getIntroClassVariationIds(): Promise<Set<string>> {
     if (this.introClassVariationIds) {
       return this.introClassVariationIds;
@@ -72,7 +74,7 @@ export class IntroClassEnrollmentService {
 
     try {
       const catalogObject = await squareCatalogService.getObjectById(INTRO_CLASS_CATALOG_OBJECT_ID);
-      if (!catalogObject || catalogObject.type !== 'ITEM') {
+      if (catalogObject?.type !== 'ITEM') {
         return new Set();
       }
 
@@ -87,94 +89,105 @@ export class IntroClassEnrollmentService {
     }
   }
 
-  async updateMemberStatusToEnrolled(memberProfileId: string, variationName?: string): Promise<boolean> {
+  private appendNote(existing: string | undefined, newNote: string): string {
+    return existing ? `${existing}\n${newNote}` : newNote;
+  }
+
+  private async updateMemberStatusToEnrolled(memberProfileId: string, variationName?: string): Promise<UpdateResult | null> {
     try {
       const profile = await memberProfileDAO.findById(memberProfileId);
 
       if (!profile) {
         console.warn(`[IntroClassEnrollmentService] Profile not found: ${memberProfileId}`);
-        return false;
+        return null;
       }
 
-      if (profile.memberStatus === MemberStatus.Full) {
-        console.log(`[IntroClassEnrollmentService] Profile ${memberProfileId} is already Full, skipping`);
-        return true;
+      const isNew = profile.memberStatus === MemberStatus.New;
+      const enrollmentNote = variationName ? `Intro class enrollment: ${variationName}` : null;
+
+      if (isNew) {
+        await memberProfileDAO.updateById(memberProfileId, {
+          memberStatus: MemberStatus.Enrolled,
+          notes: enrollmentNote ? this.appendNote(profile.notes, enrollmentNote) : profile.notes
+        });
+      } else if (enrollmentNote) {
+        await memberProfileDAO.updateById(memberProfileId, {
+          notes: this.appendNote(profile.notes, enrollmentNote)
+        });
       }
 
-      const updateSet: Record<string, unknown> = {};
-
-      if (profile.memberStatus !== MemberStatus.Enrolled) {
-        updateSet.memberStatus = MemberStatus.Enrolled;
-      }
-
-      if (variationName) {
-        const existingNotes = profile.notes || '';
-        const noteLine = `Intro class enrollment: ${variationName}`;
-        updateSet.notes = existingNotes ? `${existingNotes}\n${noteLine}` : noteLine;
-      }
-
-      if (Object.keys(updateSet).length > 0) {
-        await memberProfileDAO.updateById(memberProfileId, updateSet);
-      }
-
-      console.log(`[IntroClassEnrollmentService] Updated profile ${memberProfileId} to Enrolled`);
-      return true;
+      return { profile, statusUpdated: isNew };
     } catch (error) {
       console.error('[IntroClassEnrollmentService] Failed to update member status:', error);
-      return false;
+      return null;
     }
   }
 
-  async handlePaymentCompleted(orderId: string): Promise<void> {
-    const isIntroClass = await this.isIntroClassOrder(orderId);
-    if (!isIntroClass) {
-      console.log(`[IntroClassEnrollmentService] Order ${orderId} is not an intro class order`);
-      return;
-    }
-
-    const metadata = await this.getOrderMetadata(orderId);
+  async handlePaymentCompleted(orderId: string): Promise<EnrollmentResult> {
+    const metadata = await this.getIntroClassOrderMetadata(orderId);
     if (!metadata) {
-      console.warn(`[IntroClassEnrollmentService] No metadata found for order ${orderId}`);
-      return;
+      console.log(`[IntroClassEnrollmentService] Order ${orderId} is not an intro class order or missing metadata`);
+      return { success: true, statusUpdated: false };
     }
 
-    await this.updateMemberStatusToEnrolled(metadata.memberProfileId, metadata.variationName);
-    await this.sendEnrollmentAlert(metadata.memberProfileId, metadata.variationName, orderId);
+    const result = await this.updateMemberStatusToEnrolled(metadata.memberProfileId, metadata.variationName);
+    if (!result) {
+      return { success: false, statusUpdated: false, error: 'Failed to update member status' };
+    }
+
+    if (result.statusUpdated) {
+      await this.sendEnrollmentAlert(result.profile, metadata.variationName, orderId, metadata.memberProfileId);
+    } else {
+      console.log(`[IntroClassEnrollmentService] Skipping alert for order ${orderId} - member not new`);
+    }
+
+    return { success: true, statusUpdated: result.statusUpdated };
   }
 
-  private async sendEnrollmentAlert(memberProfileId: string, variationName: string | undefined, orderId: string): Promise<void> {
+  private async sendEnrollmentAlert(
+    profile: MemberProfile,
+    variationName: string | undefined,
+    orderId: string,
+    memberProfileId: string
+  ): Promise<void> {
     if (!env.EMAIL_ACCOUNT) {
       console.warn('[IntroClassEnrollmentService] No EMAIL_ACCOUNT configured, skipping alert');
       return;
     }
 
     try {
-      const profile = await memberProfileDAO.findById(memberProfileId);
-      if (!profile) {
-        console.warn(`[IntroClassEnrollmentService] Profile not found for alert: ${memberProfileId}`);
-        return;
-      }
-
-      const emailContent = `
-New Intro Class Registration
-
-Member Information:
-• Preferred Name: ${profile.displayFirstName} ${profile.displayLastName}
-• Legal Name: ${profile.personalInfo?.legalFirstName || 'N/A'} ${profile.personalInfo?.legalLastName || 'N/A'}
-• Email: ${profile.personalInfo?.email || 'N/A'}
-• Phone: ${profile.personalInfo?.phone || 'N/A'}
-
-Class Details:
-• Class: ${variationName || 'Intro Class'}
-• Square Order ID: ${orderId}
-• Member Profile ID: ${memberProfileId}
-• Status Updated To: Enrolled
-      `;
-
-      await emailService.sendAlertEmail(env.EMAIL_ACCOUNT, `New Registration - Intro Class`, emailContent);
+      const emailContent = this.buildEnrollmentEmailContent(profile, variationName, orderId, memberProfileId);
+      await emailService.sendAlertEmail(env.EMAIL_ACCOUNT, 'New Registration - Intro Class', emailContent);
     } catch (error) {
       console.error('[IntroClassEnrollmentService] Failed to send enrollment alert:', error);
     }
+  }
+
+  private buildEnrollmentEmailContent(
+    profile: MemberProfile,
+    variationName: string | undefined,
+    orderId: string,
+    memberProfileId: string
+  ): string {
+    return `
+<h2>New Intro Class Registration</h2>
+
+<h3>Member Information:</h3>
+<ul>
+  <li><strong>Preferred Name:</strong> ${profile.displayFirstName} ${profile.displayLastName}</li>
+  <li><strong>Legal Name:</strong> ${profile.personalInfo?.legalFirstName || 'N/A'} ${profile.personalInfo?.legalLastName || 'N/A'}</li>
+  <li><strong>Email:</strong> <a href="mailto:${profile.personalInfo?.email || ''}">${profile.personalInfo?.email || 'N/A'}</a></li>
+  <li><strong>Phone:</strong> ${profile.personalInfo?.phone || 'N/A'}</li>
+</ul>
+
+<h3>Class Details:</h3>
+<ul>
+  <li><strong>Class:</strong> ${variationName || 'Intro Class'}</li>
+  <li><strong>Square Order ID:</strong> ${orderId}</li>
+  <li><strong>Member Profile ID:</strong> ${memberProfileId}</li>
+  <li><strong>Status Updated To:</strong> Enrolled</li>
+</ul>
+    `.trim();
   }
 }
 

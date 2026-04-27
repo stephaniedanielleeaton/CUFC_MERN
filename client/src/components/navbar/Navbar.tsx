@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { MobileNavbar } from './MobileNavbar'
 import { DesktopNavbar } from './DesktopNavbar'
-import { useUserRoles } from '../../hooks/useUserRoles'
+import { useUserRolesWithLoading } from '../../hooks/useUserRoles'
 import { useMemberProfile } from '../../context/ProfileContext'
 
 type Auth0User = {
@@ -15,12 +15,13 @@ type Auth0User = {
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const { user, loginWithRedirect, logout } = useAuth0()
-  const roles = useUserRoles()
+  const { roles, isLoading: rolesLoading } = useUserRolesWithLoading()
   const { profile, loading, error } = useMemberProfile()
   const displayName = loading || error ? "" : `${profile?.displayFirstName || ""} ${profile?.displayLastName || ""}`.trim()
   const profileComplete = loading || error ? false : (profile?.profileComplete ?? false)
-  const isAdmin = roles.includes("club-admin")
-  const canCheckIn = roles.includes("club-admin") || roles.includes("kiosk")
+  // Don't show admin link until roles are loaded
+  const isAdmin = !rolesLoading && roles.includes("club-admin")
+  const canCheckIn = !rolesLoading && (roles.includes("club-admin") || roles.includes("kiosk"))
 
   const handleLogin = () => loginWithRedirect()
   const handleLogout = () => logout({ logoutParams: { returnTo: globalThis.location.origin } })

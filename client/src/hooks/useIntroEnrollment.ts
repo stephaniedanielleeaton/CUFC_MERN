@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { fetchIntroEnrollment, type IntroEnrollmentDTO } from '../services/dashboardService'
+import { useGetToken } from './useAuthenticatedFetch'
 
 export type { IntroEnrollmentDTO } from '../services/dashboardService'
 export type IntroEnrollment = IntroEnrollmentDTO
@@ -11,7 +12,8 @@ type Result = {
 }
 
 export function useIntroEnrollment(profileId: string | undefined): Result {
-  const { getAccessTokenSilently, isAuthenticated } = useAuth0()
+  const { isAuthenticated } = useAuth0()
+  const getToken = useGetToken()
   const [enrollment, setEnrollment] = useState<IntroEnrollment | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -21,10 +23,11 @@ export function useIntroEnrollment(profileId: string | undefined): Result {
     const loadEnrollment = async () => {
       setLoading(true)
       try {
-        const token = await getAccessTokenSilently()
+        const token = await getToken()
         const data = await fetchIntroEnrollment(token)
         setEnrollment(data)
       } catch {
+        // Token expiration handled by getToken
         setEnrollment(null)
       } finally {
         setLoading(false)
@@ -32,7 +35,7 @@ export function useIntroEnrollment(profileId: string | undefined): Result {
     }
     
     loadEnrollment()
-  }, [profileId, isAuthenticated, getAccessTokenSilently])
+  }, [profileId, isAuthenticated, getToken])
 
   return { enrollment, loading }
 }

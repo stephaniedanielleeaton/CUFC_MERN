@@ -160,21 +160,20 @@ export class RegistrationService {
     squareOrderId: string,
     amountPaidInCents: number
   ): Promise<RegistrantDetailDto | null> {
-    const existing = await registrantDAO.findByPaymentId(paymentId);
-    if (!existing || existing.isPaid) {
-      return null;
-    }
-
-    const registrant = await registrantDAO.updatePaymentStatus(paymentId, {
+    // Atomic update - only succeeds if not already paid (idempotent for duplicate webhooks)
+    const registrant = await registrantDAO.markPaidIfNotAlready(paymentId, {
       squareOrderId,
       amountPaidInCents,
     });
 
-    if (registrant) {
-      await this.postToM2(registrant);
-      await this.addToTournamentEmailList(registrant);
-      await this.sendRegistrationAlert(registrant);
+    if (!registrant) {
+      console.log(`[RegistrationService] Payment ${paymentId} already processed or not found, skipping`);
+      return null;
     }
+
+    await this.postToM2(registrant);
+    await this.addToTournamentEmailList(registrant);
+    await this.sendRegistrationAlert(registrant);
 
     return registrant;
   }

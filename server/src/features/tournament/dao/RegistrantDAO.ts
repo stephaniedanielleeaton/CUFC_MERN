@@ -64,12 +64,17 @@ export class RegistrantDAO {
     return doc ? mapRegistrantToDto(doc) : null;
   }
 
-  async updatePaymentStatus(
+  /**
+   * Atomically mark registrant as paid only if not already paid.
+   * Returns the updated registrant if this was the first payment, null otherwise.
+   * This provides idempotency for duplicate webhook calls.
+   */
+  async markPaidIfNotAlready(
     paymentId: string,
     data: { squareOrderId: string; amountPaidInCents: number }
   ): Promise<RegistrantDetailDto | null> {
     const doc = await Registrant.findOneAndUpdate(
-      { paymentId },
+      { paymentId, isPaid: { $ne: true } },
       { ...data, isPaid: true, paidAt: new Date() },
       { new: true }
     );
