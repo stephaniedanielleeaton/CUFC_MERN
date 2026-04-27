@@ -93,7 +93,11 @@ export class IntroClassEnrollmentService {
     return existing ? `${existing}\n${newNote}` : newNote;
   }
 
-  private async updateMemberStatusToEnrolled(memberProfileId: string, variationName?: string): Promise<UpdateResult | null> {
+  private async updateMemberStatusToEnrolled(
+    memberProfileId: string,
+    variationName?: string,
+    squareCustomerId?: string
+  ): Promise<UpdateResult | null> {
     try {
       const profile = await memberProfileDAO.findById(memberProfileId);
 
@@ -104,16 +108,23 @@ export class IntroClassEnrollmentService {
 
       const isNew = profile.memberStatus === MemberStatus.New;
       const enrollmentNote = variationName ? `Intro class enrollment: ${variationName}` : null;
+      const needsSquareCustomerId = squareCustomerId && !profile.squareCustomerId;
+
+      const updateSet: Record<string, unknown> = {};
 
       if (isNew) {
-        await memberProfileDAO.updateById(memberProfileId, {
-          memberStatus: MemberStatus.Enrolled,
-          notes: enrollmentNote ? this.appendNote(profile.notes, enrollmentNote) : profile.notes
-        });
-      } else if (enrollmentNote) {
-        await memberProfileDAO.updateById(memberProfileId, {
-          notes: this.appendNote(profile.notes, enrollmentNote)
-        });
+        updateSet.memberStatus = MemberStatus.Enrolled;
+      }
+      if (enrollmentNote) {
+        updateSet.notes = this.appendNote(profile.notes, enrollmentNote);
+      }
+      if (needsSquareCustomerId) {
+        updateSet.squareCustomerId = squareCustomerId;
+        console.log(`[IntroClassEnrollmentService] Setting squareCustomerId ${squareCustomerId} for profile ${memberProfileId}`);
+      }
+
+      if (Object.keys(updateSet).length > 0) {
+        await memberProfileDAO.updateById(memberProfileId, updateSet);
       }
 
       return { profile, statusUpdated: isNew };
@@ -123,14 +134,18 @@ export class IntroClassEnrollmentService {
     }
   }
 
-  async handlePaymentCompleted(orderId: string): Promise<EnrollmentResult> {
+  async handlePaymentCompleted(orderId: string, squareCustomerId?: string): Promise<EnrollmentResult> {
     const metadata = await this.getIntroClassOrderMetadata(orderId);
     if (!metadata) {
       console.log(`[IntroClassEnrollmentService] Order ${orderId} is not an intro class order or missing metadata`);
       return { success: true, statusUpdated: false };
     }
 
-    const result = await this.updateMemberStatusToEnrolled(metadata.memberProfileId, metadata.variationName);
+    const result = await this.updateMemberStatusToEnrolled(
+      metadata.memberProfileId,
+      metadata.variationName,
+      squareCustomerId
+    );
     if (!result) {
       return { success: false, statusUpdated: false, error: 'Failed to update member status' };
     }

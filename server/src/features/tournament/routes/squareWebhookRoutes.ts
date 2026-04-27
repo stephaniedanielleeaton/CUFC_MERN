@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { registrationService, tournamentSquareService } from '../services';
 import { squareWebhookService } from '../../../services/square/SquareWebhookService';
+import { squarePaymentsService } from '../../../services/square/SquarePaymentsService';
 import { introClassEnrollmentService } from '../../../services/introClassEnrollmentService';
 
 const router = Router();
@@ -13,8 +14,10 @@ interface SquareWebhookRequest extends Request {
 interface SquareWebhookEvent {
   type: string;
   data?: {
+    id?: string;
     object?: {
       payment?: {
+        id?: string;
         status: string;
         order_id?: string;
       };
@@ -78,8 +81,16 @@ router.post('/', async (req: SquareWebhookRequest, res: Response<WebhookResponse
       return res.status(200).json({ received: true });
     }
 
+    // Fetch full payment details to get customer_id (not always in webhook payload)
+    const paymentId = payment.id || event.data?.id;
+    let customerId: string | undefined;
+    if (paymentId) {
+      const fullPayment = await squarePaymentsService.getById(paymentId);
+      customerId = fullPayment?.customerId ?? undefined;
+    }
+
     // Try to handle as intro class enrollment first
-    await introClassEnrollmentService.handlePaymentCompleted(orderId);
+    await introClassEnrollmentService.handlePaymentCompleted(orderId, customerId);
 
     // Then try to handle as tournament registration
     const metadata = await tournamentSquareService.getOrderMetadata(orderId);
