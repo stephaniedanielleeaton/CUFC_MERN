@@ -106,12 +106,10 @@ export default function MemberCard({ member, lastCheckIn, onToggle, isExpanded, 
         </div>
 
         <div className="flex-1 min-w-0">
-          {notes && (
-            <>
-              <div className="text-sm text-gray-600">Notes</div>
-              <div className="text-base text-gray-900 truncate">{notes}</div>
-            </>
-          )}
+          <div className="text-sm text-gray-600">Notes</div>
+          <div className="text-base text-gray-900 truncate">
+            {notes || <span className="text-gray-400 italic">None</span>}
+          </div>
         </div>
 
         <div className="flex items-center justify-end min-w-[40px] ml-2 space-x-2">

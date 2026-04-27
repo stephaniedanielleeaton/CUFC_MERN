@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
+import { useAuthenticatedFetch } from './useAuthenticatedFetch'
 
 interface UseUserRolesResult {
   roles: string[];
@@ -12,7 +13,8 @@ export function useUserRoles(): string[] {
 }
 
 export function useUserRolesWithLoading(): UseUserRolesResult {
-  const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently } = useAuth0()
+  const { isAuthenticated, isLoading: authLoading } = useAuth0()
+  const authFetch = useAuthenticatedFetch()
   const [roles, setRoles] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -29,15 +31,13 @@ export function useUserRolesWithLoading(): UseUserRolesResult {
 
     const fetchRoles = async () => {
       try {
-        const token = await getAccessTokenSilently()
-        const res = await fetch('/api/auth/roles', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        const res = await authFetch('/api/auth/roles')
         if (res.ok) {
           const data = await res.json()
           setRoles(data.roles || [])
         }
       } catch {
+        // Token expiration handled by authFetch - just catch to prevent unhandled rejection
         setRoles([])
       } finally {
         setIsLoading(false)
@@ -45,7 +45,7 @@ export function useUserRolesWithLoading(): UseUserRolesResult {
     }
 
     fetchRoles()
-  }, [isAuthenticated, authLoading, getAccessTokenSilently])
+  }, [isAuthenticated, authLoading, authFetch])
 
   return { roles, isLoading }
 }

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import type { MemberProfileDTO, MemberProfileFormInput } from '@cufc/shared'
+import { useAuthenticatedFetch } from '../hooks/useAuthenticatedFetch'
 
 type MemberProfileContextType = {
   profile: MemberProfileFormInput | null
@@ -23,7 +24,8 @@ function toFormInput(p: MemberProfileDTO): MemberProfileFormInput {
 }
 
 export function MemberProfileProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const { isAuthenticated, isLoading: authLoading, getAccessTokenSilently, loginWithRedirect } = useAuth0()
+  const { isAuthenticated, isLoading: authLoading } = useAuth0()
+  const authFetch = useAuthenticatedFetch()
   const [profile, setProfile] = useState<MemberProfileFormInput | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,30 +42,20 @@ export function MemberProfileProvider({ children }: Readonly<{ children: ReactNo
     setLoading(true)
     setError(null)
     try {
-      const token = await getAccessTokenSilently()
-      const res = await fetch('/api/members/me', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const res = await authFetch('/api/members/me')
       if (!res.ok) throw new Error('Failed to fetch profile')
       const data = await res.json()
       const fetched: MemberProfileDTO | null = data.profile ?? null
       setProfile(fetched ? toFormInput(fetched) : null)
     } catch (err) {
+      // Token expiration just fails silently - user can still browse public pages
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      // Silent auth fails on Safari/iPhone due to third-party cookie blocking
-      // Trigger a fresh login instead of showing an error
-      if (errorMessage.includes('login_required') || errorMessage.includes('consent_required')) {
-        loginWithRedirect()
-        return
-      }
       setError(errorMessage)
       setProfile(null)
     } finally {
       setLoading(false)
     }
-  }, [isAuthenticated, authLoading, getAccessTokenSilently, loginWithRedirect])
+  }, [isAuthenticated, authLoading, authFetch])
 
   useEffect(() => {
     fetchProfile()
