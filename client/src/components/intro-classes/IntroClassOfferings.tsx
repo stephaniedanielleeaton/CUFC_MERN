@@ -22,7 +22,7 @@ export const IntroClassOfferings: React.FC<IntroClassOfferingsProps> = ({
 }) => {
   const { introClassData, isLoading, error } = useIntroClassOfferings()
   const { isAuthenticated, isLoading: userLoading, getAccessTokenSilently } = useAuth0()
-  const { profile, loading: profileLoading, error: profileError } = useMemberProfile()
+  const { profile, loading: profileLoading } = useMemberProfile()
   const [selectedVariationId, setSelectedVariationId] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
@@ -93,10 +93,10 @@ export const IntroClassOfferings: React.FC<IntroClassOfferingsProps> = ({
     return <LoadingSpinner />
   }
 
-  if (error || profileError) {
+  if (error) {
     return (
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-        <p>{profileError ? "Unable to load profile. Please try again later." : "Unable to load class information. Please try again later."}</p>
+        <p>Unable to load class information. Please try again later.</p>
       </div>
     )
   }
