@@ -12,9 +12,10 @@ import { UnifiedProfileForm } from '../components/profile/UnifiedProfileForm'
 import { RedirectingOverlay } from '../components/common/RedirectingOverlay'
 import { BackButton } from '../components/common/BackButton'
 import { useIntroEnrollment } from '../hooks/useIntroEnrollment'
+import { useDropInCheckout } from '../hooks/useDropInCheckout'
 import { MemberStatus } from '@cufc/shared'
 import { useAuth0 } from '@auth0/auth0-react'
-import { createIntroCheckout, createDropInCheckout } from '../services/checkoutService'
+import { createIntroCheckout } from '../services/checkoutService'
 import type { IntroEnrollmentDTO } from '../hooks/useIntroEnrollment'
 
 type EnrollmentStep = 'dashboard' | 'profile' | 'class-selection'
@@ -41,6 +42,7 @@ export default function DashboardPage() {
   const [enrollmentStep, setEnrollmentStep] = useState<EnrollmentStep>('dashboard')
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const { isAuthenticated, isLoading: authLoading, loginWithRedirect, getAccessTokenSilently } = useAuth0()
+  const { handleDropInCheckout } = useDropInCheckout()
   const navigate = useNavigate()
 
   // Checkout function
@@ -124,19 +126,6 @@ export default function DashboardPage() {
     return undefined
   }
   const dropInDisabledReason = getDropInDisabledReason()
-
-  const handleDropInCheckout = async () => {
-    try {
-      const token = await getAccessTokenSilently()
-      const data = await createDropInCheckout(token, {
-        memberProfileId: profile._id ?? '',
-        redirectUrl: `${globalThis.location.origin}/dashboard`
-      })
-      globalThis.location.href = data.checkoutUrl
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'An error occurred while creating checkout')
-    }
-  }
 
   // Show profile form step
   if (enrollmentStep === 'profile') {

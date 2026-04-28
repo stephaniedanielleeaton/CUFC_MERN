@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useJoinNavigation } from '../../hooks/useJoinNavigation'
-
-const DROP_IN_URL = 'https://checkout.square.site/merchant/MLKW7ZG52B9ZV/order/Wm5I8FGH457zzxpSZVwOLkeCfwHZY'
+import { useDropInCheckout } from '../../hooks/useDropInCheckout'
 
 export const NAV_LINKS = [
   { href: "/join", label: "Join", isJoin: true },
@@ -19,10 +18,17 @@ type NavLinksProps = Readonly<{
 
 export function NavLinks({ onClick, className = "" }: NavLinksProps) {
   const { handleJoinClick } = useJoinNavigation()
+  const { handleDropInCheckout } = useDropInCheckout()
 
   const onJoinClick = (e: React.MouseEvent) => {
     e.preventDefault()
     handleJoinClick()
+    onClick?.()
+  }
+
+  const onDropInClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    handleDropInCheckout()
     onClick?.()
   }
 
@@ -50,15 +56,12 @@ export function NavLinks({ onClick, className = "" }: NavLinksProps) {
       ))}
       <div className="flex flex-col items-center">
         <span className="text-xs text-gray-400 normal-case tracking-normal">Current Members Only</span>
-        <a
-          href={DROP_IN_URL}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
           className={`hover:text-[#904F69] uppercase tracking-widest whitespace-nowrap ${className}`}
-          onClick={onClick}
+          onClick={onDropInClick}
         >
           Drop-In
-        </a>
+        </button>
       </div>
     </>
   )
