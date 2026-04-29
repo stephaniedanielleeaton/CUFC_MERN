@@ -5,6 +5,7 @@ import { SearchBar } from '../components/attendance/SearchBar'
 import { AlphabetFilter } from '../components/attendance/AlphabetFilter'
 import { AttendanceHeader } from '../components/attendance/AttendanceHeader'
 import { MemberList } from '../components/attendance/MemberList'
+import swordShwingSound from '../assets/merrick079sword-sound-1.wav'
 
 async function fetchMembers(): Promise<MemberCheckIn[]> {
   const res = await fetch('/api/attendance/members')
@@ -18,6 +19,7 @@ export default function AttendancePage() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState<string>('')
   const [selectedLetter, setSelectedLetter] = useState<string>('')
+  const [showCheckedInOnly, setShowCheckedInOnly] = useState<boolean>(false)
   const toggleAttendance = useToggleAttendance()
 
   useEffect(() => {
@@ -40,6 +42,9 @@ export default function AttendancePage() {
   const handleCheckIn = async (memberId: string) => {
     try {
       const checkedIn = await toggleAttendance(memberId)
+      if (checkedIn) {
+        await new Audio(swordShwingSound).play()
+      }
       setMembers(members =>
         members.map(m =>
           m.id === memberId ? { ...m, isCheckedIn: checkedIn } : m
@@ -54,6 +59,7 @@ export default function AttendancePage() {
   const handleClearFilters = () => {
     setSearchTerm('')
     setSelectedLetter('')
+    setShowCheckedInOnly(false)
   }
 
   const totalCheckedIn = members.filter(m => m.isCheckedIn).length
@@ -78,6 +84,10 @@ export default function AttendancePage() {
     )
   }
 
+  if (showCheckedInOnly) {
+    filteredMembers = filteredMembers.filter(m => m.isCheckedIn)
+  }
+
   filteredMembers = filteredMembers.sort((a, b) =>
     (a.displayLastName || '').localeCompare(b.displayLastName || '')
   )
@@ -99,12 +109,26 @@ export default function AttendancePage() {
                 placeholder="Enter Name..." 
               />
             </div>
+
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setShowCheckedInOnly(prev => !prev)}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  showCheckedInOnly
+                    ? 'bg-deep-sea-blue text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Show Currently Checked In
+              </button>
+            </div>
             
             <AlphabetFilter 
               availableLetters={availableLetters} 
               selectedLetter={selectedLetter} 
               onLetterClick={handleLetterClick} 
-              onClearFilter={(selectedLetter || searchTerm) ? handleClearFilters : undefined} 
+              onClearFilter={(selectedLetter || searchTerm || showCheckedInOnly) ? handleClearFilters : undefined} 
             />
 
             <MemberList 

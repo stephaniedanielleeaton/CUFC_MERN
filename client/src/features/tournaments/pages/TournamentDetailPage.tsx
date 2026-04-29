@@ -171,7 +171,7 @@ export default function TournamentDetailPage() {
             View on Meyer Squared
           </a>
           <p className="text-sm text-gray-500 mt-6">
-            Questions? <Link to="/contact" className="text-navy hover:underline">Contact us</Link>
+            Questions about payment and registration? <Link to="/contact" className="text-navy hover:underline">Contact us</Link>
           </p>
         </div>
 

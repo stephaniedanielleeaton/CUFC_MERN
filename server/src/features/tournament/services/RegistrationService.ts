@@ -15,6 +15,16 @@ import { memberProfileService } from '../../../services/memberProfileService';
 import { emailService } from '../../../services/emailService';
 import { env } from '../../../config/env';
 
+function escapeHtml(input: string | undefined | null): string {
+  if (!input) return '';
+  return input
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 export class RegistrationError extends Error {
   constructor(message: string, public statusCode: number = 400) {
     super(message);
@@ -255,32 +265,42 @@ export class RegistrationService {
 
     try {
       const eventsList = registrant.selectedEvents
-        .map(event => `• ${event.eventName}`)
-        .join('\n');
+        .map(event => `<li>${escapeHtml(event.eventName)}</li>`)
+        .join('');
 
       const qualificationNote = registrant.isRequestedAlternativeQualification
-        ? '\n\nNOTE: This registrant has requested to use their URG or women\'s rating to qualify for a higher division.'
+        ? `
+          <p><strong>Qualification Note:</strong> This registrant requested to use their URG or women&apos;s rating to qualify for a higher division.</p>
+        `
         : '';
 
       const emailContent = `
-New Tournament Registration
+        <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5;">
+          <h2>New Tournament Registration</h2>
 
-Tournament: ${registrant.tournamentName}
-Registrant Information:
-• Preferred Name: ${registrant.preferredFirstName} ${registrant.preferredLastName}
-• Legal Name: ${registrant.legalFirstName} ${registrant.legalLastName}
-• Email: ${registrant.email}
-• Phone: ${registrant.phoneNumber || 'N/A'}${
-        registrant.guardianFirstName ? `
-• Guardian Name: ${registrant.guardianFirstName} ${registrant.guardianLastName}` : ''
-      }
+          <p><strong>Tournament:</strong> ${escapeHtml(registrant.tournamentName)}</p>
 
-Registered Events:
-${eventsList}${qualificationNote}
+          <p>
+            <strong>Preferred Name:</strong> ${escapeHtml(`${registrant.preferredFirstName} ${registrant.preferredLastName}`)}<br/>
+            <strong>Legal Name:</strong> ${escapeHtml(`${registrant.legalFirstName} ${registrant.legalLastName}`)}<br/>
+            <strong>Email:</strong> ${escapeHtml(registrant.email)}<br/>
+            <strong>Phone:</strong> ${escapeHtml(registrant.phoneNumber || 'N/A')}
+            ${registrant.guardianFirstName
+              ? `<br/><strong>Guardian Name:</strong> ${escapeHtml(`${registrant.guardianFirstName} ${registrant.guardianLastName || ''}`.trim())}`
+              : ''}
+          </p>
 
-Amount Paid: $${((registrant.amountPaidInCents || 0) / 100).toFixed(2)}
-Payment ID: ${registrant.paymentId}
-Square Order ID: ${registrant.squareOrderId || 'N/A'}
+          <p><strong>Registered Events:</strong></p>
+          <ul>${eventsList}</ul>
+
+          ${qualificationNote}
+
+          <p>
+            <strong>Amount Paid:</strong> $${((registrant.amountPaidInCents || 0) / 100).toFixed(2)}<br/>
+            <strong>Payment ID:</strong> ${escapeHtml(registrant.paymentId)}<br/>
+            <strong>Square Order ID:</strong> ${escapeHtml(registrant.squareOrderId || 'N/A')}
+          </p>
+        </div>
       `;
 
       await emailService.sendAlertEmail(env.EMAIL_ACCOUNT, `New Registration - ${registrant.tournamentName}`, emailContent);
