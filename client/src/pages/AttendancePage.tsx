@@ -5,6 +5,7 @@ import { SearchBar } from '../components/attendance/SearchBar'
 import { AlphabetFilter } from '../components/attendance/AlphabetFilter'
 import { AttendanceHeader } from '../components/attendance/AttendanceHeader'
 import { MemberList } from '../components/attendance/MemberList'
+import swordShwingSound from '../assets/merrick079sword-sound-1.wav'
 
 async function fetchMembers(): Promise<MemberCheckIn[]> {
   const res = await fetch('/api/attendance/members')
@@ -41,6 +42,9 @@ export default function AttendancePage() {
   const handleCheckIn = async (memberId: string) => {
     try {
       const checkedIn = await toggleAttendance(memberId)
+      if (checkedIn) {
+        await new Audio(swordShwingSound).play()
+      }
       setMembers(members =>
         members.map(m =>
           m.id === memberId ? { ...m, isCheckedIn: checkedIn } : m
