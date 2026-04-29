@@ -15,4 +15,5 @@ export interface CheckoutResponse {
 
 export interface ErrorResponse {
   error: string;
+  code?: string;
 }

@@ -112,11 +112,16 @@ export class IntroClassEnrollmentService {
 
       const updateSet: Record<string, unknown> = {};
 
+      if (profile.isArchived) {
+        updateSet.isArchived = false;
+        console.log(`[IntroClassEnrollmentService] Unarchiving profile ${memberProfileId}`);
+      }
+
       if (isNew) {
         updateSet.memberStatus = MemberStatus.Enrolled;
-      }
-      if (enrollmentNote) {
-        updateSet.notes = this.appendNote(profile.notes, enrollmentNote);
+        if (enrollmentNote) {
+          updateSet.notes = this.appendNote(profile.notes, enrollmentNote);
+        }
       }
       if (needsSquareCustomerId) {
         updateSet.squareCustomerId = squareCustomerId;

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { checkJwt } from '../middleware/auth';
+import { checkJwt, getAuth0Id } from '../middleware/auth';
 import { squareCheckoutService } from '../services/square';
-import { getMemberProfileById } from '../services/memberProfileService';
+import { getMemberProfileById, getProfileForUser } from '../services/memberProfileService';
 import { IntroClassCheckoutRequest, CheckoutResponse, SingleClassCheckoutRequest, ErrorResponse } from '@cufc/shared';
 import { DROP_IN_CATALOG_OBJECT_ID } from '../config/constants';
 
@@ -11,7 +11,10 @@ router.post('/intro', checkJwt, async (req: Request<{}, {}, IntroClassCheckoutRe
   try {
     const { catalogObjectId, memberProfileId, redirectUrl } = req.body;
 
+    console.log(`[Checkout] Intro class checkout request - memberProfileId: ${memberProfileId}, catalogObjectId: ${catalogObjectId}`);
+
     if (!catalogObjectId || !memberProfileId) {
+      console.warn('[Checkout] Missing required parameters');
       return res.status(400).json({
         error: 'Missing required parameters: catalogObjectId and memberProfileId are required'
       });
@@ -19,8 +22,19 @@ router.post('/intro', checkJwt, async (req: Request<{}, {}, IntroClassCheckoutRe
 
     const profile = await getMemberProfileById(memberProfileId);
     if (!profile) {
+      console.error(`[Checkout] Profile not found: ${memberProfileId}`);
       return res.status(404).json({ error: 'Member profile not found' });
     }
+
+    if (!profile.profileComplete) {
+      console.error(`[Checkout] Incomplete profile attempted checkout: ${memberProfileId}, displayName: ${profile.displayFirstName} ${profile.displayLastName}`);
+      return res.status(400).json({ 
+        error: 'Profile must be complete before checkout. Please complete your profile first.',
+        code: 'PROFILE_INCOMPLETE'
+      });
+    }
+
+    console.log(`[Checkout] Creating checkout for ${profile.displayFirstName} ${profile.displayLastName} (${profile.personalInfo?.email})`);
 
     const checkoutUrl = await squareCheckoutService.createPaymentLink(
       catalogObjectId, 
@@ -30,9 +44,11 @@ router.post('/intro', checkJwt, async (req: Request<{}, {}, IntroClassCheckoutRe
     );
 
     if (!checkoutUrl) {
+      console.error(`[Checkout] Failed to create checkout link for profile: ${memberProfileId}`);
       return res.status(500).json({ error: 'Failed to create checkout link' });
     }
 
+    console.log(`[Checkout] Checkout created successfully for profile: ${memberProfileId}`);
     res.json({ checkoutUrl });
   } catch (error) {
     console.error('Error in intro class checkout:', error);
@@ -44,7 +60,10 @@ router.post('/intro-guest', async (req: Request<{}, {}, IntroClassCheckoutReques
   try {
     const { catalogObjectId, memberProfileId, redirectUrl } = req.body;
 
+    console.log(`[Checkout] Guest intro class checkout request - memberProfileId: ${memberProfileId}, catalogObjectId: ${catalogObjectId}`);
+
     if (!catalogObjectId || !memberProfileId) {
+      console.warn('[Checkout] Guest checkout missing required parameters');
       return res.status(400).json({
         error: 'Missing required parameters: catalogObjectId and memberProfileId are required'
       });
@@ -52,8 +71,19 @@ router.post('/intro-guest', async (req: Request<{}, {}, IntroClassCheckoutReques
 
     const profile = await getMemberProfileById(memberProfileId);
     if (!profile) {
+      console.error(`[Checkout] Guest checkout - profile not found: ${memberProfileId}`);
       return res.status(404).json({ error: 'Member profile not found' });
     }
+
+    if (!profile.profileComplete) {
+      console.error(`[Checkout] Guest checkout - incomplete profile: ${memberProfileId}, displayName: ${profile.displayFirstName} ${profile.displayLastName}`);
+      return res.status(400).json({ 
+        error: 'Profile must be complete before checkout. Please complete your profile first.',
+        code: 'PROFILE_INCOMPLETE'
+      });
+    }
+
+    console.log(`[Checkout] Guest checkout for ${profile.displayFirstName} ${profile.displayLastName} (${profile.personalInfo?.email})`);
 
     const checkoutUrl = await squareCheckoutService.createPaymentLink(
       catalogObjectId, 
@@ -63,9 +93,11 @@ router.post('/intro-guest', async (req: Request<{}, {}, IntroClassCheckoutReques
     );
 
     if (!checkoutUrl) {
+      console.error(`[Checkout] Guest checkout - failed to create link for profile: ${memberProfileId}`);
       return res.status(500).json({ error: 'Failed to create checkout link' });
     }
 
+    console.log(`[Checkout] Guest checkout created successfully for profile: ${memberProfileId}`);
     res.json({ checkoutUrl });
   } catch (error) {
     console.error('Error in guest intro class checkout:', error);
@@ -85,6 +117,13 @@ router.post('/dropin', checkJwt, async (req: Request<{}, {}, SingleClassCheckout
   const profile = await getMemberProfileById(memberProfileId)
   if (!profile) {
     return res.status(404).json({ error: 'Member profile not found' });
+  }
+
+  if (!profile.profileComplete) {
+    return res.status(400).json({ 
+      error: 'Profile must be complete before checkout. Please complete your profile first.',
+      code: 'PROFILE_INCOMPLETE'
+    });
   }
 
   try {
@@ -107,7 +146,24 @@ router.post('/dropin', checkJwt, async (req: Request<{}, {}, SingleClassCheckout
 });
 
 
-router.post('/subscription', checkJwt, async (_req: Request, res: Response<CheckoutResponse | ErrorResponse>) => {
+router.post('/subscription', checkJwt, async (req: Request, res: Response<CheckoutResponse | ErrorResponse>) => {
+  const auth0Id = getAuth0Id(req);
+  if (!auth0Id) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const profile = await getProfileForUser(auth0Id);
+  if (!profile) {
+    return res.status(404).json({ error: 'Member profile not found' });
+  }
+
+  if (!profile.profileComplete) {
+    return res.status(400).json({ 
+      error: 'Profile must be complete before checkout. Please complete your profile first.',
+      code: 'PROFILE_INCOMPLETE'
+    });
+  }
+
   res.json({ checkoutUrl: squareCheckoutService.getSubscriptionCheckoutUrl() });
 });
 

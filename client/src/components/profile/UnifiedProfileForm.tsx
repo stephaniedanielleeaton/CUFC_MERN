@@ -141,7 +141,7 @@ function profileToFormData(profile: MemberProfileDTO | null): ProfileFormData {
     state: profile.personalInfo?.address?.state || '',
     zip: profile.personalInfo?.address?.zip || '',
     country: profile.personalInfo?.address?.country || 'USA',
-    isMinor: !!profile.guardian,
+    isMinor: !!(profile.guardian?.firstName || profile.guardian?.lastName),
     guardianFirstName: profile.guardian?.firstName || '',
     guardianLastName: profile.guardian?.lastName || '',
   }
