@@ -43,7 +43,7 @@ export const AlphabetFilter: React.FC<AlphabetFilterProps> = ({
       {(selectedLetter || onClearFilter) && (
         <button
           onClick={onClearFilter}
-          className="w-16 h-14 rounded-lg text-xl font-medium bg-gray-100 text-gray-600 hover:bg-gray-200"
+          className="w-16 h-14 rounded-lg text-xl font-medium bg-orange-500 text-white hover:bg-orange-600 shadow-md"
         >
           Clear
         </button>
