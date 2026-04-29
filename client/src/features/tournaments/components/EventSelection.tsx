@@ -1,4 +1,5 @@
 import type { EventDto, SelectedEventDto } from '@cufc/shared';
+import { formatEventDateHeader, formatEventTime } from '../../../utils/dateUtils';
 
 interface EventSelectionProps {
   readonly events: EventDto[];
@@ -12,16 +13,14 @@ function formatPrice(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 
-function formatEventDate(dateStr: string, timeStr: string): string {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return '';
-  const formattedDate = date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric'
-  });
-  const displayTime = timeStr ? timeStr.split(':').slice(0, 2).join(':') : '';
-  return displayTime ? `${formattedDate} at ${displayTime}` : formattedDate;
+function groupEventsByDate(events: EventDto[]): Map<string, EventDto[]> {
+  const grouped = new Map<string, EventDto[]>();
+  for (const event of events) {
+    const list = grouped.get(event.date) ?? [];
+    list.push(event);
+    grouped.set(event.date, list);
+  }
+  return grouped;
 }
 
 export function EventSelection({ events, selectedEvents, onSelectionChange, basePriceInCents, skipBaseFee = false }: EventSelectionProps) {
@@ -54,42 +53,56 @@ export function EventSelection({ events, selectedEvents, onSelectionChange, base
     );
   }
 
+  const grouped = groupEventsByDate(events);
+  const sortedDates = Array.from(grouped.keys()).sort((a, b) => a.localeCompare(b));
+
   return (
     <div>
-      <div className="space-y-3">
-        {events.map(event => {
-          const isSelected = selectedIds.has(event.m2EventId);
-          return (
-            <label
-              key={event.m2EventId}
-              className={`flex items-start gap-4 p-4 border rounded-lg cursor-pointer transition-colors ${
-                isSelected 
-                  ? 'border-navy bg-light-navy' 
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => handleToggle(event)}
-                className="mt-1 h-5 w-5 text-navy rounded border-gray-300 focus:ring-navy"
-              />
-              <div className="flex-grow min-w-0">
-                <div className="font-medium text-gray-800">{event.eventName}</div>
-                <div className="text-sm text-gray-500 mt-1">
-                  {event.weapon} • {formatEventDate(event.date, event.startTime)}
-                </div>
-                <div className="text-sm text-gray-400 mt-1">
-                  {event.participantsCount} registered
-                  {event.participantsCap && ` / ${event.participantsCap} max`}
-                </div>
-              </div>
-              <div className="text-navy font-semibold whitespace-nowrap">
-                {formatPrice(event.priceInCents)}
-              </div>
-            </label>
-          );
-        })}
+      <div className="space-y-6">
+        {sortedDates.map(date => (
+          <div key={date}>
+            <div className="text-sm font-semibold text-navy uppercase tracking-wider border-b border-gray-200 pb-2 mb-3">
+              {formatEventDateHeader(date)}
+            </div>
+            <div className="space-y-3">
+              {grouped.get(date)?.map(event => {
+                const isSelected = selectedIds.has(event.m2EventId);
+                const time = formatEventTime(event.startTime);
+                return (
+                  <label
+                    key={event.m2EventId}
+                    className={`flex items-start gap-4 p-4 border rounded-lg cursor-pointer transition-colors ${
+                      isSelected
+                        ? 'border-navy bg-light-navy'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleToggle(event)}
+                      className="mt-1 h-5 w-5 text-navy rounded border-gray-300 focus:ring-navy"
+                    />
+                    <div className="flex-grow min-w-0">
+                      <div className="font-medium text-gray-800">{event.eventName}</div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        {event.weapon}
+                        {time && ` • ${time}`}
+                      </div>
+                      <div className="text-sm text-gray-400 mt-1">
+                        {event.participantsCount} registered
+                        {event.participantsCap && ` / ${event.participantsCap} max`}
+                      </div>
+                    </div>
+                    <div className="text-navy font-semibold whitespace-nowrap">
+                      {formatPrice(event.priceInCents)}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
 
       {selectedEvents.length >= 1 && (
