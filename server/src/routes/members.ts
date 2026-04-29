@@ -9,24 +9,38 @@ const router = Router();
 router.get('/me', checkJwt, async (req: Request, res: Response) => {
   try {
     const auth0Id = getAuth0Id(req);
+    const email = getAuth0Email(req);
+    
+    console.log(`[Members] GET /me - auth0Id: ${auth0Id}, email: ${email}`);
+    
     if (!auth0Id) {
+      console.warn('[Members] GET /me - No auth0Id in token');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     // First try to find by auth0Id
     let profile = await memberService.getProfileByAuth0Id(auth0Id);
     
+    if (profile) {
+      console.log(`[Members] GET /me - Found profile by auth0Id: ${profile._id}, name: ${profile.displayFirstName} ${profile.displayLastName}`);
+    }
+    
     // If not found, try to find by email and link the auth0Id
-    if (!profile) {
-      const email = getAuth0Email(req);
-      if (email) {
-        profile = await memberService.findAndLinkByEmail(auth0Id, email);
+    if (!profile && email) {
+      console.log(`[Members] GET /me - No profile found by auth0Id, attempting email link for: ${email}`);
+      profile = await memberService.findAndLinkByEmail(auth0Id, email);
+      if (profile) {
+        console.log(`[Members] GET /me - Linked existing profile by email: ${profile._id}`);
       }
+    }
+    
+    if (!profile) {
+      console.log(`[Members] GET /me - No profile found for auth0Id: ${auth0Id}, email: ${email}`);
     }
     
     res.json({ profile });
   } catch (error) {
-    console.error(error);
+    console.error('[Members] GET /me - Error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -35,7 +49,12 @@ router.get('/me', checkJwt, async (req: Request, res: Response) => {
 router.post('/me', checkJwt, async (req: Request, res: Response) => {
   try {
     const auth0Id = getAuth0Id(req);
+    const email = getAuth0Email(req);
+    
+    console.log(`[Members] POST /me - Creating profile for auth0Id: ${auth0Id}, email: ${email}`);
+    
     if (!auth0Id) {
+      console.warn('[Members] POST /me - No auth0Id in token');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -47,6 +66,8 @@ router.post('/me', checkJwt, async (req: Request, res: Response) => {
       profileComplete?: boolean;
     } = req.body;
 
+    console.log(`[Members] POST /me - Request body: displayName=${body.displayFirstName} ${body.displayLastName}, email=${body.personalInfo?.email}, profileComplete=${body.profileComplete}`);
+
     const profile = await memberService.createProfile(auth0Id, {
       displayFirstName: body.displayFirstName,
       displayLastName: body.displayLastName,
@@ -55,9 +76,11 @@ router.post('/me', checkJwt, async (req: Request, res: Response) => {
       profileComplete: body.profileComplete,
     });
 
+    console.log(`[Members] POST /me - Profile created successfully: ${profile._id}, name: ${profile.displayFirstName} ${profile.displayLastName}`);
+
     res.status(201).json(profile);
   } catch (error) {
-    console.error(error);
+    console.error('[Members] POST /me - Error creating profile:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
@@ -67,18 +90,25 @@ router.post('/guest', async (req: Request, res: Response) => {
   try {
     const body: GuestProfileInput = req.body;
 
+    console.log(`[Members] POST /guest - Creating guest profile: ${body.displayFirstName} ${body.displayLastName}, email: ${body.personalInfo?.email}`);
+
     // Validate required fields
     if (!body.displayFirstName || !body.displayLastName) {
+      console.warn('[Members] POST /guest - Missing display name');
       return res.status(400).json({ error: 'Display first and last name are required' });
     }
     if (!body.personalInfo?.email) {
+      console.warn('[Members] POST /guest - Missing email');
       return res.status(400).json({ error: 'Email is required' });
     }
 
     const profile = await memberService.createGuestProfile(body);
+    
+    console.log(`[Members] POST /guest - Guest profile created: ${profile._id}, name: ${profile.displayFirstName} ${profile.displayLastName}, profileComplete: ${profile.profileComplete}`);
+    
     res.status(201).json({ profile });
   } catch (error) {
-    console.error('Error creating guest profile:', error);
+    console.error('[Members] POST /guest - Error creating guest profile:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

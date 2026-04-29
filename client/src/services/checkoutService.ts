@@ -1,8 +1,16 @@
 import { API_ENDPOINTS } from '../constants/api'
 import type { IntroClassCheckoutRequest, CheckoutResponse } from '@cufc/shared'
 
-export interface CheckoutError {
-  error: string
+type ApiErrorResponse = { error: string; code?: string }
+
+export class CheckoutError extends Error {
+  code?: string
+  
+  constructor(message: string, code?: string) {
+    super(message)
+    this.code = code
+    this.name = 'CheckoutError'
+  }
 }
 
 /**
@@ -24,7 +32,8 @@ export async function createIntroCheckout(
   const data = await response.json()
 
   if (!response.ok) {
-    throw new Error((data as CheckoutError).error || 'Failed to create checkout')
+    const errorData = data as ApiErrorResponse
+    throw new CheckoutError(errorData.error || 'Failed to create checkout', errorData.code)
   }
 
   return data as CheckoutResponse
@@ -47,7 +56,8 @@ export async function createGuestIntroCheckout(
   const data = await response.json()
 
   if (!response.ok) {
-    throw new Error((data as CheckoutError).error || 'Failed to create checkout')
+    const errorData = data as ApiErrorResponse
+    throw new CheckoutError(errorData.error || 'Failed to create checkout', errorData.code)
   }
 
   return data as CheckoutResponse
@@ -72,7 +82,8 @@ export async function createDropInCheckout(
   const data = await response.json()
 
   if (!response.ok) {
-    throw new Error((data as CheckoutError).error || 'Failed to create checkout')
+    const errorData = data as ApiErrorResponse
+    throw new CheckoutError(errorData.error || 'Failed to create checkout', errorData.code)
   }
 
   return data as CheckoutResponse
@@ -96,7 +107,8 @@ export async function createSubscriptionCheckout(
   const data = await response.json()
 
   if (!response.ok) {
-    throw new Error((data as CheckoutError).error || 'Failed to get checkout URL')
+    const errorData = data as ApiErrorResponse
+    throw new CheckoutError(errorData.error || 'Failed to get checkout URL', errorData.code)
   }
 
   return (data as CheckoutResponse).checkoutUrl

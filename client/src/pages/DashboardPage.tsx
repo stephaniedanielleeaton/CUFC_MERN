@@ -14,7 +14,7 @@ import { BackButton } from '../components/common/BackButton'
 import { useIntroEnrollment } from '../hooks/useIntroEnrollment'
 import { MemberStatus } from '@cufc/shared'
 import { useAuth0 } from '@auth0/auth0-react'
-import { createIntroCheckout, createDropInCheckout } from '../services/checkoutService'
+import { createIntroCheckout, createDropInCheckout, CheckoutError } from '../services/checkoutService'
 import type { IntroEnrollmentDTO } from '../hooks/useIntroEnrollment'
 
 type EnrollmentStep = 'dashboard' | 'profile' | 'class-selection'
@@ -56,9 +56,15 @@ export default function DashboardPage() {
       globalThis.location.href = data.checkoutUrl
     } catch (err) {
       setIsCheckingOut(false)
+      if (err instanceof CheckoutError && err.code === 'PROFILE_INCOMPLETE') {
+        alert('Your profile appears to be incomplete. Please complete your profile before enrolling.\n\nIf you continue to experience issues, please use the Contact form to reach us.')
+        await refreshProfile()
+        setEnrollmentStep('profile')
+        return
+      }
       alert(err instanceof Error ? err.message : 'Checkout failed')
     }
-  }, [getAccessTokenSilently])
+  }, [getAccessTokenSilently, refreshProfile])
 
   // Handle enroll button click - check if profile is complete first
   const handleEnrollClick = useCallback(() => {
@@ -77,10 +83,12 @@ export default function DashboardPage() {
 
   // After class is selected, proceed to checkout
   const handleClassSelected = useCallback((classId: string) => {
-    if (profile?._id) {
-      proceedToCheckout(classId, profile._id)
+    if (!profile?._id || !profile?.profileComplete) {
+      setEnrollmentStep('profile')
+      return
     }
-  }, [profile?._id, proceedToCheckout])
+    proceedToCheckout(classId, profile._id)
+  }, [profile?._id, profile?.profileComplete, proceedToCheckout])
 
   // Redirect to login if not authenticated (after auth loading completes)
   if (!authLoading && !isAuthenticated) {
@@ -169,7 +177,6 @@ export default function DashboardPage() {
           <BackButton onClick={() => setEnrollmentStep('dashboard')} label="Back to Dashboard" />
           <IntroClassOfferings 
             onClassSelected={handleClassSelected}
-            allowIncompleteProfile
           />
         </div>
       </div>

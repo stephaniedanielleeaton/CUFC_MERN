@@ -8,21 +8,19 @@ import { EnrollButton } from './EnrollButton'
 import { RedirectingOverlay } from '../common/RedirectingOverlay'
 import { LoadingSpinner } from '../common/LoadingSpinner'
 import { GuestCheckoutModal } from '../checkout'
-import { createIntroCheckout, createGuestIntroCheckout } from '../../services/checkoutService'
+import { createIntroCheckout, createGuestIntroCheckout, CheckoutError } from '../../services/checkoutService'
 import type { MemberProfileDTO } from '@cufc/shared'
 
 interface IntroClassOfferingsProps {
   onClassSelected?: (classId: string) => void
-  allowIncompleteProfile?: boolean
 }
 
 export const IntroClassOfferings: React.FC<IntroClassOfferingsProps> = ({ 
   onClassSelected,
-  allowIncompleteProfile = false,
 }) => {
   const { introClassData, isLoading, error } = useIntroClassOfferings()
   const { isAuthenticated, isLoading: userLoading, getAccessTokenSilently } = useAuth0()
-  const { profile, loading: profileLoading } = useMemberProfile()
+  const { profile, loading: profileLoading, refreshProfile } = useMemberProfile()
   const [selectedVariationId, setSelectedVariationId] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
@@ -56,14 +54,26 @@ export const IntroClassOfferings: React.FC<IntroClassOfferingsProps> = ({
       globalThis.location.href = data.checkoutUrl
     } catch (err) {
       setIsProcessing(false)
+      
+      if (err instanceof CheckoutError && err.code === 'PROFILE_INCOMPLETE') {
+        alert('Your profile appears to be incomplete. Please complete your profile before enrolling.\n\nIf you continue to experience issues, please use the Contact form to reach us.')
+        await refreshProfile()
+        return
+      }
+      
       setCheckoutError(err instanceof Error ? err.message : 'An error occurred')
     }
-  }, [selectedVariationId, profile?._id, isAuthenticated, getAccessTokenSilently])
+  }, [selectedVariationId, profile?._id, profile?.profileComplete, isAuthenticated, getAccessTokenSilently, refreshProfile])
 
   const handleEnrollClick = () => {
     if (!selectedVariationId) return
     
-    // If callback provided (dashboard flow), let parent handle it
+    if (!profile?.profileComplete) {
+      setCheckoutError('Please complete your profile before enrolling.')
+      return
+    }
+    
+
     if (onClassSelected) {
       onClassSelected(selectedVariationId)
       return
@@ -159,7 +169,7 @@ export const IntroClassOfferings: React.FC<IntroClassOfferingsProps> = ({
         <div className="flex flex-col items-center">
           {isAuthenticated ? (
             <EnrollButton
-              hasSelectedVariation={!!selectedVariationId && (allowIncompleteProfile || !!profile?.profileComplete)}
+              hasSelectedVariation={!!selectedVariationId && !!profile?.profileComplete}
               label="Enroll Now"
               onEnrollClick={handleEnrollClick}
             />
@@ -182,7 +192,7 @@ export const IntroClassOfferings: React.FC<IntroClassOfferingsProps> = ({
               </p>
             )}
             {checkoutError && (
-              <p className="text-xs text-red-500 mt-1">Error: {checkoutError}</p>
+              <p className="text-xs text-amber-600 mt-1">{checkoutError}</p>
             )}
           </div>
         </div>

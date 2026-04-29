@@ -43,9 +43,8 @@ export default function AdminMembersPage() {
       setMembers(membersList)
       setLoading(false)
       
-      const nonArchivedMembers = membersList.filter(member => !member.isArchived)
-      if (nonArchivedMembers.length > 0) {
-        loadSquareStatusForMembers(token, nonArchivedMembers)
+      if (membersList.length > 0) {
+        loadSquareStatusForMembers(token, membersList)
       } else {
         setSquareStatusLoading(false)
       }
@@ -102,7 +101,7 @@ export default function AdminMembersPage() {
         const isCheckedInToday = !!lastCheckIn && new Date(lastCheckIn).toDateString() === todayDateString
         const matchesCheckedIn = !checkedInOnly || isCheckedInToday
       
-        const isArchived = m.isArchived ?? false
+        const isArchived = m.isArchived === true
         const matchesArchive = showArchived ? isArchived : !isArchived
 
         const matchesStatus = statusFilter.length === 0 || statusFilter.includes(m.memberStatus || MemberStatus.New)
@@ -391,6 +390,10 @@ export default function AdminMembersPage() {
         </div>
       )}
 
+      <div className="mb-2 text-sm text-gray-500">
+        Showing {filtered.length} of {members.length} members
+        {showArchived && ` (archived only)`}
+      </div>
       <div className="space-y-4">
         {filtered.map((member) => {
           const id = String(member._id)
