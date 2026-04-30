@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { SquareButton } from '../common/SquareButton'
 
-const DISCIPLINES = ['Saber', 'Longsword', 'Footwork, Thrusting, & Weapons']
+const DISCIPLINES = ['Saber', 'Longsword', 'Rapier']
 
 export function Intro() {
   const navigate = useNavigate()
