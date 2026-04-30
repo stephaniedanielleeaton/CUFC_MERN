@@ -15,15 +15,17 @@ function stripHtml(html: string): string {
 interface TournamentRowProps {
   readonly tournament: TournamentWithStatus;
   readonly isAdmin?: boolean;
+  readonly isPast?: boolean;
   readonly onToggle?: (m2TournamentId: number, name: string, isEnabled: boolean) => void;
 }
 
-function TournamentRow({ tournament, isAdmin, onToggle }: TournamentRowProps) {
+function TournamentRow({ tournament, isAdmin, isPast = false, onToggle }: TournamentRowProps) {
   const start = formatDateParts(tournament.startDate);
   const location = tournament.address?.city && tournament.address?.state
     ? `${tournament.address.city}, ${tournament.address.state}`
     : tournament.address?.city || tournament.address?.state || '';
   const cutoffDate = formatCutoffDate(tournament.registrationCutOff);
+  const showCutoff = !isPast && cutoffDate;
 
   const content = (
     <>
@@ -78,7 +80,7 @@ function TournamentRow({ tournament, isAdmin, onToggle }: TournamentRowProps) {
           {location && (
             <div className="text-sm text-gray-500">{location}</div>
           )}
-          {cutoffDate && (
+          {showCutoff && (
             <div className="text-xs text-gray-400">
               Reg. closes {cutoffDate}
             </div>
@@ -235,9 +237,9 @@ export default function TournamentListPage() {
         ) : (
           <div>
             {upcoming.map(t => (
-              <TournamentRow 
-                key={t.m2TournamentId} 
-                tournament={t} 
+              <TournamentRow
+                key={t.m2TournamentId}
+                tournament={t}
                 isAdmin={isAdmin}
                 onToggle={handleToggle}
               />
@@ -251,10 +253,11 @@ export default function TournamentListPage() {
             <h2 className="text-lg font-light text-gray-400 mb-4">Past Tournaments</h2>
             <div className="opacity-50">
               {past.map(t => (
-                <TournamentRow 
-                  key={t.m2TournamentId} 
+                <TournamentRow
+                  key={t.m2TournamentId}
                   tournament={t}
                   isAdmin={isAdmin}
+                  isPast
                   onToggle={handleToggle}
                 />
               ))}
