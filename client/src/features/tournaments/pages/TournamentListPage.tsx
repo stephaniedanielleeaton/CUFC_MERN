@@ -4,6 +4,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { SmallHero } from '../../../components/common/SmallHero';
 import { useUserRolesWithLoading } from '../../../hooks/useUserRoles';
 import { fetchTournamentsForAdmin, toggleTournamentVisibility, TournamentWithStatus } from '../api/tournamentApi';
+import { formatDateParts, formatCutoffDate } from '../../../utils/dateUtils';
 import type { TournamentDetailDto } from '@cufc/shared';
 
 function stripHtml(html: string): string {
@@ -11,40 +12,20 @@ function stripHtml(html: string): string {
   return doc.body.textContent || '';
 }
 
-function formatDateParts(dateStr: string) {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) {
-    return { month: '', day: 0, ordinal: '', year: '' };
-  }
-  const month = date.toLocaleDateString('en-US', { month: 'short' });
-  const day = date.getDate();
-  const year = date.getFullYear().toString();
-  const ordinal = day === 1 || day === 21 || day === 31 ? 'st' 
-    : day === 2 || day === 22 ? 'nd' 
-    : day === 3 || day === 23 ? 'rd' : 'th';
-  return { month, day, ordinal, year };
-}
-
-function formatCutoffDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
 interface TournamentRowProps {
   readonly tournament: TournamentWithStatus;
   readonly isAdmin?: boolean;
+  readonly isPast?: boolean;
   readonly onToggle?: (m2TournamentId: number, name: string, isEnabled: boolean) => void;
 }
 
-function TournamentRow({ tournament, isAdmin, onToggle }: TournamentRowProps) {
+function TournamentRow({ tournament, isAdmin, isPast = false, onToggle }: TournamentRowProps) {
   const start = formatDateParts(tournament.startDate);
   const location = tournament.address?.city && tournament.address?.state
     ? `${tournament.address.city}, ${tournament.address.state}`
     : tournament.address?.city || tournament.address?.state || '';
   const cutoffDate = formatCutoffDate(tournament.registrationCutOff);
+  const showCutoff = !isPast && cutoffDate;
 
   const content = (
     <>
@@ -99,7 +80,7 @@ function TournamentRow({ tournament, isAdmin, onToggle }: TournamentRowProps) {
           {location && (
             <div className="text-sm text-gray-500">{location}</div>
           )}
-          {cutoffDate && (
+          {showCutoff && (
             <div className="text-xs text-gray-400">
               Reg. closes {cutoffDate}
             </div>
@@ -231,18 +212,18 @@ export default function TournamentListPage() {
   // Filter by startDate and sort chronologically
   const upcoming = tournaments
     .filter(t => {
-      const startDate = new Date(t.startDate);
+      const startDate = new Date(`${t.startDate}T00:00:00`);
       startDate.setHours(0, 0, 0, 0);
       return startDate >= today;
     })
-    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+    .sort((a, b) => new Date(`${a.startDate}T00:00:00`).getTime() - new Date(`${b.startDate}T00:00:00`).getTime());
   const past = tournaments
     .filter(t => {
-      const startDate = new Date(t.startDate);
+      const startDate = new Date(`${t.startDate}T00:00:00`);
       startDate.setHours(0, 0, 0, 0);
       return startDate < today;
     })
-    .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()); // Most recent first
+    .sort((a, b) => new Date(`${b.startDate}T00:00:00`).getTime() - new Date(`${a.startDate}T00:00:00`).getTime()); // Most recent first
 
   return (
     <div className="bg-white min-h-screen">
@@ -256,9 +237,9 @@ export default function TournamentListPage() {
         ) : (
           <div>
             {upcoming.map(t => (
-              <TournamentRow 
-                key={t.m2TournamentId} 
-                tournament={t} 
+              <TournamentRow
+                key={t.m2TournamentId}
+                tournament={t}
                 isAdmin={isAdmin}
                 onToggle={handleToggle}
               />
@@ -272,10 +253,11 @@ export default function TournamentListPage() {
             <h2 className="text-lg font-light text-gray-400 mb-4">Past Tournaments</h2>
             <div className="opacity-50">
               {past.map(t => (
-                <TournamentRow 
-                  key={t.m2TournamentId} 
+                <TournamentRow
+                  key={t.m2TournamentId}
                   tournament={t}
                   isAdmin={isAdmin}
+                  isPast
                   onToggle={handleToggle}
                 />
               ))}

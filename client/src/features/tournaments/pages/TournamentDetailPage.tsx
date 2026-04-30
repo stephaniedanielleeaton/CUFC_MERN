@@ -7,18 +7,8 @@ import { SmallHero } from '../../../components/common/SmallHero';
 import { useMemberProfile } from '../../../context/ProfileContext';
 import { UnifiedProfileForm } from '../../../components/profile/UnifiedProfileForm';
 import { checkHasRegistration } from '../api/tournamentApi';
+import { formatDateRange } from '../../../utils/dateUtils';
 import type { SelectedEventDto, RegistrationRequestDto } from '@cufc/shared';
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('en-US', { 
-    weekday: 'long',
-    month: 'long', 
-    day: 'numeric',
-    year: 'numeric'
-  });
-}
 
 type RegistrationStep = 'events' | 'profile' | 'form';
 
@@ -81,7 +71,7 @@ export default function TournamentDetailPage() {
 
   // Check if registration is still open
   const isRegistrationOpen = tournament 
-    ? new Date(tournament.registrationCutOff) > new Date() 
+    ? new Date(`${tournament.registrationCutOff}T00:00:00`) > new Date() 
     : false;
 
   if (loading) {
@@ -120,6 +110,10 @@ export default function TournamentDetailPage() {
 
   const m2Url = `https://www.meyersquared.com/tournamentdetail/${tournament.m2TournamentId}`;
 
+  // Derive effective end date from events (M2 endDate is unreliable)
+  const eventDates = tournament.events?.map(e => e.date) ?? [];
+  const effectiveEndDate = [...eventDates].sort((a, b) => a.localeCompare(b)).pop() ?? tournament.endDate;
+
   return (
     <div className="bg-white min-h-screen">
       <SmallHero pageTitle={tournament.name} />
@@ -138,7 +132,7 @@ export default function TournamentDetailPage() {
           </span>
           <div className="mt-4 space-y-3 text-gray-700">
             <div>
-              <span className="font-semibold text-navy">Date:</span> {formatDate(tournament.startDate)}
+              <span className="font-semibold text-navy">Date:</span> {formatDateRange(tournament.startDate, effectiveEndDate)}
             </div>
             {location && (
               <div>
