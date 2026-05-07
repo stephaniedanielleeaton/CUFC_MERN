@@ -42,8 +42,30 @@ export async function create(data: Partial<IMemberProfile>): Promise<MemberProfi
   return mapMemberDocToDTO(doc);
 }
 
+function extractParentPathsForNullCheck(dotNotationKeys: string[]): string[] {
+  const parents = new Set<string>();
+  for (const key of dotNotationKeys) {
+    const parts = key.split('.');
+    for (let i = 1; i < parts.length; i++) {
+      parents.add(parts.slice(0, i).join('.'));
+    }
+  }
+  return Array.from(parents).sort((a, b) => a.split('.').length - b.split('.').length);
+}
+
+async function defendAgainstNullSubdocuments(id: string, updateSet: Record<string, unknown>): Promise<void> {
+  const parentPaths = extractParentPathsForNullCheck(Object.keys(updateSet));
+  for (const path of parentPaths) {
+    await MemberProfile.updateOne(
+      { _id: id, [path]: null },
+      { $set: { [path]: {} } }
+    );
+  }
+}
+
 export async function updateById(id: string, updateSet: Record<string, unknown>): Promise<MemberProfileDTO | null> {
   await dbConnect();
+  await defendAgainstNullSubdocuments(id, updateSet);
   const updated = await MemberProfile.findByIdAndUpdate(
     id,
     { $set: updateSet },
