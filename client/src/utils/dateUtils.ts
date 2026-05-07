@@ -74,3 +74,4 @@ export function formatEventDateHeader(dateStr: string): string {
 export function formatEventTime(timeStr: string): string {
   return timeStr ? timeStr.split(':').slice(0, 2).join(':') : '';
 }
+
