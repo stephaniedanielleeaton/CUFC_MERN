@@ -16,8 +16,10 @@ import PaymentHistoryPage from './pages/PaymentHistoryPage'
 import AttendanceHistoryPage from './pages/AttendanceHistoryPage'
 import AdminLayout from './components/admin/AdminLayout'
 import AdminMembersPage from './pages/admin/AdminMembersPage'
-import AdminAttendancePage from './pages/admin/AdminAttendancePage'
+import AdminAnalyticsDailyPage from './pages/admin/AdminAnalyticsDailyPage'
+import AdminQuarterlyPage from './pages/admin/AdminQuarterlyPage'
 import AdminEmailPage from './pages/admin/AdminEmailPage'
+import AnalyticsLayout from './components/admin/analytics/AnalyticsLayout'
 import NotificationsPage from './pages/NotificationsPage'
 import UnsubscribePage from './pages/UnsubscribePage'
 import TournamentListPage from './features/tournaments/pages/TournamentListPage'
@@ -49,7 +51,10 @@ function App() {
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminMembersPage />} />
               <Route path="members" element={<AdminMembersPage />} />
-              <Route path="attendance" element={<AdminAttendancePage />} />
+              <Route path="analytics" element={<AnalyticsLayout />}>
+                <Route index element={<AdminAnalyticsDailyPage />} />
+                <Route path="quarterly" element={<AdminQuarterlyPage />} />
+              </Route>
               <Route path="email" element={<AdminEmailPage />} />
             </Route>
           </Routes>

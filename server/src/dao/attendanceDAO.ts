@@ -54,6 +54,42 @@ export async function findMostRecentByUserId(userId: string): Promise<Attendance
   return record ? record.toDTO() : null;
 }
 
+export interface DailyCheckInCount {
+  date: string
+  count: number
+}
+
+export async function getDailyCheckInCounts(
+  timezone: string,
+  startDate?: Date,
+  endDate?: Date
+): Promise<DailyCheckInCount[]> {
+  await dbConnect()
+
+  const matchStage: Record<string, unknown> = {}
+  if (startDate || endDate) {
+    matchStage.timestamp = {}
+    if (startDate) (matchStage.timestamp as Record<string, Date>).$gte = startDate
+    if (endDate) (matchStage.timestamp as Record<string, Date>).$lte = endDate
+  }
+
+  const pipeline = [
+    ...(Object.keys(matchStage).length > 0 ? [{ $match: matchStage }] : []),
+    {
+      $group: {
+        _id: {
+          $dateToString: { format: '%Y-%m-%d', date: '$timestamp', timezone },
+        },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { _id: 1 as const } },
+    { $project: { _id: 0, date: '$_id', count: 1 } },
+  ]
+
+  return Attendance.aggregate(pipeline) as Promise<DailyCheckInCount[]>
+}
+
 export const attendanceDAO = {
   findTodayAttendance,
   findByUserIdAndDateRange,
@@ -62,4 +98,5 @@ export const attendanceDAO = {
   findByUserId,
   getMostRecentByMemberIds,
   findMostRecentByUserId,
+  getDailyCheckInCounts,
 };
