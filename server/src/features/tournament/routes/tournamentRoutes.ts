@@ -165,8 +165,9 @@ router.post('/:m2TournamentId/register', checkJwtOptional, async (req: Request, 
 
     const body: RegistrationRequestDto = req.body;
     const auth0Id = getAuth0Id(req);
+    const auth0Email = getAuth0Email(req);
 
-    const result = await registrationService.processRegistration(m2TournamentId, body, auth0Id);
+    const result = await registrationService.processRegistration(m2TournamentId, body, auth0Id, auth0Email);
     res.json(result);
   } catch (error) {
     if (error instanceof RegistrationError) {

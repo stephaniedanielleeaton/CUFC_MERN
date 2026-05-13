@@ -57,7 +57,8 @@ export class RegistrationService {
   async processRegistration(
     m2TournamentId: number,
     request: RegistrationRequestDto,
-    auth0Id?: string
+    auth0Id?: string,
+    auth0Email?: string
   ): Promise<RegistrationResponseDto> {
     const tournament = await tournamentService.getTournamentDetails(m2TournamentId);
     if (!tournament) {
@@ -69,7 +70,7 @@ export class RegistrationService {
     if (auth0Id) {
       const profile = await memberProfileService.getByAuth0Id(auth0Id);
       userId = profile?._id;
-      hasExistingRegistration = await this.hasExistingPaidRegistration(auth0Id, m2TournamentId);
+      hasExistingRegistration = await this.hasExistingPaidRegistration(auth0Id, m2TournamentId, auth0Email);
     }
 
     const baseFeeToCharge = hasExistingRegistration ? 0 : tournament.basePriceInCents;
