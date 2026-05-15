@@ -4,6 +4,7 @@ import { env } from '../config/env';
 import { EmailList } from '../models/EmailList';
 import { SendToListRequest, SendToListResult } from '@cufc/shared';
 import { applyTemplate, DEFAULT_TEMPLATE, EmailTemplateType } from '../templates/emailTemplates';
+import { memberProfileService } from './memberProfileService';
 
 type SentMessageInfo = nodemailer.SentMessageInfo;
 
@@ -138,13 +139,36 @@ class EmailService extends EventEmitter {
       return emails;
     }
 
-    const lists = await EmailList.find({ id: { $in: emailListIds } });
-    for (const list of lists) {
-      for (const email of list.emails) {
-        emails.add(email.toLowerCase());
+    // Handle special 'all-members' virtual list
+    if (emailListIds.includes('all-members')) {
+      const memberEmails = await this.getAllMemberEmails();
+      if (memberEmails) {
+        for (const email of memberEmails) {
+          emails.add(email.toLowerCase());
+        }
       }
     }
+
+    const regularListIds = emailListIds.filter(id => id !== 'all-members');
+    if (regularListIds.length > 0) {
+      const lists = await EmailList.find({ id: { $in: regularListIds } });
+      for (const list of lists) {
+        for (const email of list.emails) {
+          emails.add(email.toLowerCase());
+        }
+      }
+    }
+
     return emails;
+  }
+
+  private async getAllMemberEmails(): Promise<string[]> {
+    try {
+      return await memberProfileService.getAllEmails();
+    } catch (error) {
+      console.error('[EmailService] Failed to fetch member emails:', error);
+      return [];
+    }
   }
 
   private addManualEmails(emails: Set<string>, additionalEmails: string[] | undefined): void {
