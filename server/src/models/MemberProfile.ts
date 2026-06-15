@@ -61,6 +61,7 @@ export interface IMemberProfile extends Document {
   auth0Id?: string;
   displayFirstName?: string;
   displayLastName?: string;
+  pronouns?: string;
   personalInfo?: IPersonalInfo;
   guardian?: IGuardian;
   familyMembers?: IFamilyMember[];
@@ -80,6 +81,7 @@ const MemberProfileSchema = new Schema<IMemberProfile>({
   auth0Id: { type: String, index: true, unique: true, sparse: true },
   displayFirstName: String,
   displayLastName: String,
+  pronouns: String,
   personalInfo: PersonalInfoSchema,
   guardian: GuardianSchema,
   familyMembers: [FamilyMemberSchema],
@@ -105,6 +107,7 @@ export function mapMemberDocToDTO(doc: HydratedDocument<IMemberProfile>): Member
     auth0Id: doc.auth0Id,
     displayFirstName: doc.displayFirstName,
     displayLastName: doc.displayLastName,
+    pronouns: doc.pronouns,
     personalInfo: doc.personalInfo
       ? {
           legalFirstName: doc.personalInfo.legalFirstName,

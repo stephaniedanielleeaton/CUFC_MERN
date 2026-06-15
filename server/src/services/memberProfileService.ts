@@ -37,6 +37,7 @@ export async function createProfileForUser(
   initialData?: { 
     displayFirstName?: string; 
     displayLastName?: string; 
+    pronouns?: string;
     personalInfo?: { email?: string }; 
     guardian?: { firstName?: string; lastName?: string };
     profileComplete?: boolean;
@@ -107,6 +108,7 @@ export async function createGuestProfile(data: GuestProfileInput): Promise<Membe
       const updated = await memberProfileDAO.updateById(existingProfile._id, {
         displayFirstName: data.displayFirstName,
         displayLastName: data.displayLastName,
+        pronouns: data.pronouns,
         'personalInfo.legalFirstName': data.personalInfo?.legalFirstName,
         'personalInfo.legalLastName': data.personalInfo?.legalLastName,
         'personalInfo.phone': data.personalInfo?.phone,
@@ -130,6 +132,7 @@ export async function createGuestProfile(data: GuestProfileInput): Promise<Membe
   return memberProfileDAO.create({
     displayFirstName: data.displayFirstName,
     displayLastName: data.displayLastName,
+    pronouns: data.pronouns,
     personalInfo: data.personalInfo
       ? {
           legalFirstName: data.personalInfo.legalFirstName,

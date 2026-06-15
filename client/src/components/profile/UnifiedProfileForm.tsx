@@ -9,6 +9,7 @@ import type { MemberProfileDTO } from '@cufc/shared'
 export interface ProfileFormData {
   displayFirstName: string
   displayLastName: string
+  pronouns: string
   legalFirstName: string
   legalLastName: string
   email: string
@@ -29,6 +30,7 @@ export type ValidationErrors = Record<string, string>
 const INITIAL_FORM_DATA: ProfileFormData = {
   displayFirstName: '',
   displayLastName: '',
+  pronouns: '',
   legalFirstName: '',
   legalLastName: '',
   email: '',
@@ -102,6 +104,7 @@ function buildPayload(formData: ProfileFormData) {
   return {
     displayFirstName: formData.displayFirstName.trim(),
     displayLastName: formData.displayLastName.trim(),
+    pronouns: formData.pronouns.trim(),
     personalInfo: {
       legalFirstName: formData.legalFirstName.trim(),
       legalLastName: formData.legalLastName.trim(),
@@ -131,6 +134,7 @@ function profileToFormData(profile: MemberProfileDTO | null): ProfileFormData {
   return {
     displayFirstName: profile.displayFirstName || '',
     displayLastName: profile.displayLastName || '',
+    pronouns: profile.pronouns || '',
     legalFirstName: profile.personalInfo?.legalFirstName || '',
     legalLastName: profile.personalInfo?.legalLastName || '',
     email: profile.personalInfo?.email || '',
@@ -329,6 +333,14 @@ export function UnifiedProfileForm({
           error={errors.displayLastName}
         />
       </div>
+
+      <TextInput
+        label="Pronouns (optional)"
+        name="pronouns"
+        value={formData.pronouns}
+        onChange={handleChange}
+        placeholder="e.g. they/them, she/her, he/him"
+      />
 
       <div className="grid grid-cols-2 gap-3">
         <TextInput

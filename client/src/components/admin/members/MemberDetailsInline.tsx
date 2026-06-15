@@ -130,6 +130,7 @@ export default function MemberDetailsInline({ member, onSubmit, onDelete, saveSt
               <TextInput label="Display First Name" name="displayFirstName" defaultValue={member.displayFirstName ?? ""} />
               <TextInput label="Display Last Name" name="displayLastName" defaultValue={member.displayLastName ?? ""} />
             </div>
+            <TextInput label="Pronouns (optional)" name="pronouns" defaultValue={member.pronouns ?? ""} placeholder="e.g. they/them, she/her, he/him" />
           </Section>
 
           <hr className="border-gray-100" />

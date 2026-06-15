@@ -1,9 +1,14 @@
 import { useAuth0 } from '@auth0/auth0-react'
+import { useMemberProfile } from '../../context/ProfileContext'
 
 export function ProfileHeader() {
   const { user } = useAuth0()
+  const { profile } = useMemberProfile()
   const profileImage = user?.picture || "/default-avatar.png"
-  const displayName = user?.name || user?.nickname || user?.email || "Your Profile"
+
+  const displayName = profile
+    ? `${profile.displayFirstName ?? ''} ${profile.displayLastName ?? ''}`.trim() || user?.name || "Your Profile"
+    : user?.name || user?.nickname || user?.email || "Your Profile"
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -19,6 +24,9 @@ export function ProfileHeader() {
         </div>
       </div>
       <h1 className="text-lg font-semibold text-gray-900">{displayName}</h1>
+      {profile?.pronouns && (
+        <p className="text-sm text-gray-500">{profile.pronouns}</p>
+      )}
     </div>
   )
 }

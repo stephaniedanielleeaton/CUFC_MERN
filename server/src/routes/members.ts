@@ -61,6 +61,7 @@ router.post('/me', checkJwt, async (req: Request, res: Response) => {
     const body: {
       displayFirstName?: string;
       displayLastName?: string;
+      pronouns?: string;
       personalInfo?: { email?: string };
       guardian?: { firstName?: string; lastName?: string };
       profileComplete?: boolean;
@@ -71,6 +72,7 @@ router.post('/me', checkJwt, async (req: Request, res: Response) => {
     const profile = await memberService.createProfile(auth0Id, {
       displayFirstName: body.displayFirstName,
       displayLastName: body.displayLastName,
+      pronouns: body.pronouns,
       personalInfo: body.personalInfo,
       guardian: body.guardian,
       profileComplete: body.profileComplete,

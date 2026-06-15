@@ -4,6 +4,7 @@ export type MemberUpdateData = {
   auth0Id?: string;
   displayFirstName?: string;
   displayLastName?: string;
+  pronouns?: string;
   personalInfo?: PersonalInfo;
   guardian?: Guardian;
   profileComplete?: boolean;
@@ -47,6 +48,7 @@ export class MemberUpdateDataMapper {
 
     this.setField(set, 'displayFirstName', data.displayFirstName);
     this.setField(set, 'displayLastName', data.displayLastName);
+    this.setField(set, 'pronouns', data.pronouns);
 
     if (personalInfo) {
       this.setField(set, 'personalInfo.legalFirstName', personalInfo.legalFirstName);

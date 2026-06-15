@@ -150,6 +150,7 @@ export default function AdminMembersPage() {
     return {
       displayFirstName: formData.get("displayFirstName") as string,
       displayLastName: formData.get("displayLastName") as string,
+      pronouns: formData.get("pronouns") as string,
       personalInfo: {
         legalFirstName: formData.get("legalFirstName") as string,
         legalLastName: formData.get("legalLastName") as string,

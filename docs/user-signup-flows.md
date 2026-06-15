@@ -413,6 +413,7 @@ function buildPayload(formData: ProfileFormData) {
   return {
     displayFirstName: formData.displayFirstName.trim(),
     displayLastName: formData.displayLastName.trim(),
+    pronouns: formData.pronouns.trim() || undefined,
     personalInfo: { ... },
     ...(formData.isMinor ? { guardian: { ... } } : {}),
     profileComplete: true,  // Always set to true on submit

@@ -42,6 +42,7 @@ class MemberService {
     data?: {
       displayFirstName?: string;
       displayLastName?: string;
+      pronouns?: string;
       personalInfo?: { email?: string };
       guardian?: { firstName?: string; lastName?: string };
       profileComplete?: boolean;
