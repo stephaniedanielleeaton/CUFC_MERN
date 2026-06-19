@@ -1,23 +1,9 @@
-import { SquareClient, Square } from 'square';
-import { env } from '../../config/env';
+import { Square } from 'square';
 import { SubscriptionPlanDto } from '../../types/dtos/admin';
 import { SubscriptionPlanVariationData } from '../../types/interfaces/square/square';
+import { SquareBaseService } from './SquareBaseService';
 
-export class SquareCatalogService {
-  private readonly client: SquareClient;
-  private readonly locationId = env.SQUARE_RETAIL_LOCATION_ID;
-
-  constructor() {
-    this.client = new SquareClient({
-      token: env.SQUARE_ACCESS_TOKEN,
-      environment: env.SQUARE_ENVIRONMENT,
-    });
-  }
-
-  private logError(error: unknown): void {
-    console.error('Square Catalog API Error:', error);
-  }
-
+export class SquareCatalogService extends SquareBaseService {
   async getObjectById(catalogObjectId: string): Promise<Square.CatalogObject | null> {
     try {
       const response = await this.client.catalog.object.get({

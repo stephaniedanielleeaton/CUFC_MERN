@@ -1,4 +1,6 @@
+export { SquareBaseService } from './SquareBaseService';
 export { SquarePaymentsService, squarePaymentsService } from './SquarePaymentsService';
+export { SquareRefundsService, squareRefundsService } from './SquareRefundsService';
 export { SquareOrdersService, squareOrdersService } from './SquareOrdersService';
 export { SquareSubscriptionsService, squareSubscriptionsService } from './SquareSubscriptionsService';
 export { SquareCustomersService, squareCustomersService } from './SquareCustomersService';

@@ -10,6 +10,7 @@ export interface Transaction {
   createdAt?: string;
   state?: string;
   totalMoney?: { amount?: number; currency?: string };
+  refundedMoney?: { amount?: number; currency?: string };
   lineItems: TransactionLineItem[];
 }
 

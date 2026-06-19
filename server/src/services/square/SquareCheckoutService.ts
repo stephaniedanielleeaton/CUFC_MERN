@@ -1,22 +1,7 @@
-import { SquareClient } from 'square';
-import { env } from '../../config/env';
 import { MONTHLY_SUBSCRIPTION_CHECKOUT_URL } from '../../config/constants';
+import { SquareBaseService } from './SquareBaseService';
 
-export class SquareCheckoutService {
-  private readonly client: SquareClient;
-  private readonly locationId = env.SQUARE_RETAIL_LOCATION_ID;
-
-  constructor() {
-    this.client = new SquareClient({
-      token: env.SQUARE_ACCESS_TOKEN,
-      environment: env.SQUARE_ENVIRONMENT,
-    });
-  }
-
-  private logError(error: unknown): void {
-    console.error('Square Checkout API Error:', error);
-  }
-
+export class SquareCheckoutService extends SquareBaseService {
   async createPaymentLink(
     catalogObjectId: string, 
     memberProfileId: string, 

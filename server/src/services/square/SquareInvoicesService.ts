@@ -1,21 +1,9 @@
-import { SquareClient, Square } from 'square';
-import { env } from '../../config/env';
+import { Square } from 'square';
 import { InvoiceDetailsDto } from '../../types/dtos/admin';
+import { formatMoneyCents } from '../../utils/formatUtils';
+import { SquareBaseService } from './SquareBaseService';
 
-export class SquareInvoicesService {
-  private readonly client: SquareClient;
-
-  constructor() {
-    this.client = new SquareClient({
-      token: env.SQUARE_ACCESS_TOKEN,
-      environment: env.SQUARE_ENVIRONMENT,
-    });
-  }
-
-  private logError(error: unknown): void {
-    console.error('Square Invoices API Error:', error);
-  }
-
+export class SquareInvoicesService extends SquareBaseService {
   async getById(invoiceId: string): Promise<Square.Invoice | null> {
     try {
       const response = await this.client.invoices.get({ invoiceId });
@@ -36,12 +24,10 @@ export class SquareInvoicesService {
       const money = invoice.paymentRequests?.[0]?.computedAmountMoney;
       const amountCents = money?.amount ? Number(money.amount) : null;
       const currency = money?.currency ?? null;
-      
-      const priceFormatted = this.formatMoney(amountCents, currency);
 
       return {
         invoiceId,
-        priceFormatted,
+        priceFormatted: formatMoneyCents(money?.amount, money?.currency),
         createdAt: invoice.createdAt ?? null,
         amountCents,
         currency,
@@ -52,14 +38,6 @@ export class SquareInvoicesService {
     }
   }
 
-  private formatMoney(amountCents: number | null, currency: string | null): string {
-    if (amountCents === null || amountCents === undefined) return '—';
-    const dollars = amountCents / 100;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency ?? 'USD',
-    }).format(dollars);
-  }
 }
 
 export const squareInvoicesService = new SquareInvoicesService();

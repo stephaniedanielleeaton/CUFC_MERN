@@ -1,21 +1,7 @@
-import { SquareClient } from 'square';
-import { env } from '../../config/env';
 import { SquareSubscriptionDto, mapSubscriptionToDto } from './dto';
+import { SquareBaseService } from './SquareBaseService';
 
-export class SquareSubscriptionsService {
-  private readonly client: SquareClient;
-
-  constructor() {
-    this.client = new SquareClient({
-      token: env.SQUARE_ACCESS_TOKEN,
-      environment: env.SQUARE_ENVIRONMENT,
-    });
-  }
-
-  private logError(error: unknown): void {
-    console.error('Square Subscriptions API Error:', error);
-  }
-
+export class SquareSubscriptionsService extends SquareBaseService {
   async getByCustomerId(customerId: string): Promise<SquareSubscriptionDto[]> {
     try {
       const response = await this.client.subscriptions.search({

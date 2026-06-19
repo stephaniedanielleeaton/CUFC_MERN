@@ -121,6 +121,49 @@ export default function MemberDetailsInline({ member, onSubmit, onDelete, saveSt
     ? new Date(member.personalInfo.dateOfBirth).toISOString().slice(0, 10)
     : ""
 
+  let transactionContent: React.ReactNode
+  if (txLoading) {
+    transactionContent = (
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <span className="inline-block w-4 h-4 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
+        <span>Loading transactions…</span>
+      </div>
+    )
+  } else if (transactions?.length === 0) {
+    transactionContent = <p className="text-sm text-gray-500">No transactions found in the last 3 months.</p>
+  } else {
+    transactionContent = transactions?.map((tx) => (
+      <div key={tx.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-gray-500">
+            {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"}
+          </span>
+          <div className="flex items-center gap-2">
+            {tx.refundedMoney && (
+              <span className="text-xs font-medium text-red-600">
+                -{formatMoney(tx.refundedMoney.amount, tx.refundedMoney.currency)} refunded
+              </span>
+            )}
+            <span className="text-xs font-semibold text-gray-700">
+              {formatMoney(tx.totalMoney?.amount, tx.totalMoney?.currency)}
+            </span>
+          </div>
+        </div>
+        <ul className="space-y-0.5">
+          {tx.lineItems.map((li, i) => (
+            <li key={i} className="text-sm text-gray-800">
+              {li.name}{li.variationName ? ` — ${li.variationName}` : ""}
+              <span className="text-gray-500 ml-1">×{li.quantity}</span>
+              <span className="float-right text-gray-600 text-xs">
+                {formatMoney(li.totalMoney?.amount, li.totalMoney?.currency)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))
+  }
+
   return (
     <form onSubmit={onSubmit} className="pb-5 w-full">
       <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden w-full">
@@ -200,38 +243,7 @@ export default function MemberDetailsInline({ member, onSubmit, onDelete, saveSt
             </button>
             {showTransactions && (
               <div className="mt-3 space-y-2">
-                {txLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <span className="inline-block w-4 h-4 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
-                    Loading transactions…
-                  </div>
-                ) : transactions?.length === 0 ? (
-                  <p className="text-sm text-gray-500">No transactions found in the last 3 months.</p>
-                ) : (
-                  transactions?.map((tx) => (
-                    <div key={tx.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
-                          {tx.createdAt ? new Date(tx.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "—"}
-                        </span>
-                        <span className="text-xs font-semibold text-gray-700">
-                          {formatMoney(tx.totalMoney?.amount, tx.totalMoney?.currency)}
-                        </span>
-                      </div>
-                      <ul className="space-y-0.5">
-                        {tx.lineItems.map((li, i) => (
-                          <li key={i} className="text-sm text-gray-800">
-                            {li.name}{li.variationName ? ` — ${li.variationName}` : ""}
-                            <span className="text-gray-500 ml-1">×{li.quantity}</span>
-                            <span className="float-right text-gray-600 text-xs">
-                              {formatMoney(li.totalMoney?.amount, li.totalMoney?.currency)}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))
-                )}
+                {transactionContent}
               </div>
             )}
           </Section>
