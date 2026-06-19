@@ -1,6 +1,6 @@
 # User Signup & Intro Class Enrollment Flows
 
-This document provides technical documentation for all user signup and intro class enrollment flows.
+This document describes the requirements and behaviour for all user signup and intro class enrollment flows.
 
 ---
 
@@ -10,455 +10,137 @@ This document provides technical documentation for all user signup and intro cla
 2. [Flow 1: Dashboard Enrollment (Authenticated)](#flow-1-dashboard-enrollment-authenticated)
 3. [Flow 2: Join Now / CTA Enrollment](#flow-2-join-now--cta-enrollment)
 4. [Flow 3: Guest Checkout](#flow-3-guest-checkout)
-5. [Square Customer ID Management](#square-customer-id-management)
-6. [Profile Completion Logic](#profile-completion-logic)
-7. [Key Files Reference](#key-files-reference)
+5. [Profile Linking — Guest to Authenticated](#profile-linking--guest-to-authenticated)
+6. [Square Customer ID Management](#square-customer-id-management)
+7. [Profile Completion](#profile-completion)
+8. [Key Files Reference](#key-files-reference)
 
 ---
 
 ## Overview
 
-### Entry Points
+There are three ways a user can enroll in an intro class. All paths ultimately create a member profile (or reuse an existing one), create a Square checkout session, and process a payment via Square webhook.
 
-| Entry Point | Target User | Flow |
-|-------------|-------------|------|
-| Sign In → Dashboard | New/returning user | Dashboard → Profile (if needed) → Class Selection → Checkout |
-| "Join Now" CTA / Nav | Unauthenticated user | Home → Select Class → Sign In → Profile (if needed) → Checkout |
-| "Enroll Now" (unauthenticated) | Guest user | Modal → Profile Form → Checkout |
-
-### Core Components
-
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `DashboardPage` | `client/src/pages/DashboardPage.tsx` | Main dashboard with enrollment state machine |
-| `IntroClassOfferings` | `client/src/components/intro-classes/IntroClassOfferings.tsx` | Class selection UI |
-| `GuestCheckoutModal` | `client/src/components/checkout/GuestCheckoutModal.tsx` | Sign-in vs guest choice modal |
-| `UnifiedProfileForm` | `client/src/components/profile/UnifiedProfileForm.tsx` | Profile form (guest/authenticated/edit modes) |
+| Entry Point | Who | Path |
+|-------------|-----|------|
+| Sign in → Dashboard | New or returning authenticated user | Profile check → class selection → checkout |
+| "Join Now" / nav CTA | Unauthenticated user who wants to sign in | Class selection → sign in → pending enrollment → checkout |
+| "Enroll Now" without signing in | Guest user | Inline profile form → guest checkout |
 
 ---
 
 ## Flow 1: Dashboard Enrollment (Authenticated)
 
-### Flow
+### Requirements
 
-```
-User signs in → Dashboard → Profile check → 
-  If incomplete: Complete Profile → Class Selection → Checkout
-  If complete: Class Selection → Checkout
-→ Square Payment → Return to Dashboard
-```
+- An unauthenticated user who reaches `/dashboard` must be redirected to Auth0 login. After login, Auth0 returns them to `/dashboard`.
+- On load, the dashboard fetches the user's profile via `GET /api/members/me`. If no profile exists, the profile creation form is shown before any enrollment action is available.
+- `POST /api/members/me` is idempotent with respect to `auth0Id`: if a profile already exists for the authenticated user, the server returns `409 Conflict` with the existing profile. This prevents duplicate profiles from double-submissions or retries.
+- The "Enroll" button must be disabled or hidden until the user's profile is marked `profileComplete`.
+- If `profileComplete` is false when the user clicks Enroll, the profile form is shown. After successful submission, enrollment continues without requiring the user to click again.
+- After completing the profile form, the user selects an intro class from the available offerings.
+- Checkout is initiated via `POST /api/checkout/intro` (authenticated). Square returns a hosted checkout URL; the user is redirected there immediately.
+- After payment, Square redirects the user back to `/dashboard`. The dashboard re-fetches enrollment status and replaces the enrollment CTA with a confirmation card.
 
-### Implementation
+### API Endpoints Used
 
-#### State Machine (`DashboardPage.tsx`)
-
-```typescript
-type EnrollmentStep = 'dashboard' | 'profile' | 'class-selection'
-```
-
-#### Step-by-Step
-
-1. **User lands on `/dashboard`**
-   - `DashboardPage` checks `isAuthenticated` (Auth0)
-   - If not authenticated → `loginWithRedirect({ appState: { returnTo: '/dashboard' } })`
-
-2. **Profile Loading**
-   - `useMemberProfile()` hook fetches profile via `GET /api/members/me`
-   - If no profile exists → Shows `UnifiedProfileForm` with `mode="authenticated"`
-
-3. **Enrollment Button Click** (`handleEnrollClick`)
-   ```typescript
-   const handleEnrollClick = useCallback(() => {
-     if (profile?.profileComplete) {
-       setEnrollmentStep('class-selection')
-     } else {
-       setEnrollmentStep('profile')
-     }
-   }, [profile?.profileComplete])
-   ```
-
-4. **Profile Form Submission** (if needed)
-   - `UnifiedProfileForm` submits to `POST /api/members/me/update`
-   - Calls `onSaved` → `handleProfileSaved` → `setEnrollmentStep('class-selection')`
-
-5. **Class Selection**
-   - `IntroClassOfferings` with `onClassSelected` callback
-   - User selects class → `handleClassSelected(classId)`
-
-6. **Checkout**
-   ```typescript
-   const proceedToCheckout = useCallback(async (classId: string, profileId: string) => {
-     const token = await getAccessTokenSilently()
-     const data = await createIntroCheckout(token, {
-       catalogObjectId: classId,
-       memberProfileId: profileId,
-       redirectUrl: `${globalThis.location.origin}/dashboard`
-     })
-     globalThis.location.href = data.checkoutUrl
-   }, [getAccessTokenSilently])
-   ```
-
-7. **Post-Payment**
-   - Square redirects to `/dashboard`
-   - `useIntroEnrollment` hook fetches enrollment status
-   - Dashboard shows `DashboardIntroEnrollmentCard` instead of enroll button
-
-### API Calls
-
-| Step | Endpoint | Method | Auth |
-|------|----------|--------|------|
-| Fetch profile | `/api/members/me` | GET | Required |
-| Create profile | `/api/members/me` | POST | Required |
-| Update profile | `/api/members/me/update` | POST | Required |
-| Create checkout | `/api/checkout/intro` | POST | Required |
-| Fetch enrollment | `/api/members/me/intro-enrollment` | GET | Required |
+| Action | Endpoint | Auth |
+|--------|----------|------|
+| Fetch profile | `GET /api/members/me` | Required |
+| Create profile | `POST /api/members/me` | Required |
+| Update profile | `POST /api/members/me/update` | Required |
+| Create checkout | `POST /api/checkout/intro` | Required |
+| Fetch enrollment | `GET /api/members/me/intro-enrollment` | Required |
 
 ---
 
 ## Flow 2: Join Now / CTA Enrollment
 
-### Flow
+### Requirements
 
-```
-User clicks "Join Now" or CTA → Home page intro section → 
-Select class → Click "Enroll Now" → Modal appears →
-Choose "Sign In" → Auth0 login → 
-  If profile incomplete: Complete Profile → Checkout (with pre-selected class)
-  If profile complete: Checkout (with pre-selected class)
-→ Square Payment → Return to Dashboard
-```
-
-### Implementation
-
-#### Entry Point: `useJoinNavigation` Hook
-
-```typescript
-// client/src/hooks/useJoinNavigation.ts
-const handleJoinClick = useCallback(() => {
-  if (isAuthenticated) {
-    navigate('/dashboard')  // Authenticated users go to dashboard
-    return
-  }
-  // Unauthenticated: scroll to intro section on home page
-  if (location.pathname === '/') {
-    const element = document.getElementById(INTRO_SECTION_ID)
-    element?.scrollIntoView({ behavior: 'smooth' })
-  } else {
-    navigate('/')
-  }
-}, [isAuthenticated, location.pathname, navigate])
-```
-
-#### Class Selection on Home Page
-
-1. User selects a class in `IntroClassOfferings`
-2. Clicks "Enroll Now" → triggers `handleGuestEnrollClick`
-3. Class selection is persisted to sessionStorage
-4. Opens `GuestCheckoutModal`
-
-```typescript
-const handleGuestEnrollClick = () => {
-  if (!selectedVariationId) return
-  
-  // Persist selection before potential sign-in redirect
-  sessionStorage.setItem('pendingIntroEnrollment', JSON.stringify({
-    classId: selectedVariationId,
-    timestamp: Date.now()
-  }))
-  
-  setShowGuestModal(true)
-}
-```
-
-#### GuestCheckoutModal Sign-In Path
-
-```typescript
-// client/src/components/checkout/GuestCheckoutModal.tsx
-const handleSignIn = () => {
-  loginWithRedirect({ appState: { returnTo: '/enroll/pending' } })
-}
-```
-
-#### Pending Enrollment Page (`/enroll/pending`)
-
-After Auth0 login, user is redirected to `PendingEnrollmentPage` which:
-1. Reads `pendingIntroEnrollment` from sessionStorage
-2. Validates enrollment hasn't expired (30 min TTL)
-3. Checks if profile is complete
-4. If complete → proceeds directly to checkout
-5. If incomplete → shows profile form, then checkout
-6. Clears sessionStorage after successful checkout redirect
+- Clicking "Join Now" from any page must redirect authenticated users directly to `/dashboard`.
+- For unauthenticated users, clicking "Join Now" scrolls to the intro class section on the home page (or navigates to `/` first if on another page).
+- When an unauthenticated user selects a class and clicks "Enroll Now", the chosen class ID is saved to `sessionStorage` with a timestamp before any redirect occurs. This preserves the selection across the Auth0 login redirect.
+- The modal presented at this point offers two options: **Sign In** or **Continue as Guest**. Choosing Sign In initiates Auth0 login with a return path of `/enroll/pending`.
+- The pending enrollment page (`/enroll/pending`) reads the saved class selection from `sessionStorage`. If the selection is older than 30 minutes it is discarded and the user is sent to the home page.
+- If the selection is valid and the user's profile is complete, checkout proceeds immediately with the saved class.
+- If the profile is incomplete, the profile form is shown first. After submission, checkout proceeds automatically.
+- `sessionStorage` is cleared after a successful checkout redirect.
 
 ---
 
 ## Flow 3: Guest Checkout
 
-### Flow
+### Requirements
 
-```
-User clicks "Enroll Now" (unauthenticated) → Modal appears →
-Choose "Continue as Guest" → Profile Form → 
-Submit → Create guest profile → Checkout
-→ Square Payment → Return to Home
-```
+- A guest user who chooses "Continue as Guest" in the enrollment modal is shown the profile form without being required to sign in.
+- The profile form collects display name, legal name, contact details, date of birth, address, and optionally guardian information for minors. Email is required.
+- On submission, the profile is created via `POST /api/members/guest` (no authentication required). The server will:
+  - Search for an existing unlinked profile (no `auth0Id`) with the same email address. If found, return it as-is without applying any submitted data. This prevents an unauthenticated caller from overwriting another person's profile by knowing their email address. A Square customer record is created for the existing profile if one is missing.
+  - If no existing profile is found, create a new one and attempt to create or retrieve a Square customer record. Square customer creation is best-effort; failure does not prevent profile creation.
+- After the profile is created or updated, checkout proceeds via `POST /api/checkout/intro-guest` (no authentication required).
+- After payment, Square redirects the user to the home page (`/`).
 
-### Implementation
+---
 
-#### GuestCheckoutModal State Machine
+## Profile Linking — Guest to Authenticated
 
-```typescript
-type Step = 'choice' | 'profile'
-```
+### Requirements
 
-#### Step-by-Step
+When a user who previously enrolled as a guest later signs in or creates an Auth0 account, their guest profile must be automatically found and linked to their new identity. This must happen without any action from the user.
 
-1. **Modal Opens** (`step='choice'`)
-   - User sees "Sign In" and "Continue as Guest" buttons
+There are two entry points for linking:
 
-2. **Guest Checkout Selected**
-   ```typescript
-   const handleGuestCheckout = () => {
-     setStep('profile')
-   }
-   ```
+**Transparent link (sign-in only, no form submission)**
 
-3. **Profile Form**
-   - `UnifiedProfileForm` with `mode="guest"`
-   - Submits to `POST /api/members/guest` (no auth required)
+- On `GET /api/members/me`, if no profile is found by `auth0Id`, the server searches for an unlinked profile matching the Auth0-provided email address.
+- If a match is found, the `auth0Id` is written to that profile (linking it). The route guard on the server side ensures email is present before this lookup is attempted.
+- If the linked profile has no `squareCustomerId`, one is created or retrieved from Square and written to the profile at this point.
 
-4. **Profile Created**
-   ```typescript
-   const handleProfileCreated = (profile: MemberProfileDTO) => {
-     onGuestProfileCreated(profile)  // Callback to parent
-     onClose()
-   }
-   ```
+**Link with form submission (`POST /api/members/me`)**
 
-5. **Checkout** (in `IntroClassOfferings`)
-   ```typescript
-   const handleGuestProfileCreated = (createdProfile: MemberProfileDTO) => {
-     setShowGuestModal(false)
-     proceedToCheckout(createdProfile._id)  // Uses guest checkout endpoint
-   }
-   ```
-
-6. **Guest Checkout API**
-   ```typescript
-   // Uses /api/checkout/intro-guest (no auth)
-   data = await createGuestIntroCheckout({
-     catalogObjectId: selectedVariationId,
-     memberProfileId,
-     redirectUrl: `${globalThis.location.origin}/`,  // Returns to home
-   })
-   ```
-
-### Server-Side Guest Profile Creation
-
-```typescript
-// server/src/services/memberProfileService.ts
-export async function createGuestProfile(data: GuestProfileInput): Promise<MemberProfileDTO> {
-  const email = data.personalInfo?.email?.toLowerCase().trim()
-
-  // Check for existing profile with same email (no auth0Id)
-  if (email) {
-    const existingProfile = await memberProfileDAO.findByEmailUnlinked(email)
-    if (existingProfile) {
-      // Update existing profile
-      const updated = await memberProfileDAO.updateById(existingProfile._id, {
-        // ... update fields
-        profileComplete: data.profileComplete ?? true,
-      })
-      if (updated) return updated
-    }
-  }
-
-  // Create Square customer
-  const squareCustomerId = await createSquareCustomerIfEmailProvided(email, data)
-
-  // Create new guest profile (no auth0Id)
-  return memberProfileDAO.create({
-    // ... profile fields
-    profileComplete: data.profileComplete ?? true,
-    ...(squareCustomerId ? { squareCustomerId } : {}),
-  })
-}
-```
+- If the user fills out the profile form after signing in and an unlinked profile with the same email already exists:
+  - The `auth0Id` is linked to the existing profile.
+  - The submitted form data (display name, personal info, pronouns, etc.) is applied as an update to the existing profile — it is not discarded.
+  - If the profile has no `squareCustomerId`, one is created or retrieved and saved.
+- Email is a required field for this endpoint. The service layer throws immediately if it is absent.
 
 ---
 
 ## Square Customer ID Management
 
-### How It Works
+### Requirements
 
-Square customer IDs are created/linked in the following scenarios:
+Every member profile should have a `squareCustomerId` linking them to a Square customer record. Square customers are always created using a "get or create" strategy — if a customer with that email already exists in Square, it is reused and no duplicate is created.
 
-#### Scenario 1: New Authenticated User (No Prior Profile)
+Square customer creation is best-effort: if the Square API call fails, the profile is still saved. Any subsequent operation (including the payment webhook) can set the `squareCustomerId` later.
 
-```typescript
-// server/src/services/memberProfileService.ts
-export async function createProfileForUser(auth0Id: string, initialData?: {...}): Promise<MemberProfileDTO> {
-  const email = initialData?.personalInfo?.email?.toLowerCase().trim()
+### When a Square customer is created or assigned
 
-  // 1. Check for existing unlinked profile with same email
-  if (email) {
-    const existingProfile = await memberProfileDAO.findByEmailUnlinked(email)
-    if (existingProfile) {
-      // Link auth0Id to existing profile (keeps existing squareCustomerId)
-      return memberProfileDAO.linkAuth0Id(existingProfile._id, auth0Id)
-    }
-  }
+| Scenario | Trigger | Outcome |
+|----------|---------|---------|
+| New authenticated user, no prior profile | `POST /api/members/me` | Square customer created and ID saved to new profile |
+| New guest user | `POST /api/members/guest` | Square customer created and ID saved to new profile |
+| Guest submits form again with same email (dedup) | `POST /api/members/guest` | Existing profile returned as-is; Square customer created if ID was missing |
+| Guest signs in — no form submission | `GET /api/members/me` → `findAndLinkByEmail` | `auth0Id` linked; Square customer created if ID was missing |
+| Guest signs in — with form submission | `POST /api/members/me` → `linkAndUpdateExistingProfile` | `auth0Id` linked, profile updated; Square customer created if ID was missing |
+| Square API failed at profile creation time | Square `payment.updated` webhook | `squareCustomerId` set from the `customerId` on the payment object |
 
-  // 2. No existing profile - create Square customer
-  const squareCustomerId = await createSquareCustomerIfEmailProvided(email, initialData)
+### Admin-created profiles
 
-  // 3. Create new profile with Square customer ID
-  return memberProfileDAO.create({
-    auth0Id,
-    ...initialData,
-    ...(squareCustomerId ? { squareCustomerId } : {})
-  })
-}
-```
-
-#### Scenario 2: Guest User (No Auth0 Account)
-
-```typescript
-// Called from POST /api/members/guest
-export async function createGuestProfile(data: GuestProfileInput): Promise<MemberProfileDTO> {
-  // Creates Square customer via getOrCreate
-  const squareCustomerId = await createSquareCustomerIfEmailProvided(email, data)
-  
-  return memberProfileDAO.create({
-    // No auth0Id for guests
-    ...data,
-    ...(squareCustomerId ? { squareCustomerId } : {})
-  })
-}
-```
-
-#### Scenario 3: Guest Later Signs Up
-
-When a guest user later creates an Auth0 account:
-
-```typescript
-// GET /api/members/me - tries to link by email
-router.get('/me', checkJwt, async (req, res) => {
-  let profile = await memberService.getProfileByAuth0Id(auth0Id)
-  
-  if (!profile) {
-    const email = getAuth0Email(req)
-    if (email) {
-      profile = await memberService.findAndLinkByEmail(auth0Id, email)
-    }
-  }
-  
-  res.json({ profile })
-})
-```
-
-```typescript
-// server/src/services/memberProfileService.ts
-export async function findAndLinkByEmail(auth0Id: string, email: string): Promise<MemberProfileDTO | null> {
-  const existingProfile = await memberProfileDAO.findByEmailUnlinked(normalizedEmail)
-  if (!existingProfile) return null
-  
-  // Links auth0Id to existing profile (preserves squareCustomerId)
-  return memberProfileDAO.linkAuth0Id(existingProfile._id, auth0Id)
-}
-```
-
-### Square Customer Creation Logic
-
-```typescript
-async function createSquareCustomerIfEmailProvided(
-  email: string | undefined,
-  profileData?: { displayFirstName?: string; displayLastName?: string }
-): Promise<string | undefined> {
-  if (!email) return undefined
-
-  try {
-    // getOrCreate: finds existing by email OR creates new
-    const customer = await squareCustomersService.getOrCreate({
-      email,
-      givenName: profileData?.displayFirstName,
-      familyName: profileData?.displayLastName,
-    })
-    return customer?.id
-  } catch {
-    return undefined  // Fails silently - profile still created
-  }
-}
-```
-
-### Square Customer Linking Summary
-
-| Scenario | Profile Created | Square Customer |
-|----------|-----------------|-----------------|
-| New authenticated user | Yes (with auth0Id) | Created via `getOrCreate` |
-| Guest checkout | Yes (no auth0Id) | Created via `getOrCreate` |
-| Guest later signs up | Linked (adds auth0Id) | Already exists, preserved |
-| Existing Square customer | Profile linked | Found by email, ID reused |
+Admins can create a profile via the admin panel (`POST /api/admin/members`) without providing an email address. In this case no Square customer lookup or creation is attempted. The profile remains without a `squareCustomerId` until the member enrolls or signs in.
 
 ---
 
-## Profile Completion Logic
+## Profile Completion
 
-### Implementation
+### Requirements
 
-#### Client-Side: `UnifiedProfileForm`
-
-```typescript
-// client/src/components/profile/UnifiedProfileForm.tsx
-function buildPayload(formData: ProfileFormData) {
-  return {
-    displayFirstName: formData.displayFirstName.trim(),
-    displayLastName: formData.displayLastName.trim(),
-    pronouns: formData.pronouns.trim() || undefined,
-    personalInfo: { ... },
-    ...(formData.isMinor ? { guardian: { ... } } : {}),
-    profileComplete: true,  // Always set to true on submit
-  }
-}
-```
-
-#### Server-Side: Profile Creation
-
-```typescript
-// server/src/routes/members.ts
-router.post('/me', checkJwt, async (req, res) => {
-  const body: {
-    displayFirstName?: string;
-    displayLastName?: string;
-    personalInfo?: { email?: string };
-    guardian?: { firstName?: string; lastName?: string };
-    profileComplete?: boolean;
-  } = req.body;
-
-  const profile = await memberService.createProfile(auth0Id, {
-    displayFirstName: body.displayFirstName,
-    displayLastName: body.displayLastName,
-    personalInfo: body.personalInfo,
-    guardian: body.guardian,
-    profileComplete: body.profileComplete,
-  });
-})
-```
-
-#### Server-Side: Profile Update
-
-```typescript
-// server/src/routes/members.ts
-router.post('/me/update', checkJwt, async (req, res) => {
-  const updated = await memberService.updateProfile(profile._id.toString(), req.body.data)
-})
-```
-
-### Schema Default
-
-```typescript
-// server/src/models/MemberProfile.ts
-profileComplete: { type: Boolean, default: false },
-```
+- All profiles have a `profileComplete` boolean field, which defaults to `false`.
+- A profile is marked `profileComplete: true` when the profile form is successfully submitted by the user (not when created by an admin).
+- `profileComplete` gates access to the enrollment flow and to drop-in payments on the dashboard.
+- The `pronouns` field is optional. If a user clears their pronouns, an empty string must be sent to the server — sending `undefined` would cause the existing value to be preserved. The form must not convert empty strings to `undefined` for this field.
+- All profile fields submitted through `POST /api/members/me` and `POST /api/members/guest` are typed as `GuestProfileInput` end-to-end (route, service, and DAO layer) to ensure the full payload is handled consistently.
 
 ---
 
@@ -470,30 +152,27 @@ profileComplete: { type: Boolean, default: false },
 |------|---------|
 | `client/src/pages/DashboardPage.tsx` | Dashboard with enrollment state machine |
 | `client/src/pages/PendingEnrollmentPage.tsx` | Handles pending enrollment after sign-in |
-| `client/src/components/intro-classes/IntroClassOfferings.tsx` | Class selection component |
-| `client/src/components/checkout/GuestCheckoutModal.tsx` | Sign-in vs guest modal |
-| `client/src/components/profile/UnifiedProfileForm.tsx` | Profile form (all modes) |
-| `client/src/hooks/useJoinNavigation.ts` | "Join" button navigation logic |
+| `client/src/components/intro-classes/IntroClassOfferings.tsx` | Class selection and guest enrollment entry point |
+| `client/src/components/checkout/GuestCheckoutModal.tsx` | Sign-in vs guest choice modal |
+| `client/src/components/profile/UnifiedProfileForm.tsx` | Profile form used in all modes (guest, authenticated, edit) |
+| `client/src/hooks/useJoinNavigation.ts` | "Join Now" button navigation logic |
 | `client/src/context/ProfileContext.tsx` | Profile state management |
 | `client/src/services/checkoutService.ts` | Checkout API calls |
-| `client/src/main.tsx` | Auth0 provider with redirect callback |
 
 ### Server
 
 | File | Purpose |
 |------|---------|
-| `server/src/routes/members.ts` | Member profile endpoints |
-| `server/src/routes/checkout.ts` | Checkout endpoints |
-| `server/src/services/memberProfileService.ts` | Profile business logic |
-| `server/src/services/memberProfileDAO.ts` | Profile database operations |
-| `server/src/services/square/SquareCustomersService.ts` | Square customer management |
-| `server/src/models/MemberProfile.ts` | Profile schema and mapper |
+| `server/src/routes/members.ts` | Member profile endpoints (`/me`, `/me/update`, `/guest`) |
+| `server/src/routes/checkout.ts` | Checkout endpoints (authenticated and guest) |
+| `server/src/services/memberProfileService.ts` | Profile business logic — creation, linking, Square customer management |
+| `server/src/dao/memberProfileDAO.ts` | Profile database operations |
+| `server/src/services/square/SquareCustomersService.ts` | Square customer get-or-create logic |
+| `server/src/services/introClassEnrollmentService.ts` | Enrollment status and webhook payment handling |
 
 ### Shared
 
 | File | Purpose |
 |------|---------|
-| `packages/shared/src/types/member.ts` | `MemberProfileDTO`, `GuestProfileInput` types |
-| `packages/shared/src/types/checkout.ts` | `IntroClassCheckoutRequest`, `CheckoutResponse` types |
-
-
+| `packages/shared/src/types/MemberProfile.ts` | `MemberProfileDTO`, `GuestProfileInput`, `PersonalInfo` types |
+| `packages/shared/src/types/MemberUpdateData.ts` | `MemberUpdateData` type and `MemberUpdateDataMapper` |

@@ -178,6 +178,7 @@ export function UnifiedProfileForm({
   const [errors, setErrors] = useState<ValidationErrors>({})
   const [saving, setSaving] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
+  const [existingProfileFound, setExistingProfileFound] = useState<MemberProfileDTO | null>(null)
 
   // Pre-fill from Auth0 user for authenticated new profiles
   useEffect(() => {
@@ -260,15 +261,18 @@ export function UnifiedProfileForm({
         }
       }
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const data = await response.json()
         throw new Error(data.error || 'Failed to save profile')
       }
 
-      const data = await response.json()
-
       if (mode === 'guest') {
-        onProfileCreated?.(data.profile)
+        if (response.status === 200) {
+          setExistingProfileFound(data.profile)
+        } else {
+          onProfileCreated?.(data.profile)
+        }
       } else {
         await refreshProfile()
         onSaved?.()
@@ -286,6 +290,26 @@ export function UnifiedProfileForm({
     if (mode === 'guest') return 'Create Profile & Continue'
     if (mode === 'edit') return 'Save'
     return 'Create Profile'
+  }
+
+  if (existingProfileFound) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 space-y-2">
+          <p className="text-sm font-semibold text-amber-800">We found an existing profile for this email address.</p>
+          <p className="text-sm text-amber-700">
+            Your checkout will continue using your existing profile. To update your details in the future, sign in to your account.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onProfileCreated?.(existingProfileFound)}
+          className="w-full bg-navy hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+        >
+          Continue to Checkout
+        </button>
+      </div>
+    )
   }
 
   return (

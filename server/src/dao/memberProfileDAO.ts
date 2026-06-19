@@ -26,11 +26,15 @@ export async function findById(id: string): Promise<MemberProfileDTO | null> {
   return doc ? mapMemberDocToDTO(doc) : null;
 }
 
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export async function findByEmailUnlinked(email: string): Promise<MemberProfileDTO | null> {
   await dbConnect();
   const normalizedEmail = email.toLowerCase().trim();
   const doc = await MemberProfile.findOne({
-    'personalInfo.email': { $regex: new RegExp(`^${normalizedEmail}$`, 'i') },
+    'personalInfo.email': { $regex: new RegExp(`^${escapeRegex(normalizedEmail)}$`, 'i') },
     $or: [{ auth0Id: { $exists: false } }, { auth0Id: null }, { auth0Id: '' }]
   });
   return doc ? mapMemberDocToDTO(doc) : null;
@@ -121,6 +125,21 @@ export async function linkAuth0Id(id: string, auth0Id: string): Promise<MemberPr
   return mapMemberDocToDTO(doc);
 }
 
+export async function linkAuth0IdAndUpdate(
+  id: string,
+  auth0Id: string,
+  updateSet: Record<string, unknown>
+): Promise<MemberProfileDTO | null> {
+  await dbConnect();
+  await defendAgainstNullSubdocuments(id, updateSet);
+  const updated = await MemberProfile.findByIdAndUpdate(
+    id,
+    { $set: { auth0Id, ...updateSet } },
+    { new: true }
+  );
+  return updated ? mapMemberDocToDTO(updated) : null;
+}
+
 export const memberProfileDAO = {
   findAll,
   findAllIds,
@@ -134,4 +153,5 @@ export const memberProfileDAO = {
   findAllWithSquareCustomerId,
   findAllEmails,
   linkAuth0Id,
+  linkAuth0IdAndUpdate,
 };

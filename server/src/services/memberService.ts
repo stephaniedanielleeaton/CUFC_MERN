@@ -37,17 +37,7 @@ class MemberService {
     return memberProfileService.findAndLinkByEmail(auth0Id, email);
   }
 
-  async createProfile(
-    auth0Id: string,
-    data?: {
-      displayFirstName?: string;
-      displayLastName?: string;
-      pronouns?: string;
-      personalInfo?: { email?: string };
-      guardian?: { firstName?: string; lastName?: string };
-      profileComplete?: boolean;
-    }
-  ): Promise<MemberProfileDTO> {
+  async createProfile(auth0Id: string, data: GuestProfileInput): Promise<MemberProfileDTO> {
     return memberProfileService.create(auth0Id, data);
   }
 
@@ -55,7 +45,7 @@ class MemberService {
     return memberProfileService.update(memberId, data);
   }
 
-  async createGuestProfile(data: GuestProfileInput): Promise<MemberProfileDTO> {
+  async createGuestProfile(data: GuestProfileInput): Promise<{ profile: MemberProfileDTO; isExisting: boolean }> {
     return memberProfileService.createGuest(data);
   }
 

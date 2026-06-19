@@ -46,37 +46,24 @@ router.get('/me', checkJwt, async (req: Request, res: Response) => {
 });
 
 // POST /api/members/me - Create current user's profile
-router.post('/me', checkJwt, async (req: Request, res: Response) => {
+router.post('/me', checkJwt, async (req: Request<{}, {}, GuestProfileInput>, res: Response) => {
   try {
     const auth0Id = getAuth0Id(req);
-    const email = getAuth0Email(req);
-    
-    console.log(`[Members] POST /me - Creating profile for auth0Id: ${auth0Id}, email: ${email}`);
     
     if (!auth0Id) {
       console.warn('[Members] POST /me - No auth0Id in token');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const body: {
-      displayFirstName?: string;
-      displayLastName?: string;
-      pronouns?: string;
-      personalInfo?: { email?: string };
-      guardian?: { firstName?: string; lastName?: string };
-      profileComplete?: boolean;
-    } = req.body;
+    console.log(`[Members] POST /me - Request body: displayName=${req.body.displayFirstName} ${req.body.displayLastName}, email=${req.body.personalInfo?.email}, profileComplete=${req.body.profileComplete}`);
 
-    console.log(`[Members] POST /me - Request body: displayName=${body.displayFirstName} ${body.displayLastName}, email=${body.personalInfo?.email}, profileComplete=${body.profileComplete}`);
+    const existing = await memberService.getProfileByAuth0Id(auth0Id);
+    if (existing) {
+      console.log(`[Members] POST /me - Profile already exists for auth0Id ${auth0Id}: ${existing._id}`);
+      return res.status(409).json({ error: 'Profile already exists', profile: existing });
+    }
 
-    const profile = await memberService.createProfile(auth0Id, {
-      displayFirstName: body.displayFirstName,
-      displayLastName: body.displayLastName,
-      pronouns: body.pronouns,
-      personalInfo: body.personalInfo,
-      guardian: body.guardian,
-      profileComplete: body.profileComplete,
-    });
+    const profile = await memberService.createProfile(auth0Id, req.body);
 
     console.log(`[Members] POST /me - Profile created successfully: ${profile._id}, name: ${profile.displayFirstName} ${profile.displayLastName}`);
 
@@ -88,25 +75,27 @@ router.post('/me', checkJwt, async (req: Request, res: Response) => {
 });
 
 // POST /api/members/guest - Create a guest profile (no auth required)
-router.post('/guest', async (req: Request, res: Response) => {
+router.post('/guest', async (req: Request<{}, {}, GuestProfileInput>, res: Response) => {
   try {
-    const body: GuestProfileInput = req.body;
-
-    console.log(`[Members] POST /guest - Creating guest profile: ${body.displayFirstName} ${body.displayLastName}, email: ${body.personalInfo?.email}`);
+    console.log(`[Members] POST /guest - Creating guest profile: ${req.body.displayFirstName} ${req.body.displayLastName}, email: ${req.body.personalInfo?.email}`);
 
     // Validate required fields
-    if (!body.displayFirstName || !body.displayLastName) {
+    if (!req.body.displayFirstName || !req.body.displayLastName) {
       console.warn('[Members] POST /guest - Missing display name');
       return res.status(400).json({ error: 'Display first and last name are required' });
     }
-    if (!body.personalInfo?.email) {
+    if (!req.body.personalInfo?.email) {
       console.warn('[Members] POST /guest - Missing email');
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    const profile = await memberService.createGuestProfile(body);
+    const { profile, isExisting } = await memberService.createGuestProfile(req.body);
     
-    console.log(`[Members] POST /guest - Guest profile created: ${profile._id}, name: ${profile.displayFirstName} ${profile.displayLastName}, profileComplete: ${profile.profileComplete}`);
+    console.log(`[Members] POST /guest - Guest profile ${isExisting ? 'found (existing)' : 'created'}: ${profile._id}, name: ${profile.displayFirstName} ${profile.displayLastName}, profileComplete: ${profile.profileComplete}`);
+
+    if (isExisting) {
+      return res.status(200).json({ profile, profileAlreadyExists: true });
+    }
     
     res.status(201).json({ profile });
   } catch (error) {

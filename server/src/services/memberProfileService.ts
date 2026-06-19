@@ -2,12 +2,10 @@ import { MemberProfileDTO, MemberUpdateData, GuestProfileInput, MemberUpdateData
 import { memberProfileDAO } from '../dao/memberProfileDAO';
 import { squareCustomersService } from './square';
 
-async function createSquareCustomerIfEmailProvided(
-  email: string | undefined,
+async function getOrCreateSquareCustomer(
+  email: string,
   profileData?: { displayFirstName?: string; displayLastName?: string }
 ): Promise<string | undefined> {
-  if (!email) return undefined;
-
   try {
     const customer = await squareCustomersService.getOrCreate({
       email,
@@ -32,41 +30,80 @@ export async function getProfileForUser(auth0Id: string): Promise<MemberProfileD
   return memberProfileDAO.findByAuth0Id(auth0Id);
 }
 
+async function buildProfileUpdateData(
+  data: GuestProfileInput,
+  existingSquareCustomerId: string | undefined,
+  email: string
+): Promise<MemberUpdateData> {
+  const updateData: MemberUpdateData = {
+    displayFirstName: data.displayFirstName,
+    displayLastName: data.displayLastName,
+    pronouns: data.pronouns,
+    personalInfo: data.personalInfo
+      ? {
+          ...data.personalInfo,
+          dateOfBirth: data.personalInfo.dateOfBirth || null,
+        }
+      : undefined,
+    ...(data.guardian ? { guardian: data.guardian } : {}),
+    profileComplete: data.profileComplete ?? true,
+  };
+  if (!existingSquareCustomerId) {
+    const squareCustomerId = await getOrCreateSquareCustomer(email, data);
+    if (squareCustomerId) updateData.squareCustomerId = squareCustomerId;
+  }
+  return updateData;
+}
+
+async function linkAndUpdateExistingProfile(
+  existingProfile: MemberProfileDTO,
+  auth0Id: string,
+  email: string,
+  initialData: GuestProfileInput
+): Promise<MemberProfileDTO> {
+  console.log(`[createProfileForUser] Linking auth0Id ${auth0Id} to existing profile ${existingProfile._id}`);
+
+  const updateData = await buildProfileUpdateData(initialData, existingProfile.squareCustomerId, email);
+  const updated = await memberProfileDAO.linkAuth0IdAndUpdate(
+    existingProfile._id,
+    auth0Id,
+    MemberUpdateDataMapper.toMongoSet(updateData)
+  );
+  if (!updated) throw new Error('Failed to link and update existing profile');
+  return updated;
+}
+
 export async function createProfileForUser(
   auth0Id: string,
-  initialData?: { 
-    displayFirstName?: string; 
-    displayLastName?: string; 
-    pronouns?: string;
-    personalInfo?: { email?: string }; 
-    guardian?: { firstName?: string; lastName?: string };
-    profileComplete?: boolean;
-  }
+  initialData: GuestProfileInput
 ): Promise<MemberProfileDTO> {
-  const email = initialData?.personalInfo?.email?.toLowerCase().trim();
+  const email = initialData.personalInfo?.email?.toLowerCase().trim();
+  if (!email) throw new Error('Email is required to create a member profile');
 
-  // Check if an existing profile with this email exists but has no auth0Id linked
-  if (email) {
-    const existingProfile = await memberProfileDAO.findByEmailUnlinked(email);
+  const existingProfile = await memberProfileDAO.findByEmailUnlinked(email);
+  console.log(`[createProfileForUser] Looking for existing profile with email: ${email}, found: ${existingProfile ? existingProfile._id : 'none'}`);
 
-    console.log(`[createProfileForUser] Looking for existing profile with email: ${email}, found: ${existingProfile ? existingProfile._id : 'none'}`);
-
-    if (existingProfile) {
-      // Link the auth0Id to the existing profile
-      console.log(`[createProfileForUser] Linking auth0Id ${auth0Id} to existing profile ${existingProfile._id}`);
-      const linked = await memberProfileDAO.linkAuth0Id(existingProfile._id, auth0Id);
-      if (!linked) throw new Error('Failed to link auth0Id to existing profile');
-      return linked;
-    }
+  if (existingProfile) {
+    return linkAndUpdateExistingProfile(existingProfile, auth0Id, email, initialData);
   }
 
-  // No existing profile found, create a new one
-  const squareCustomerId = await createSquareCustomerIfEmailProvided(email, initialData);
-
+  const squareCustomerId = await getOrCreateSquareCustomer(email, initialData);
   return memberProfileDAO.create({
     auth0Id,
-    ...(initialData ?? {}),
-    ...(squareCustomerId ? { squareCustomerId } : {})
+    displayFirstName: initialData.displayFirstName,
+    displayLastName: initialData.displayLastName,
+    pronouns: initialData.pronouns,
+    personalInfo: initialData.personalInfo
+      ? {
+          ...initialData.personalInfo,
+          dateOfBirth: initialData.personalInfo.dateOfBirth
+            ? new Date(initialData.personalInfo.dateOfBirth)
+            : undefined,
+        }
+      : undefined,
+    guardian: initialData.guardian,
+    profileComplete: initialData.profileComplete,
+    ...(squareCustomerId ? { squareCustomerId } : {}),
   });
 }
 
@@ -97,39 +134,30 @@ export async function getAllMemberEmails(): Promise<string[]> {
   return memberProfileDAO.findAllEmails();
 }
 
-export async function createGuestProfile(data: GuestProfileInput): Promise<MemberProfileDTO> {
+export async function createGuestProfile(data: GuestProfileInput): Promise<{ profile: MemberProfileDTO; isExisting: boolean }> {
   const email = data.personalInfo?.email?.toLowerCase().trim();
 
-  // Check if an existing profile with this email exists
+  // If an unlinked profile already exists for this email, return it without
+  // applying the submitted data. Updating an unlinked profile from an
+  // unauthenticated request would allow any caller who knows the email address
+  // to overwrite another person's profile data.
   if (email) {
     const existingProfile = await memberProfileDAO.findByEmailUnlinked(email);
     if (existingProfile) {
-      // Update the existing profile with the new data
-      const updated = await memberProfileDAO.updateById(existingProfile._id, {
-        displayFirstName: data.displayFirstName,
-        displayLastName: data.displayLastName,
-        pronouns: data.pronouns,
-        'personalInfo.legalFirstName': data.personalInfo?.legalFirstName,
-        'personalInfo.legalLastName': data.personalInfo?.legalLastName,
-        'personalInfo.phone': data.personalInfo?.phone,
-        'personalInfo.dateOfBirth': data.personalInfo?.dateOfBirth,
-        'personalInfo.address.street': data.personalInfo?.address?.street,
-        'personalInfo.address.city': data.personalInfo?.address?.city,
-        'personalInfo.address.state': data.personalInfo?.address?.state,
-        'personalInfo.address.zip': data.personalInfo?.address?.zip,
-        'personalInfo.address.country': data.personalInfo?.address?.country,
-        ...(data.guardian ? { guardian: data.guardian } : {}),
-        profileComplete: data.profileComplete ?? true,
-      });
-      if (updated) return updated;
+      if (existingProfile.squareCustomerId) return { profile: existingProfile, isExisting: true };
+      const squareCustomerId = await getOrCreateSquareCustomer(email, existingProfile);
+      if (squareCustomerId) {
+        const updated = await memberProfileDAO.updateById(existingProfile._id, { squareCustomerId }) ?? existingProfile;
+        return { profile: updated, isExisting: true };
+      }
+      return { profile: existingProfile, isExisting: true };
     }
   }
 
-  // Create Square customer if email provided
-  const squareCustomerId = await createSquareCustomerIfEmailProvided(email, data);
+  const squareCustomerId = email ? await getOrCreateSquareCustomer(email, data) : undefined;
 
   // Create new guest profile (no auth0Id)
-  return memberProfileDAO.create({
+  const profile = await memberProfileDAO.create({
     displayFirstName: data.displayFirstName,
     displayLastName: data.displayLastName,
     pronouns: data.pronouns,
@@ -149,6 +177,7 @@ export async function createGuestProfile(data: GuestProfileInput): Promise<Membe
     profileComplete: data.profileComplete ?? true,
     ...(squareCustomerId ? { squareCustomerId } : {}),
   });
+  return { profile, isExisting: false };
 }
 
 export async function findAndLinkByEmail(auth0Id: string, email: string): Promise<MemberProfileDTO | null> {
@@ -165,7 +194,20 @@ export async function findAndLinkByEmail(auth0Id: string, email: string): Promis
   // Link the auth0Id to the existing profile
   console.log(`[findAndLinkByEmail] Linking auth0Id ${auth0Id} to existing profile ${existingProfile._id} with email ${normalizedEmail}`);
 
-  return memberProfileDAO.linkAuth0Id(existingProfile._id, auth0Id);
+  const linked = await memberProfileDAO.linkAuth0Id(existingProfile._id, auth0Id);
+
+  if (linked && !existingProfile.squareCustomerId) {
+    const squareCustomerId = await getOrCreateSquareCustomer(normalizedEmail, {
+      displayFirstName: existingProfile.displayFirstName,
+      displayLastName: existingProfile.displayLastName,
+    });
+    if (squareCustomerId) {
+      console.log(`[findAndLinkByEmail] Created Square customer ${squareCustomerId} for linked profile ${existingProfile._id}`);
+      return await memberProfileDAO.updateById(existingProfile._id, { squareCustomerId }) ?? linked;
+    }
+  }
+
+  return linked;
 }
 
 export const memberProfileService = {
