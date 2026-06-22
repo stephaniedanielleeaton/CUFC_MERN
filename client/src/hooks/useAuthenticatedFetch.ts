@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 
-function isTokenExpiredError(error: unknown): boolean {
+export function isTokenExpiredError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : ''
   return (
     message.includes('login_required') ||
