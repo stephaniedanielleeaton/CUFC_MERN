@@ -26,7 +26,7 @@ function wrapStandard(message: string): string {
         border-radius: 8px 8px 0 0;
         border-bottom: 2px solid #511F33;
       ">
-        <img src="https://www.columbusunitedfencing.com/assets/logo.png"
+        <img src="https://www.columbusunitedfencing.com/logo.png"
              alt="Columbus United Fencing Club"
              style="
                max-width: 100%;

@@ -1,21 +1,7 @@
-import { SquareClient } from 'square';
-import { env } from '../../config/env';
 import { SquareCustomerDto, mapCustomerToDto } from './dto';
+import { SquareBaseService } from './SquareBaseService';
 
-export class SquareCustomersService {
-  private readonly client: SquareClient;
-
-  constructor() {
-    this.client = new SquareClient({
-      token: env.SQUARE_ACCESS_TOKEN,
-      environment: env.SQUARE_ENVIRONMENT,
-    });
-  }
-
-  private logError(error: unknown): void {
-    console.error('Square Customers API Error:', error);
-  }
-
+export class SquareCustomersService extends SquareBaseService {
   async getById(customerId: string): Promise<SquareCustomerDto | null> {
     try {
       const response = await this.client.customers.get({ customerId });
@@ -28,17 +14,9 @@ export class SquareCustomersService {
 
   async getByEmail(email: string): Promise<SquareCustomerDto | null> {
     try {
-      const response = await this.client.customers.search({
-        query: {
-          filter: {
-            emailAddress: { exact: email },
-          },
-        },
-      });
-      const customer = response.customers?.[0];
-      return customer ? mapCustomerToDto(customer) : null;
-    } catch (error) {
-      this.logError(error);
+      const results = await this.searchByEmail(email);
+      return results[0] ?? null;
+    } catch {
       return null;
     }
   }

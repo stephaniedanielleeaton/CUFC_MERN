@@ -1,23 +1,9 @@
-import { SquareClient, Square } from 'square';
-import { env } from '../../config/env';
+import { Square } from 'square';
 import { getTodayMidnight, getDateMonthsAgo } from '../../utils/dateUtils';
 import { SquarePaymentDto, mapPaymentToDto } from './dto';
+import { SquareBaseService } from './SquareBaseService';
 
-export class SquarePaymentsService {
-  private readonly client: SquareClient;
-  private readonly locationId = env.SQUARE_RETAIL_LOCATION_ID;
-
-  constructor() {
-    this.client = new SquareClient({
-      token: env.SQUARE_ACCESS_TOKEN,
-      environment: env.SQUARE_ENVIRONMENT,
-    });
-  }
-
-  private logError(error: unknown): void {
-    console.error('Square Payments API Error:', error);
-  }
-
+export class SquarePaymentsService extends SquareBaseService {
   async getById(paymentId: string): Promise<SquarePaymentDto | null> {
     try {
       const response = await this.client.payments.get({ paymentId });

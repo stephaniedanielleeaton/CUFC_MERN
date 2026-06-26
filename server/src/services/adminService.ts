@@ -4,22 +4,21 @@ import {
   squareSubscriptionsService,
   squareCatalogService,
   squareInvoicesService,
+  squareRefundsService,
   SquareOrderDto,
   SquarePaymentDto,
   SquareSubscriptionDto,
   SquareLineItemDto,
   mapOrderToTransaction,
   mapPaymentToTransaction,
+  applyRefundsToOrders,
 } from './square';
+import { formatDateStr } from '../utils/formatUtils';
 import { MemberSquareStatusDto, SubscriptionStatusDto } from '../types/dtos/admin';
 import { memberProfileService } from './memberProfileService';
 import { attendanceService } from './attendanceService';
 import { MemberUpdateData, Transaction, MemberSubscriptionDTO, IntroEnrollmentDTO, AttendanceRecord } from '@cufc/shared';
 import { DROP_IN_CATALOG_OBJECT_ID } from '../config/constants';
-
-
-
-
 
 class AdminService {
 
@@ -134,6 +133,8 @@ class AdminService {
     const orders = await squareOrdersService.getRecentByCustomerId(squareCustomerId, 3);
     
     if (orders.length > 0) {
+      const refundMap = await squareRefundsService.getCompletedByPaymentId(3);
+      applyRefundsToOrders(orders, refundMap);
       return orders.map(mapOrderToTransaction);
     }
 
@@ -178,11 +179,7 @@ class AdminService {
     const subscriptions = await squareSubscriptionsService.getByCustomerId(squareCustomerId);
     const activeSubscriptions = subscriptions.filter((sub: SquareSubscriptionDto) => sub.status === 'ACTIVE');
 
-    const results = await Promise.all(
-      activeSubscriptions.map((sub) => this.mapSubscriptionToDTO(sub))
-    );
-
-    return results;
+    return Promise.all(activeSubscriptions.map((sub) => this.mapSubscriptionToDTO(sub)));
   }
 
   private async mapSubscriptionToDTO(sub: SquareSubscriptionDto): Promise<MemberSubscriptionDTO> {
@@ -194,9 +191,9 @@ class AdminService {
       planName,
       status: sub.status,
       priceFormatted,
-      activeThrough: this.formatDate(sub.chargedThroughDate) ?? undefined,
+      activeThrough: formatDateStr(sub.chargedThroughDate) ?? undefined,
       lastInvoiceDate: lastInvoiceDate ?? undefined,
-      canceledDate: this.formatDate(sub.canceledDate) ?? undefined,
+      canceledDate: formatDateStr(sub.canceledDate) ?? undefined,
     };
   }
 
@@ -223,18 +220,10 @@ class AdminService {
 
     return {
       priceFormatted: invoiceDetails.priceFormatted,
-      lastInvoiceDate: this.formatDate(invoiceDetails.createdAt),
+      lastInvoiceDate: formatDateStr(invoiceDetails.createdAt),
     };
   }
 
-  private formatDate(dateStr: string | null | undefined): string | null {
-    if (!dateStr) return null;
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  }
 }
 
 export const adminService = new AdminService();

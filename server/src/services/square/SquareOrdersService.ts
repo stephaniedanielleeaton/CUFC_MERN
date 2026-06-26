@@ -1,31 +1,17 @@
-import { SquareClient, Square } from 'square';
-import { env } from '../../config/env';
+import { Square } from 'square';
 import { getDateMonthsAgo, getTodayMidnight } from '../../utils/dateUtils';
 import { SquareOrderDto, mapOrderToDto } from './dto';
+import { SquareBaseService } from './SquareBaseService';
 
 // Orders with payments can be COMPLETED (fulfilled) or OPEN (paid but not yet fulfilled)
 const PAID_ORDER_STATES: Square.OrderState[] = ['COMPLETED', 'OPEN'];
 
 
-function filterforOrdersWithTender(orders: Square.Order[]): Square.Order[] {
+function filterOrdersWithTender(orders: Square.Order[]): Square.Order[] {
   return orders.filter(order => order.tenders && order.tenders.length > 0);
 }
 
-export class SquareOrdersService {
-  private readonly client: SquareClient;
-  private readonly locationId = env.SQUARE_RETAIL_LOCATION_ID;
-
-  constructor() {
-    this.client = new SquareClient({
-      token: env.SQUARE_ACCESS_TOKEN,
-      environment: env.SQUARE_ENVIRONMENT,
-    });
-  }
-
-  private logError(error: unknown): void {
-    console.error('Square Orders API Error:', error);
-  }
-
+export class SquareOrdersService extends SquareBaseService {
   async getById(orderId: string): Promise<SquareOrderDto | null> {
     try {
       const response = await this.client.orders.get({ orderId });
@@ -69,7 +55,7 @@ export class SquareOrdersService {
           sort: { sortField: 'CREATED_AT', sortOrder: 'DESC' },
         },
       });
-      return filterforOrdersWithTender(response.orders ?? []).map(mapOrderToDto);
+      return filterOrdersWithTender(response.orders ?? []).map(mapOrderToDto);
     } catch (error) {
       this.logError(error);
       throw error;
@@ -92,7 +78,7 @@ export class SquareOrdersService {
           sort: { sortField: 'CREATED_AT', sortOrder: 'DESC' },
         },
       });
-      return filterforOrdersWithTender(response.orders ?? []).map(mapOrderToDto);
+      return filterOrdersWithTender(response.orders ?? []).map(mapOrderToDto);
     } catch (error) {
       this.logError(error);
       throw error;

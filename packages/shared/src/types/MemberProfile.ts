@@ -31,6 +31,7 @@ export type Guardian = {
 export type GuestProfileInput = {
   displayFirstName?: string;
   displayLastName?: string;
+  pronouns?: string;
   personalInfo?: {
     legalFirstName?: string;
     legalLastName?: string;
@@ -48,6 +49,7 @@ export type MemberProfileDTO = {
   auth0Id?: string;
   displayFirstName?: string;
   displayLastName?: string;
+  pronouns?: string;
   personalInfo?: PersonalInfo;
   guardian?: Guardian;
   familyMembers?: FamilyMember[];

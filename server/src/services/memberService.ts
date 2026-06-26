@@ -8,11 +8,14 @@ import {
   squarePaymentsService,
   squareCatalogService,
   squareInvoicesService,
+  squareRefundsService,
   SquareSubscriptionDto,
   SquareLineItemDto,
   mapOrderToTransaction,
   mapPaymentToTransaction,
+  applyRefundsToOrders,
 } from './square';
+import { formatMoneyCents, formatDateStr } from '../utils/formatUtils';
 import { 
   MemberProfileDTO, 
   MemberUpdateData, 
@@ -37,16 +40,7 @@ class MemberService {
     return memberProfileService.findAndLinkByEmail(auth0Id, email);
   }
 
-  async createProfile(
-    auth0Id: string,
-    data?: {
-      displayFirstName?: string;
-      displayLastName?: string;
-      personalInfo?: { email?: string };
-      guardian?: { firstName?: string; lastName?: string };
-      profileComplete?: boolean;
-    }
-  ): Promise<MemberProfileDTO> {
+  async createProfile(auth0Id: string, data: GuestProfileInput): Promise<MemberProfileDTO> {
     return memberProfileService.create(auth0Id, data);
   }
 
@@ -54,7 +48,7 @@ class MemberService {
     return memberProfileService.update(memberId, data);
   }
 
-  async createGuestProfile(data: GuestProfileInput): Promise<MemberProfileDTO> {
+  async createGuestProfile(data: GuestProfileInput): Promise<{ profile: MemberProfileDTO; isExisting: boolean }> {
     return memberProfileService.createGuest(data);
   }
 
@@ -79,9 +73,9 @@ class MemberService {
       planName,
       status: sub.status,
       priceFormatted,
-      activeThrough: this.formatDate(sub.chargedThroughDate) ?? undefined,
+      activeThrough: formatDateStr(sub.chargedThroughDate) ?? undefined,
       lastInvoiceDate: lastInvoiceDate ?? undefined,
-      canceledDate: this.formatDate(sub.canceledDate) ?? undefined,
+      canceledDate: formatDateStr(sub.canceledDate) ?? undefined,
     };
   }
 
@@ -112,8 +106,8 @@ class MemberService {
     try {
       const invoice = await squareInvoicesService.getById(mostRecentInvoiceId);
       const money = invoice?.paymentRequests?.[0]?.computedAmountMoney;
-      const priceFormatted = this.formatMoney(money?.amount ?? undefined, money?.currency ?? undefined);
-      const lastInvoiceDate = money ? this.formatDate(invoice?.createdAt) : null;
+      const priceFormatted = formatMoneyCents(money?.amount, money?.currency);
+      const lastInvoiceDate = money ? formatDateStr(invoice?.createdAt) : null;
 
       return { priceFormatted, lastInvoiceDate };
     } catch (err) {
@@ -166,7 +160,10 @@ class MemberService {
     const orders = await squareOrdersService.getByCustomerId(profile.squareCustomerId);
 
     if (orders.length > 0) {
-      return orders.slice(0, 20).map(mapOrderToTransaction);
+      const recent = orders.slice(0, 20);
+      const refundMap = await squareRefundsService.getCompletedByPaymentId(12);
+      applyRefundsToOrders(recent, refundMap);
+      return recent.map(mapOrderToTransaction);
     }
 
     const payments = await squarePaymentsService.getRecentPaymentsPaginated(50);
@@ -187,23 +184,6 @@ class MemberService {
     return attendanceService.getLastCheckIn(memberProfileId);
   }
 
-  private formatMoney(amount: bigint | number | undefined, currency: string | undefined): string {
-    if (amount === undefined || amount === null) return '—';
-    const dollars = Number(amount) / 100;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency ?? 'USD',
-    }).format(dollars);
-  }
-
-  private formatDate(dateStr: string | null | undefined): string | null {
-    if (!dateStr) return null;
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  }
 }
 
 export const memberService = new MemberService();

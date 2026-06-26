@@ -38,11 +38,21 @@ function TransactionsList({ transactions }: Readonly<{ transactions: Transaction
               <div className="text-xs text-gray-500 mt-1">
                 {formatDate(tx.createdAt)}
               </div>
+              {tx.refundedMoney && (
+                <div className="text-xs text-red-600 mt-1">
+                  Refunded: {formatMoney(tx.refundedMoney.amount, tx.refundedMoney.currency)}
+                </div>
+              )}
             </div>
-            <div className="shrink-0">
+            <div className="shrink-0 text-right">
               <span className="text-sm font-semibold text-gray-900">
                 {formatMoney(tx.totalMoney?.amount, tx.totalMoney?.currency)}
               </span>
+              {tx.refundedMoney && (
+                <span className="block mt-1 text-xs font-medium text-white bg-red-500 rounded px-1.5 py-0.5">
+                  Refunded
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -124,7 +134,7 @@ export default function PaymentHistoryPage() {
           </div>
 
           <p className="text-xs text-gray-500 mb-4">
-            This history shows approximately the last year of payments and does not include refunds.
+            This history shows approximately the last year of payments.
             Payments made while not logged in may not appear here.
             Please contact the club admin with any questions.
           </p>

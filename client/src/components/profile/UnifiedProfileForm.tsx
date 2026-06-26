@@ -9,6 +9,7 @@ import type { MemberProfileDTO } from '@cufc/shared'
 export interface ProfileFormData {
   displayFirstName: string
   displayLastName: string
+  pronouns: string
   legalFirstName: string
   legalLastName: string
   email: string
@@ -29,6 +30,7 @@ export type ValidationErrors = Record<string, string>
 const INITIAL_FORM_DATA: ProfileFormData = {
   displayFirstName: '',
   displayLastName: '',
+  pronouns: '',
   legalFirstName: '',
   legalLastName: '',
   email: '',
@@ -102,6 +104,7 @@ function buildPayload(formData: ProfileFormData) {
   return {
     displayFirstName: formData.displayFirstName.trim(),
     displayLastName: formData.displayLastName.trim(),
+    pronouns: formData.pronouns.trim(),
     personalInfo: {
       legalFirstName: formData.legalFirstName.trim(),
       legalLastName: formData.legalLastName.trim(),
@@ -131,6 +134,7 @@ function profileToFormData(profile: MemberProfileDTO | null): ProfileFormData {
   return {
     displayFirstName: profile.displayFirstName || '',
     displayLastName: profile.displayLastName || '',
+    pronouns: profile.pronouns || '',
     legalFirstName: profile.personalInfo?.legalFirstName || '',
     legalLastName: profile.personalInfo?.legalLastName || '',
     email: profile.personalInfo?.email || '',
@@ -174,6 +178,7 @@ export function UnifiedProfileForm({
   const [errors, setErrors] = useState<ValidationErrors>({})
   const [saving, setSaving] = useState(false)
   const [apiError, setApiError] = useState<string | null>(null)
+  const [existingProfileFound, setExistingProfileFound] = useState<MemberProfileDTO | null>(null)
 
   // Pre-fill from Auth0 user for authenticated new profiles
   useEffect(() => {
@@ -256,15 +261,18 @@ export function UnifiedProfileForm({
         }
       }
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const data = await response.json()
         throw new Error(data.error || 'Failed to save profile')
       }
 
-      const data = await response.json()
-
       if (mode === 'guest') {
-        onProfileCreated?.(data.profile)
+        if (response.status === 200) {
+          setExistingProfileFound(data.profile)
+        } else {
+          onProfileCreated?.(data.profile)
+        }
       } else {
         await refreshProfile()
         onSaved?.()
@@ -282,6 +290,26 @@ export function UnifiedProfileForm({
     if (mode === 'guest') return 'Create Profile & Continue'
     if (mode === 'edit') return 'Save'
     return 'Create Profile'
+  }
+
+  if (existingProfileFound) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 space-y-2">
+          <p className="text-sm font-semibold text-amber-800">We found an existing profile for this email address.</p>
+          <p className="text-sm text-amber-700">
+            Your checkout will continue using your existing profile. To update your details in the future, sign in to your account.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onProfileCreated?.(existingProfileFound)}
+          className="w-full bg-navy hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
+        >
+          Continue to Checkout
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -329,6 +357,14 @@ export function UnifiedProfileForm({
           error={errors.displayLastName}
         />
       </div>
+
+      <TextInput
+        label="Pronouns (optional)"
+        name="pronouns"
+        value={formData.pronouns}
+        onChange={handleChange}
+        placeholder="e.g. they/them, she/her, he/him"
+      />
 
       <div className="grid grid-cols-2 gap-3">
         <TextInput

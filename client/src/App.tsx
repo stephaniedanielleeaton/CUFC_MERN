@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useSessionGuard } from './hooks/useSessionGuard'
 import { MemberProfileProvider } from './context/ProfileContext'
 import { ToastProvider } from './components/common/Toast'
 import Navbar from './components/navbar/Navbar'
@@ -26,6 +27,8 @@ import TournamentListPage from './features/tournaments/pages/TournamentListPage'
 import TournamentDetailPage from './features/tournaments/pages/TournamentDetailPage'
 
 function App() {
+  useSessionGuard()
+
   return (
     <ToastProvider>
       <MemberProfileProvider>
