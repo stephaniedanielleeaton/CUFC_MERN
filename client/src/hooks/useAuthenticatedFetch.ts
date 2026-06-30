@@ -29,7 +29,7 @@ export function useGetToken() {
     } catch (error) {
       if (isTokenExpiredError(error) && options.redirectOnExpired) {
         loginWithRedirect({ appState: { returnTo: globalThis.location.pathname } })
-        throw new Error('Session expired. Redirecting to login...')
+        return new Promise<never>(() => {})
       }
       throw error
     }

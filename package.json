@@ -5,7 +5,8 @@
   "workspaces": [
     "client",
     "server",
-    "packages/*"
+    "packages/*",
+    "e2e"
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
@@ -16,7 +17,10 @@
     "build:server": "npm run build --workspace=server",
     "start": "npm run start --workspace=server",
     "heroku-postbuild": "npm run build",
-    "lint": "npm run lint --workspaces"
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspace=client",
+    "test:e2e": "npm run test --workspace=e2e",
+    "test:e2e:full": "node test-all.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
