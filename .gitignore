@@ -10,6 +10,8 @@ build/
 .env.local
 .env.prod
 .env.*.local
+e2e/.env.test
+e2e/.auth/
 
 # IDE
 .vscode/
@@ -25,6 +27,7 @@ npm-debug.log*
 
 # Testing
 coverage/
+e2e/reports/
 
 # Misc
 *.tsbuildinfo

@@ -1,8 +1,7 @@
 import { Given, When, Then } from '@cucumber/cucumber'
 import { expect } from '@playwright/test'
 import { PlaywrightWorld } from '../support/world'
-
-const BASE_URL = process.env.BASE_URL ?? 'http://localhost:5173'
+import { BASE_URL } from '../support/config'
 
 Given('I am on the home page', async function (this: PlaywrightWorld) {
   await this.page.goto(BASE_URL)
@@ -10,7 +9,24 @@ Given('I am on the home page', async function (this: PlaywrightWorld) {
 
 When('I select the first available intro class', async function (this: PlaywrightWorld) {
   const classList = this.page.getByRole('list', { name: 'Available Intro Classes' })
-  await classList.waitFor({ state: 'visible', timeout: 10000 })
+  try {
+    await classList.waitFor({ state: 'visible', timeout: 15000 })
+  } catch {
+    const errorMsg = await this.page.locator('text=Unable to load class information').isVisible()
+    const noClasses = await this.page.locator('text=No class dates are available').isVisible()
+    const spinner = await this.page.locator('.animate-spin').isVisible()
+    let diagnosis: string
+    if (errorMsg) {
+      diagnosis = 'component shows API error state'
+    } else if (noClasses) {
+      diagnosis = 'API returned no variations'
+    } else if (spinner) {
+      diagnosis = 'component is stuck in loading state (check Auth0 authLoading / profileLoading)'
+    } else {
+      diagnosis = 'unknown — class list, error, and spinner all not found'
+    }
+    throw new Error(`Class list not visible: ${diagnosis}`)
+  }
   const firstItem = classList.locator('li').first()
   await firstItem.click()
 })
@@ -28,12 +44,12 @@ Then('I should see a {string} button', async function (this: PlaywrightWorld, la
 })
 
 When('I fill in the guest profile form with valid details', async function (this: PlaywrightWorld) {
-  const uniqueEmail = `e2e.guest.${Date.now()}@example.com`
+  const email = `e2e.guest.${Date.now()}@example.com`
   await this.page.locator('[name="displayFirstName"]').fill('Test')
   await this.page.locator('[name="displayLastName"]').fill('Guest')
   await this.page.locator('[name="legalFirstName"]').fill('Test')
   await this.page.locator('[name="legalLastName"]').fill('Guest')
-  await this.page.locator('[name="email"]').fill(uniqueEmail)
+  await this.page.locator('[name="email"]').fill(email)
   await this.page.locator('[name="dateOfBirth"]').fill('1990-01-15')
   await this.page.locator('[name="street"]').fill('123 Test Street')
   await this.page.locator('[name="city"]').fill('Washington')
@@ -46,6 +62,25 @@ Then('I should be redirected to a checkout page', async function (this: Playwrig
     url => !url.hostname.includes('localhost'),
     { timeout: 15000 }
   )
-  // TODO: remove after inspecting the Square sandbox checkout UI
-  await this.page.waitForTimeout(10000)
+})
+
+When('I complete the Square sandbox checkout', async function (this: PlaywrightWorld) {
+  // Step 1 (Overview): click Next
+  await this.page.getByRole('button', { name: 'Next' }).click()
+  // Step 2 (Test Payment): wait for the button to be interactive before clicking
+  const testPaymentBtn = this.page.getByRole('button', { name: 'Test Payment' })
+  await testPaymentBtn.waitFor({ state: 'visible', timeout: 15000 })
+  await testPaymentBtn.click()
+  // Step 3 (Checkout Complete): get the redirect link href and navigate to it directly
+  // (link may have target="_blank" so we navigate rather than click)
+  const redirectLink = this.page.locator('a[href*="localhost"]')
+  await redirectLink.waitFor({ state: 'visible', timeout: 15000 })
+  const href = await redirectLink.getAttribute('href')
+  if (!href) throw new Error('Square checkout redirect link found but has no href attribute')
+  await this.page.goto(href)
+  await this.page.waitForLoadState('load', { timeout: 15000 })
+})
+
+Then('I should be back on the home page', async function (this: PlaywrightWorld) {
+  await expect(this.page).toHaveURL(`${BASE_URL}/`)
 })

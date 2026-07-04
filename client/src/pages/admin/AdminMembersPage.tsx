@@ -273,6 +273,7 @@ export default function AdminMembersPage() {
                   <button
                     key={status}
                     onClick={toggleStatus}
+                    data-testid={`status-filter-${status.toLowerCase()}`}
                     className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                       index > 0 ? 'border-l border-light-gray' : ''
                     } ${
@@ -287,6 +288,7 @@ export default function AdminMembersPage() {
               })}
               <button
                 onClick={() => setStatusFilter([])}
+                data-testid="status-filter-all"
                 className={`px-3 py-1.5 text-sm font-medium border-l border-light-gray transition-colors ${
                   statusFilter.length === 0
                     ? 'bg-medium-pink text-white'

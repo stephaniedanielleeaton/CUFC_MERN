@@ -21,3 +21,5 @@ Feature: Guest Enrollment
     When I fill in the guest profile form with valid details
     And I click "Create Profile & Continue"
     Then I should be redirected to a checkout page
+    When I complete the Square sandbox checkout
+    Then I should be back on the home page

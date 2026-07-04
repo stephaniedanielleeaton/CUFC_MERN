@@ -1,7 +1,7 @@
 /**
  * E2E test runner (npm run test:e2e:full):
  * 1. Starts the API server and Vite dev client
- * 2. Waits until port 5173 accepts connections
+ * 2. Waits until the detected Vite port accepts connections
  * 3. Runs e2e tests (Cucumber + Playwright)
  * 4. Shuts down both servers
  */
@@ -16,10 +16,14 @@ async function waitForApi(baseUrl, timeoutMs) {
   const healthUrl = `${baseUrl}/api/health`
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
+    const controller = new AbortController()
+    const abortTimer = setTimeout(() => controller.abort(), 5000)
     try {
-      const res = await fetch(healthUrl)
+      const res = await fetch(healthUrl, { signal: controller.signal })
+      clearTimeout(abortTimer)
       if (res.ok) return
     } catch {
+      clearTimeout(abortTimer)
       // not ready yet
     }
     await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS))
@@ -48,14 +52,28 @@ function waitForPort(port, timeoutMs) {
 
 function detectViteUrl(proc, timeoutMs) {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Timed out waiting for Vite to start')), timeoutMs)
+    const timer = setTimeout(() => cleanupAndReject(new Error('Timed out waiting for Vite to start')), timeoutMs)
     const onData = chunk => {
       const stripped = chunk.toString().replace(/\x1b\[[0-9;]*m/g, '')
-      const match = stripped.match(/https?:\/\/localhost:(\d+)/)
-      if (match) { clearTimeout(timer); resolve(`http://localhost:${match[1]}`) }
+      const match = stripped.match(/https?:\/\/(?:localhost|127\.0\.0\.1):(\d+)/)
+      if (match) { cleanup(); resolve(match[0]) }
+    }
+    const onExit = (code, signal) => {
+      cleanupAndReject(new Error(`Vite process exited before URL was detected (code: ${code}, signal: ${signal})`))
+    }
+    const cleanup = () => {
+      clearTimeout(timer)
+      proc.stdout.off('data', onData)
+      proc.stderr.off('data', onData)
+      proc.off('exit', onExit)
+    }
+    const cleanupAndReject = err => {
+      cleanup()
+      reject(err)
     }
     proc.stdout.on('data', onData)
     proc.stderr.on('data', onData)
+    proc.once('exit', onExit)
   })
 }
 
@@ -71,17 +89,22 @@ async function main() {
   clientServer.stdout.on('data', d => process.stdout.write(d))
   clientServer.stderr.on('data', d => process.stderr.write(d))
 
-  const killTree = (proc) => {
-    if (process.platform === 'win32') {
-      spawn('taskkill', ['/f', '/t', '/pid', String(proc.pid)], { stdio: 'ignore' })
-    } else {
-      proc.kill()
-    }
-  }
-
   const shutdown = () => {
-    killTree(apiServer)
-    killTree(clientServer)
+    if (process.platform === 'win32') {
+      // On Windows, spawned npm/cmd processes create child shells; taskkill /T
+      // kills the entire tree rooted at the parent PID.
+      ;[apiServer.pid, clientServer.pid].forEach(pid => {
+        if (pid) {
+          try {
+            execSync(`taskkill /T /F /PID ${pid}`, { stdio: 'ignore' })
+          } catch {
+            // process may already be gone
+          }
+        }
+      })
+    }
+    apiServer.kill()
+    clientServer.kill()
   }
 
   process.once('SIGINT', () => { shutdown(); process.exit(130) })
@@ -97,10 +120,12 @@ async function main() {
     await waitForApi(baseUrl, TIMEOUT_MS)
     console.log('API ready.\n')
 
+    const TEST_TIMEOUT_MS = 10 * 60 * 1000
     execSync('npm run test:e2e', {
       stdio: 'inherit',
       cwd: root,
-      env: { ...process.env, BASE_URL: baseUrl }
+      env: { ...process.env, BASE_URL: baseUrl },
+      timeout: TEST_TIMEOUT_MS
     })
   } catch (err) {
     console.error('\nTests failed:', err.message)

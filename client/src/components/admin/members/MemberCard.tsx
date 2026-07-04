@@ -2,11 +2,11 @@ import type { MemberProfileDTO } from '@cufc/shared'
 import { CheckCircle, AlertCircle, FileText } from 'lucide-react'
 
 interface MemberCardProps {
-  member: MemberProfileDTO
-  lastCheckIn?: Date | string | null
-  onToggle?: () => void
-  isExpanded?: boolean
-  squareStatusLoading?: boolean
+  readonly member: MemberProfileDTO
+  readonly lastCheckIn?: Date | string | null
+  readonly onToggle?: () => void
+  readonly isExpanded?: boolean
+  readonly squareStatusLoading?: boolean
 }
 
 export default function MemberCard({ member, lastCheckIn, onToggle, isExpanded, squareStatusLoading }: MemberCardProps) {
@@ -28,23 +28,26 @@ export default function MemberCard({ member, lastCheckIn, onToggle, isExpanded, 
   }
   const notes = member.notes
 
-  const subIcon = squareStatusLoading ? (
-    <span className="inline-block w-5 h-5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
-  ) : hasActiveAccess ? (
-    <CheckCircle className="w-5 h-5 text-green-500" />
-  ) : (
-    <AlertCircle className="w-5 h-5 text-red-500" />
-  )
+  let subIcon: JSX.Element
+  if (squareStatusLoading) {
+    subIcon = <span className="inline-block w-5 h-5 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
+  } else if (hasActiveAccess) {
+    subIcon = <CheckCircle className="w-5 h-5 text-green-500" />
+  } else {
+    subIcon = <AlertCircle className="w-5 h-5 text-red-500" />
+  }
 
+  let mobileStatusIcon: JSX.Element
+  if (squareStatusLoading) {
+    mobileStatusIcon = <span className="inline-block w-4 h-4 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
+  } else if (hasActiveAccess) {
+    mobileStatusIcon = <CheckCircle className="w-4 h-4 text-green-500" />
+  } else {
+    mobileStatusIcon = <AlertCircle className="w-4 h-4 text-red-500" />
+  }
   const mobileAlertIcons = (
     <div className="flex items-center gap-2">
-      {squareStatusLoading ? (
-        <span className="inline-block w-4 h-4 border-2 border-gray-300 border-t-gray-500 rounded-full animate-spin" />
-      ) : hasActiveAccess ? (
-        <CheckCircle className="w-4 h-4 text-green-500" />
-      ) : (
-        <AlertCircle className="w-4 h-4 text-red-500" />
-      )}
+      {mobileStatusIcon}
       {member.isWaiverOnFile !== true && (
         <FileText className="w-4 h-4 text-red-500" />
       )}
@@ -61,6 +64,8 @@ export default function MemberCard({ member, lastCheckIn, onToggle, isExpanded, 
       type="button"
       onClick={onToggle}
       aria-expanded={!!isExpanded}
+      data-testid="member-card"
+      data-member-id={String(member._id)}
       className={`text-left w-full bg-white rounded-lg shadow-sm border border-gray-200 mb-2 p-4 sm:p-6 hover:shadow transition-shadow ${
         isExpanded ? "ring-2 ring-blue-200" : ""
       }`}
@@ -92,11 +97,11 @@ export default function MemberCard({ member, lastCheckIn, onToggle, isExpanded, 
         <div className="flex-1 min-w-0">
           <div className="text-sm text-gray-600">Subscription Status</div>
           <div className="text-base text-gray-900">
-            {hasPaidDropIn
-              ? "Paid drop-in fee today"
-              : isSubscribed
-              ? "Active"
-              : "Not enrolled in a monthly plan"}
+            {(() => {
+              if (hasPaidDropIn) return "Paid drop-in fee today"
+              if (isSubscribed) return "Active"
+              return "Not enrolled in a monthly plan"
+            })()}
           </div>
         </div>
 

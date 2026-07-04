@@ -20,7 +20,8 @@
     "lint": "npm run lint --workspaces",
     "test": "npm run test --workspace=client",
     "test:e2e": "npm run test --workspace=e2e",
-    "test:e2e:full": "node test-all.js"
+    "test:e2e:full": "node test-all.js",
+    "kill:dev": "powershell -Command \"3001..3020 | ForEach-Object { $conn = Get-NetTCPConnection -LocalPort $_ -ErrorAction SilentlyContinue; if ($conn) { Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue } }\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

@@ -26,6 +26,7 @@ export default function SearchBox({ searchQuery, onSearchChange }: SearchBoxProp
       <input
         type="text"
         id="simple-search"
+        data-testid="member-search-input"
         className="border border-gray-300 text-gray-700 text-sm rounded-lg block w-full pl-10 py-2 h-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
         placeholder="Search by Name"
         value={searchQuery}
