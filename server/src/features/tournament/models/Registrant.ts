@@ -33,7 +33,7 @@ export interface IRegistrant extends Document {
   legalFirstName: string;
   legalLastName: string;
   email: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   clubAffiliation?: IClubAffiliation;
   isMinor: boolean;
   guardianFirstName?: string;
@@ -108,7 +108,7 @@ const RegistrantSchema = new Schema<IRegistrant>({
   legalFirstName: { type: String, required: true },
   legalLastName: { type: String, required: true },
   email: { type: String, required: true, index: true },
-  phoneNumber: { type: String, required: true },
+  phoneNumber: { type: String },
   clubAffiliation: ClubAffiliationSchema,
   isMinor: { type: Boolean, required: true },
   guardianFirstName: String,

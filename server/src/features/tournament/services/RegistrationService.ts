@@ -41,7 +41,7 @@ export interface SubmitRegistrationData {
   legalFirstName: string;
   legalLastName: string;
   email: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   clubAffiliation?: ClubAffiliationDto;
   isMinor: boolean;
   guardianFirstName?: string;
