@@ -44,11 +44,15 @@ Then('I should see a {string} button', async function (this: PlaywrightWorld, la
 })
 
 When('I fill in the guest profile form with valid details', async function (this: PlaywrightWorld) {
-  const email = `e2e.guest.${Date.now()}@example.com`
+  const timestamp = Date.now()
+  const email = `e2e.guest.${timestamp}@example.com`
+  const uniqueLastName = `Guest ${timestamp}`
+  this.testGuestEmail = email
+  this.testGuestName = `Test ${uniqueLastName}`
   await this.page.locator('[name="displayFirstName"]').fill('Test')
-  await this.page.locator('[name="displayLastName"]').fill('Guest')
+  await this.page.locator('[name="displayLastName"]').fill(uniqueLastName)
   await this.page.locator('[name="legalFirstName"]').fill('Test')
-  await this.page.locator('[name="legalLastName"]').fill('Guest')
+  await this.page.locator('[name="legalLastName"]').fill(uniqueLastName)
   await this.page.locator('[name="email"]').fill(email)
   await this.page.locator('[name="dateOfBirth"]').fill('1990-01-15')
   await this.page.locator('[name="street"]').fill('123 Test Street')

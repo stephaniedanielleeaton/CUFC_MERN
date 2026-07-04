@@ -4,6 +4,21 @@ import * as fs from 'node:fs'
 
 export const ADMIN_STORAGE_STATE = path.join(__dirname, '..', '.auth', 'admin.json')
 
+export function isAdminStateValid(): boolean {
+  if (!fs.existsSync(ADMIN_STORAGE_STATE)) return false
+  try {
+    const state = JSON.parse(fs.readFileSync(ADMIN_STORAGE_STATE, 'utf8'))
+    const localStorageEntries = state.origins
+      ?.flatMap((o: { localStorage?: { name: string; value: string }[] }) => o.localStorage ?? []) ?? []
+    const authEntry = localStorageEntries.find((e: { name: string }) => e.name.startsWith('@@auth0spajs@@'))
+    if (!authEntry) return false
+    const { expiresAt } = JSON.parse(authEntry.value) as { expiresAt?: number }
+    return typeof expiresAt === 'number' && expiresAt > Math.floor(Date.now() / 1000) + 60
+  } catch {
+    return false
+  }
+}
+
 export async function setupAdminAuth(baseUrl: string): Promise<void> {
   const email = process.env.E2E_ADMIN_EMAIL
   const password = process.env.E2E_ADMIN_PASSWORD

@@ -95,7 +95,8 @@ export default function AdminMembersPage() {
       .filter((m) => {
         const firstName = m.displayFirstName || ""
         const lastName = m.displayLastName || ""
-        const matchesSearch = `${firstName} ${lastName}`.toLowerCase().includes(searchQueryLower)
+        const email = m.personalInfo?.email || ""
+        const matchesSearch = `${firstName} ${lastName} ${email}`.toLowerCase().includes(searchQueryLower)
         
         const lastCheckIn = lastCheckInMap[String(m._id)]
         const isCheckedInToday = !!lastCheckIn && new Date(lastCheckIn).toDateString() === todayDateString
