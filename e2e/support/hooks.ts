@@ -10,7 +10,7 @@ Before(async function (this: PlaywrightWorld, { pickle }: ITestCaseHookParameter
   const isAdmin = pickle.tags.some(tag => tag.name === '@admin')
   this.useAdminAuth = isAdmin
   if (isAdmin) {
-    if (fs.existsSync(ADMIN_STORAGE_STATE) && !isAdminStateValid()) {
+    if (fs.existsSync(ADMIN_STORAGE_STATE) && !isAdminStateValid(BASE_URL)) {
       console.log('[auth] Cached admin state is stale — deleting and re-authenticating')
       fs.unlinkSync(ADMIN_STORAGE_STATE)
     }

@@ -45,12 +45,45 @@ Then('I should see the test guest in the results', async function (this: Playwri
   await expect(firstMember).toBeVisible({ timeout: 10000 })
 })
 
-When('I delete the test guest', async function (this: PlaywrightWorld) {
+When('I expand the test guest details', async function (this: PlaywrightWorld) {
   const card = this.adminPage!.getByTestId('member-card').first()
   await card.click()
+})
+
+Then('the Square Customer ID field should be populated', async function (this: PlaywrightWorld) {
+  const input = this.adminPage!.getByRole('textbox', { name: 'Square Customer ID' })
+  await expect(input).not.toHaveValue('')
+})
+
+Then('the member status should be {string}', async function (this: PlaywrightWorld, status: string) {
+  const select = this.adminPage!.locator('select[name="memberStatus"]')
+  await expect(select).toHaveValue(status, { timeout: 30000 })
+})
+
+Then('the profile should be complete', async function (this: PlaywrightWorld) {
+  const checkbox = this.adminPage!.getByRole('checkbox', { name: 'Profile complete' })
+  await expect(checkbox).toBeChecked()
+})
+
+When('I wait for the enrollment to finish processing', async function (this: PlaywrightWorld) {
+  // Allow time for Square webhook to process the payment and update member status
+  await this.page.waitForTimeout(5000)
+})
+
+When('I view the recent transactions', async function (this: PlaywrightWorld) {
+  const viewBtn = this.adminPage!.getByRole('button', { name: 'View last 3 months' })
+  await viewBtn.click()
+})
+
+Then('I should see a transaction for the intro enrollment', async function (this: PlaywrightWorld) {
+  const transactionList = this.adminPage!.getByTestId('transaction-list')
+  await expect(transactionList).toContainText('Introduction to Historical European Martial Arts', { timeout: 30000 })
+})
+
+When('I delete the test guest', async function (this: PlaywrightWorld) {
   const deleteBtn = this.adminPage!.getByRole('button', { name: 'Delete member' })
   await deleteBtn.waitFor({ state: 'visible', timeout: 5000 })
-  await deleteBtn.click()
+  await deleteBtn.click({ force: true })
 })
 
 When('I confirm the deletion', async function (this: PlaywrightWorld) {

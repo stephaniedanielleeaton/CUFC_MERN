@@ -4,10 +4,13 @@ import * as fs from 'node:fs'
 
 export const ADMIN_STORAGE_STATE = path.join(__dirname, '..', '.auth', 'admin.json')
 
-export function isAdminStateValid(): boolean {
+export function isAdminStateValid(baseUrl: string): boolean {
   if (!fs.existsSync(ADMIN_STORAGE_STATE)) return false
   try {
     const state = JSON.parse(fs.readFileSync(ADMIN_STORAGE_STATE, 'utf8'))
+    const expectedOrigin = new URL(baseUrl).origin
+    const hasOrigin = state.origins?.some((o: { origin: string }) => o.origin === expectedOrigin)
+    if (!hasOrigin) return false
     const localStorageEntries = state.origins
       ?.flatMap((o: { localStorage?: { name: string; value: string }[] }) => o.localStorage ?? []) ?? []
     const authEntry = localStorageEntries.find((e: { name: string }) => e.name.startsWith('@@auth0spajs@@'))
