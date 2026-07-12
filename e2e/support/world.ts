@@ -3,6 +3,7 @@ import { Browser, BrowserContext, Page, chromium } from 'playwright'
 import * as fs from 'node:fs'
 import { ADMIN_STORAGE_STATE, isAdminStateValid, setupAdminAuth } from './auth'
 import { BASE_URL } from './config'
+import { TestFixtures, createTestFixtures, CreatedIntroClass } from './fixtures'
 
 export class PlaywrightWorld extends World {
   browser!: Browser
@@ -14,8 +15,13 @@ export class PlaywrightWorld extends World {
   testGuestEmail?: string
   testGuestName?: string
 
+  // Test fixtures for Square data setup
+  fixtures!: TestFixtures
+  createdIntroClass?: CreatedIntroClass
+
   constructor(options: IWorldOptions) {
     super(options)
+    this.fixtures = createTestFixtures()
   }
 
   async init(): Promise<void> {
@@ -67,6 +73,11 @@ export class PlaywrightWorld extends World {
   }
 
   async cleanup(): Promise<void> {
+    // Clean up test data created during this scenario (only if fixtures were used)
+    if (this.createdIntroClass) {
+      await this.fixtures.introClass.cleanup()
+    }
+
     await this.adminPage?.close()
     await this.adminContext?.close()
     await this.context?.close()

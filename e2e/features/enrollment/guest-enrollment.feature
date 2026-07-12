@@ -1,11 +1,12 @@
-@enrollment
+@enrollment @fixtures
 Feature: Guest Enrollment
   As a prospective member browsing the site
   I want to start enrolling in an intro class without creating an account
   So that I can quickly complete my enrollment as a guest
 
   Scenario: Guest enrolls, admin verifies the record, and admin cleans up the test user
-    Given I am on the home page
+    Given an existing intro class is available with 5 spots
+    And I am on the home page
     When I select the first available intro class
     And I click "Enroll Now"
     And I click "Continue as Guest"

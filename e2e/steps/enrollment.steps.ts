@@ -31,6 +31,13 @@ When('I select the first available intro class', async function (this: Playwrigh
   await firstItem.click()
 })
 
+When('I select the {string} intro class', async function (this: PlaywrightWorld, className: string) {
+  const classList = this.page.getByRole('list', { name: 'Available Intro Classes' })
+  await classList.waitFor({ state: 'visible', timeout: 15000 })
+  const classButton = classList.getByRole('button', { name: className })
+  await classButton.click()
+})
+
 When('I click {string}', async function (this: PlaywrightWorld, label: string) {
   await this.page.getByRole('button', { name: label }).click()
 })
@@ -87,4 +94,10 @@ When('I complete the Square sandbox checkout', async function (this: PlaywrightW
 
 Then('I should be back on the home page', async function (this: PlaywrightWorld) {
   await expect(this.page).toHaveURL(`${BASE_URL}/`)
+})
+
+When('I view the intro class offerings', async function (this: PlaywrightWorld) {
+  // Wait for the intro class offerings section to load
+  const classList = this.page.getByRole('list', { name: 'Available Intro Classes' })
+  await classList.waitFor({ state: 'visible', timeout: 15000 })
 })
