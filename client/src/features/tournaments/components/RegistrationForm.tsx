@@ -123,12 +123,6 @@ export function RegistrationForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm">
-          {error}
-        </div>
-      )}
-
       {/* Sign In Prompt - Not authenticated */}
       {!isAuthenticated && (
         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -374,6 +368,11 @@ export function RegistrationForm({
       </div>
 
       {/* Submit */}
+      {error && (
+        <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
       <button
         type="submit"
         disabled={!isValid || loading}

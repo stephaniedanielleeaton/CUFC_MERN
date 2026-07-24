@@ -9,6 +9,7 @@ import {
   ClubAffiliationDto,
   RegistrationRequestDto,
   RegistrationResponseDto,
+  EventDto,
 } from '../dto';
 import { EmailList } from '../../../models/EmailList';
 import { memberProfileService } from '../../../services/memberProfileService';
@@ -64,6 +65,9 @@ export class RegistrationService {
     if (!tournament) {
       throw new RegistrationError('Tournament not found', 404);
     }
+
+    // Validate that selected events are not at capacity
+    this.validateEventCapacity(tournament.events, request.selectedEvents);
 
     let userId: string | undefined;
     let hasExistingRegistration = false;
@@ -249,6 +253,24 @@ export class RegistrationService {
       }
     } catch (error) {
       console.error('Failed to add email to tournament list:', error);
+    }
+  }
+
+  private validateEventCapacity(events: EventDto[], selectedEvents: SelectedEventDto[]): void {
+    const eventMap = new Map(events.map(e => [e.m2EventId, e]));
+
+    for (const selected of selectedEvents) {
+      const event = eventMap.get(selected.m2EventId);
+      if (!event) {
+        throw new RegistrationError(`Event ${selected.eventName} not found in tournament`, 400);
+      }
+
+      if (event.participantsCap && event.participantsCount >= event.participantsCap) {
+        throw new RegistrationError(
+          `Event "${event.eventName}" is at capacity (${event.participantsCount}/${event.participantsCap}). Please select a different event.`,
+          400
+        );
+      }
     }
   }
 
