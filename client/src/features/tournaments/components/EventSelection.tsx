@@ -27,6 +27,9 @@ export function EventSelection({ events, selectedEvents, onSelectionChange, base
   const selectedIds = new Set(selectedEvents.map(e => e.m2EventId));
 
   const handleToggle = (event: EventDto) => {
+    const isFull = event.participantsCap && event.participantsCount >= event.participantsCap;
+    if (isFull) return;
+
     if (selectedIds.has(event.m2EventId)) {
       onSelectionChange(selectedEvents.filter(e => e.m2EventId !== event.m2EventId));
     } else {
@@ -68,20 +71,24 @@ export function EventSelection({ events, selectedEvents, onSelectionChange, base
               {grouped.get(date)?.map(event => {
                 const isSelected = selectedIds.has(event.m2EventId);
                 const time = formatEventTime(event.startTime);
+                const isFull = !!(event.participantsCap && event.participantsCount >= event.participantsCap);
                 return (
                   <label
                     key={event.m2EventId}
-                    className={`flex items-start gap-4 p-4 border rounded-lg cursor-pointer transition-colors ${
-                      isSelected
-                        ? 'border-navy bg-light-navy'
-                        : 'border-gray-200 hover:border-gray-300'
+                    className={`flex items-start gap-4 p-4 border rounded-lg transition-colors ${
+                      isFull
+                        ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                        : isSelected
+                          ? 'border-navy bg-light-navy cursor-pointer'
+                          : 'border-gray-200 hover:border-gray-300 cursor-pointer'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => handleToggle(event)}
-                      className="mt-1 h-5 w-5 text-navy rounded border-gray-300 focus:ring-navy"
+                      disabled={isFull}
+                      className="mt-1 h-5 w-5 text-navy rounded border-gray-300 focus:ring-navy disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <div className="flex-grow min-w-0">
                       <div className="font-medium text-gray-800">{event.eventName}</div>
@@ -89,9 +96,10 @@ export function EventSelection({ events, selectedEvents, onSelectionChange, base
                         {event.weapon}
                         {time && ` • ${time}`}
                       </div>
-                      <div className="text-sm text-gray-400 mt-1">
+                      <div className={`text-sm mt-1 ${isFull ? 'text-red-600 font-medium' : 'text-gray-400'}`}>
                         {event.participantsCount} registered
                         {event.participantsCap && ` / ${event.participantsCap} max`}
+                        {isFull && ' - FULL'}
                       </div>
                     </div>
                     <div className="text-navy font-semibold whitespace-nowrap">
