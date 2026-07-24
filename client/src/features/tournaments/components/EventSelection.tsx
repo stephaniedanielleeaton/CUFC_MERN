@@ -28,7 +28,10 @@ export function EventSelection({ events, selectedEvents, onSelectionChange, base
 
   const handleToggle = (event: EventDto) => {
     const isFull = event.participantsCap && event.participantsCount >= event.participantsCap;
-    if (isFull) return;
+    
+    if (isFull && !selectedIds.has(event.m2EventId)) {
+      return;
+    }
 
     if (selectedIds.has(event.m2EventId)) {
       onSelectionChange(selectedEvents.filter(e => e.m2EventId !== event.m2EventId));
