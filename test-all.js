@@ -72,7 +72,12 @@ async function main() {
   const root = realpathSync.native(__dirname)
 
   console.log('Starting API server...')
-  const apiServer = spawn('npm', ['run', 'dev:server'], { shell: true, stdio: 'pipe', cwd: root })
+  const apiServer = spawn('npm', ['run', 'dev:server'], {
+    shell: true,
+    stdio: 'pipe',
+    cwd: root,
+    env: { ...process.env, NODE_ENV: 'test' }
+  })
 
   apiServer.stdout.on('data', d => process.stdout.write(d))
   apiServer.stderr.on('data', d => process.stderr.write(d))

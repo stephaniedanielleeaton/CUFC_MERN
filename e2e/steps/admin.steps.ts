@@ -27,12 +27,12 @@ When('I search for {string}', async function (this: PlaywrightWorld, query: stri
   await searchInput.fill(query)
 })
 
-When('I search for the test guest', async function (this: PlaywrightWorld) {
-  if (!this.testGuestEmail) {
-    throw new Error('No test guest email was recorded; ensure the guest enrollment step ran first')
+When('I search for the test account', async function (this: PlaywrightWorld) {
+  if (!this.testAccountEmail) {
+    throw new Error('No test account email was recorded; ensure the enrollment step ran first')
   }
   const searchInput = this.adminPage!.getByTestId('member-search-input')
-  await searchInput.fill(this.testGuestEmail)
+  await searchInput.fill(this.testAccountEmail)
 })
 
 Then('I should see at least one member in the results', async function (this: PlaywrightWorld) {
@@ -40,12 +40,12 @@ Then('I should see at least one member in the results', async function (this: Pl
   await expect(firstMember).toBeVisible({ timeout: 10000 })
 })
 
-Then('I should see the test guest in the results', async function (this: PlaywrightWorld) {
+Then('I should see the test account in the results', async function (this: PlaywrightWorld) {
   const firstMember = this.adminPage!.getByTestId('member-card').first()
   await expect(firstMember).toBeVisible({ timeout: 10000 })
 })
 
-When('I expand the test guest details', async function (this: PlaywrightWorld) {
+When('I expand the test account details', async function (this: PlaywrightWorld) {
   const card = this.adminPage!.getByTestId('member-card').first()
   await card.click()
 })
@@ -80,7 +80,7 @@ Then('I should see a transaction for the intro enrollment', async function (this
   await expect(transactionList).toContainText('Introduction to Historical European Martial Arts', { timeout: 30000 })
 })
 
-When('I delete the test guest', async function (this: PlaywrightWorld) {
+When('I delete the test account', async function (this: PlaywrightWorld) {
   const deleteBtn = this.adminPage!.getByRole('button', { name: 'Delete member' })
   await deleteBtn.waitFor({ state: 'visible', timeout: 5000 })
   await deleteBtn.click({ force: true })
@@ -93,6 +93,6 @@ When('I confirm the deletion', async function (this: PlaywrightWorld) {
   await expect(this.adminPage!.getByText('Delete this member?')).toBeHidden({ timeout: 5000 })
 })
 
-Then('the test guest should no longer appear in the results', async function (this: PlaywrightWorld) {
+Then('the test account should no longer appear in the results', async function (this: PlaywrightWorld) {
   await expect(this.adminPage!.getByTestId('member-card')).toHaveCount(0, { timeout: 10000 })
 })

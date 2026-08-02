@@ -1,7 +1,7 @@
 import { Before, After, BeforeAll, setDefaultTimeout, ITestCaseHookParameter } from '@cucumber/cucumber'
 import * as fs from 'node:fs'
 import { PlaywrightWorld } from './world'
-import { setupAdminAuth, ADMIN_STORAGE_STATE, isAdminStateValid } from './auth'
+import { setupAdminAuth, ADMIN_STORAGE_STATE, isAdminStateValid, resetAdminProfileToIncomplete } from './auth'
 import { BASE_URL } from './config'
 import { SquareTestClient } from './fixtures/square-client'
 
@@ -27,6 +27,10 @@ BeforeAll(async function () {
   if (deleted > 0) {
     console.log(`[hooks] Cleaned up ${deleted} stale test variation(s)`)
   }
+
+  // Ensure the authenticated enrollment scenario starts with an incomplete profile
+  // so it can exercise the full "complete profile and checkout" flow.
+  await resetAdminProfileToIncomplete(BASE_URL)
 })
 
 Before(async function (this: PlaywrightWorld, { pickle }: ITestCaseHookParameter) {

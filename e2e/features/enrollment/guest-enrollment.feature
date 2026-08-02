@@ -1,10 +1,9 @@
 @enrollment @fixtures
-Feature: Guest Enrollment
+Feature: Intro Class Enrollment
   As a prospective member browsing the site
-  I want to start enrolling in an intro class without creating an account
-  So that I can quickly complete my enrollment as a guest
+  I want to enroll in an intro class
 
-  Scenario: Guest enrolls, admin verifies the record, and admin cleans up the test user
+  Scenario: Guest enrolls, admin verifies the record, and admin cleans up the test account
     Given an existing intro class is available with 5 spots
     And I am on the home page
     When I select the first available intro class
@@ -20,14 +19,46 @@ Feature: Guest Enrollment
     When I sign in as an admin
     And I navigate to the admin members page
     And I click the "All" status filter
-    And I search for the test guest
-    Then I should see the test guest in the results
-    When I expand the test guest details
+    And I search for the test account
+    Then I should see the test account in the results
+    When I expand the test account details
     Then the Square Customer ID field should be populated
     And the member status should be "Enrolled"
     And the profile should be complete
     When I view the recent transactions
     Then I should see a transaction for the intro enrollment
-    When I delete the test guest
+    When I delete the test account
     And I confirm the deletion
-    Then the test guest should no longer appear in the results
+    Then the test account should no longer appear in the results
+
+  Scenario: User signs in to enroll, completes profile, and checks out
+    Given an existing intro class is available with 5 spots
+    And I am on the home page
+    When I select the first available intro class
+    And I click "Enroll Now"
+    And I click "Sign In to Continue"
+    Then I should be redirected to the Auth0 login page
+    When I complete the Auth0 login
+    Then I should be on the pending enrollment page
+    When I complete my profile
+    Then I should be redirected to a checkout page
+    When I complete the Square sandbox checkout
+    Then I should be on the dashboard
+    And I wait for the enrollment to finish processing
+    Then I should see my intro class enrollment on the dashboard
+    When I navigate to my payment history
+    Then I should see the intro class payment in my payment history
+    When I sign in as an admin
+    And I navigate to the admin members page
+    And I click the "All" status filter
+    And I search for the test account
+    Then I should see the test account in the results
+    When I expand the test account details
+    Then the Square Customer ID field should be populated
+    And the member status should be "Enrolled"
+    And the profile should be complete
+    When I view the recent transactions
+    Then I should see a transaction for the intro enrollment
+    When I delete the test account
+    And I confirm the deletion
+    Then the test account should no longer appear in the results

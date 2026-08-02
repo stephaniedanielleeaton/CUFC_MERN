@@ -12,8 +12,8 @@ export class PlaywrightWorld extends World {
   adminContext?: BrowserContext
   adminPage?: Page
   useAdminAuth: boolean = false
-  testGuestEmail?: string
-  testGuestName?: string
+  testAccountEmail?: string
+  selectedVariationName?: string
 
   // Test fixtures for Square data setup
   fixtures!: TestFixtures
@@ -42,9 +42,19 @@ export class PlaywrightWorld extends World {
       // ourselves with a tiny HTML page that immediately posts `login_required` via
       // postMessage — identical to what auth0.com would do, so the SDK resolves
       // isLoading=false instantly.
+      //
+      // IMPORTANT: Only intercept silent auth requests (prompt=none), not actual login redirects.
       const appOrigin = new URL(BASE_URL).origin
       await this.context.route(/auth0\.com\/authorize/, async route => {
         const reqUrl = new URL(route.request().url())
+        const prompt = reqUrl.searchParams.get('prompt')
+        
+        // Only intercept silent auth (prompt=none), let actual logins through
+        if (prompt !== 'none') {
+          await route.continue()
+          return
+        }
+        
         const state = reqUrl.searchParams.get('state') ?? ''
         const html =
           `<!DOCTYPE html><html><body><script>` +

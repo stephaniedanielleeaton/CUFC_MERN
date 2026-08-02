@@ -3,7 +3,7 @@
     "requireModule": ["tsx/cjs"],
     "require": ["support/**/*.ts", "steps/**/*.ts"],
     "paths": ["features/**/*.feature"],
-    "format": ["progress-bar", "html:reports/cucumber-report.html"],
+    "format": ["progress-bar", "html:reports/cucumber-report.html", "json:reports/cucumber-report.json"],
     "formatOptions": { "snippetInterface": "async-await" }
   }
 }
