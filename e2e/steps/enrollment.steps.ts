@@ -1,7 +1,79 @@
 import { Given, When, Then } from '@cucumber/cucumber'
 import { expect } from '@playwright/test'
+import type { Page } from 'playwright'
 import { PlaywrightWorld } from '../support/world'
 import { BASE_URL } from '../support/config'
+
+async function getAccessToken(page: Page): Promise<string> {
+  const token = await page.evaluate(() => {
+    for (const key of Object.keys(window.localStorage)) {
+      if (!key.startsWith('@@auth0spajs@@')) continue
+      const value = window.localStorage.getItem(key)
+      if (!value) continue
+      const parsed = JSON.parse(value) as { body?: { access_token?: string } }
+      if (parsed.body?.access_token) return parsed.body.access_token
+    }
+    return null
+  })
+
+  if (!token) {
+    throw new Error('Auth0 access token was not found in local storage')
+  }
+
+  return token
+}
+
+async function fillRequiredProfileFields(page: Page): Promise<void> {
+  const firstNameInput = page.locator('[name="displayFirstName"]')
+  if (await firstNameInput.inputValue() === '') {
+    await firstNameInput.fill('Test')
+  }
+
+  const lastNameInput = page.locator('[name="displayLastName"]')
+  if (await lastNameInput.inputValue() === '') {
+    await lastNameInput.fill('User')
+  }
+
+  const legalFirstInput = page.locator('[name="legalFirstName"]')
+  if (await legalFirstInput.inputValue() === '') {
+    await legalFirstInput.fill('Test')
+  }
+
+  const legalLastInput = page.locator('[name="legalLastName"]')
+  if (await legalLastInput.inputValue() === '') {
+    await legalLastInput.fill('User')
+  }
+
+  const dateOfBirthInput = page.locator('[name="dateOfBirth"]')
+  if (await dateOfBirthInput.inputValue() === '') {
+    await dateOfBirthInput.fill('1990-01-15')
+  }
+
+  const streetInput = page.locator('[name="street"]')
+  if (await streetInput.inputValue() === '') {
+    await streetInput.fill('123 Test Street')
+  }
+
+  const cityInput = page.locator('[name="city"]')
+  if (await cityInput.inputValue() === '') {
+    await cityInput.fill('Washington')
+  }
+
+  const stateInput = page.locator('[name="state"]')
+  if (await stateInput.inputValue() === '') {
+    await stateInput.fill('DC')
+  }
+
+  const zipInput = page.locator('[name="zip"]')
+  if (await zipInput.inputValue() === '') {
+    await zipInput.fill('20001')
+  }
+
+  const emailInput = page.locator('[name="email"]')
+  if (await emailInput.inputValue() === '') {
+    await emailInput.fill('columbusunitedfencingclub@gmail.com')
+  }
+}
 
 Given('I am on the home page', async function (this: PlaywrightWorld) {
   await this.page.goto(BASE_URL)
@@ -202,12 +274,47 @@ Then('I should be on the dashboard', async function (this: PlaywrightWorld) {
   await expect(this.page).toHaveURL(`${BASE_URL}/dashboard`, { timeout: 15000 })
 })
 
+When('I choose to sign up for an intro class from the dashboard', async function (this: PlaywrightWorld) {
+  await this.page.getByText('Sign Up For An Intro Class').click()
+})
+
+Then('I should be asked to complete my profile before enrolling', async function (this: PlaywrightWorld) {
+  await expect(this.page.getByText(/Complete your profile.*to enroll/i)).toBeVisible({ timeout: 15000 })
+})
+
+When('I follow the complete profile prompt', async function (this: PlaywrightWorld) {
+  await this.page.getByRole('link', { name: 'Complete your profile' }).click()
+})
+
+When('I create my profile', async function (this: PlaywrightWorld) {
+  await this.page.getByRole('heading', { name: /Welcome to CUFC!/i }).waitFor({ state: 'visible', timeout: 15000 })
+  await fillRequiredProfileFields(this.page)
+  await this.page.getByRole('button', { name: /Create Profile/i }).click()
+  await this.page.waitForLoadState('networkidle')
+})
+
 Then('I should see my intro class enrollment on the dashboard', async function (this: PlaywrightWorld) {
   if (!this.selectedVariationName) {
     throw new Error('No variation name was captured during class selection')
   }
+
+  const token = await getAccessToken(this.page)
+  const response = await this.page.request.get(`${BASE_URL}/api/members/me/intro-enrollment`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+
+  if (!response.ok()) {
+    throw new Error(`Failed to fetch intro enrollment: ${response.status()} ${await response.text()}`)
+  }
+
+  const body = await response.json() as { enrollment?: { variationName?: string } | null }
+  if (!body.enrollment) {
+    throw new Error('Intro enrollment API returned no enrollment for the signed-in member')
+  }
+
+  await this.page.reload({ waitUntil: 'networkidle' })
   const enrollmentCard = this.page.getByTestId('intro-enrollment-card')
-  await expect(enrollmentCard).toContainText(this.selectedVariationName, { timeout: 10000 })
+  await expect(enrollmentCard).toContainText(this.selectedVariationName, { timeout: 5000 })
 })
 
 Then('I should see the intro class payment in my payment history', async function (this: PlaywrightWorld) {

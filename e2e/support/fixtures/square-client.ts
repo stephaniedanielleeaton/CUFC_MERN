@@ -337,4 +337,63 @@ export class SquareTestClient {
 
     return deleted
   }
+
+  /**
+   * Search for a Square customer by email address.
+   */
+  async searchCustomerByEmail(email: string): Promise<{ id: string } | null> {
+    const body = {
+      query: {
+        filter: {
+          email_address: { exact: email },
+        },
+      },
+    }
+
+    const response = await fetch(`${this.baseUrl}/customers/search`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    const data = await response.json() as { customers?: { id: string }[] }
+    return data.customers?.[0] ?? null
+  }
+
+  /**
+   * Delete a Square customer by ID.
+   */
+  async deleteCustomer(customerId: string): Promise<boolean> {
+    const response = await fetch(`${this.baseUrl}/customers/${customerId}`, {
+      method: 'DELETE',
+      headers: this.headers,
+    })
+
+    if (!response.ok && response.status !== 404) {
+      const error = await response.json()
+      console.warn(`[SquareTestClient] Failed to delete customer ${customerId}:`, JSON.stringify(error))
+      return false
+    }
+
+    return true
+  }
+
+  /**
+   * Delete a Square customer by email address if it exists.
+   */
+  async deleteCustomerByEmail(email: string): Promise<boolean> {
+    const customer = await this.searchCustomerByEmail(email)
+    if (!customer) {
+      return false
+    }
+    const deleted = await this.deleteCustomer(customer.id)
+    if (deleted) {
+      console.log(`[SquareTestClient] Deleted Square customer ${customer.id} for email ${email}`)
+    }
+    return deleted
+  }
 }

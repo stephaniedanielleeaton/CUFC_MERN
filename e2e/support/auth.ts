@@ -1,6 +1,7 @@
 import { chromium } from 'playwright'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
+import { createTestFixtures } from './fixtures'
 
 export const ADMIN_STORAGE_STATE = path.join(__dirname, '..', '.auth', 'admin.json')
 
@@ -88,12 +89,12 @@ export async function setupAdminAuth(baseUrl: string): Promise<void> {
   }
 }
 
-export async function resetAdminProfileToIncomplete(baseUrl: string): Promise<void> {
+export async function cleanEnrollmentTestAccount(baseUrl: string): Promise<void> {
   const email = process.env.E2E_ADMIN_EMAIL
   const password = process.env.E2E_ADMIN_PASSWORD
 
   if (!email || !password) {
-    console.log('[auth] Admin credentials not set — skipping profile reset')
+    console.log('[auth] Admin credentials not set — skipping enrollment test account cleanup')
     return
   }
 
@@ -113,38 +114,36 @@ export async function resetAdminProfileToIncomplete(baseUrl: string): Promise<vo
       throw new Error('Cached admin access token not found')
     }
 
+    await createTestFixtures().deleteSquareCustomerByEmail(email)
+
     const context = await browser.newContext({ storageState: ADMIN_STORAGE_STATE })
-    const request = context.request
-    const headers = { Authorization: `Bearer ${accessToken}` }
+    try {
+      const request = context.request
+      const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
 
-    const profileResponse = await request.get(`${baseUrl}/api/members/me`, { headers })
-    if (!profileResponse.ok()) {
-      throw new Error(`Failed to fetch admin profile: ${profileResponse.status()} ${await profileResponse.text()}`)
-    }
+      const profileResponse = await request.get(`${baseUrl}/api/members/me`, { headers })
+      if (!profileResponse.ok()) {
+        throw new Error(`Failed to fetch admin profile: ${profileResponse.status()} ${await profileResponse.text()}`)
+      }
 
-    const { profile } = await profileResponse.json() as { profile: { _id: string; profileComplete?: boolean } | null }
-    if (!profile) {
-      console.log('[auth] Admin profile not found — no reset needed')
+      const profileBody = await profileResponse.json() as { profile: { _id: string; profileComplete?: boolean; squareCustomerId?: string } | null }
+
+      if (!profileBody.profile) {
+        console.log('[auth] Admin profile not found — no profile cleanup needed')
+        return
+      }
+
+      const profile = profileBody.profile
+
+      const deleteResponse = await request.delete(`${baseUrl}/api/admin/members/${profile._id}`, { headers })
+      if (!deleteResponse.ok() && deleteResponse.status() !== 404) {
+        throw new Error(`Failed to delete admin profile: ${deleteResponse.status()} ${await deleteResponse.text()}`)
+      }
+
+      console.log(`[auth] Deleted admin profile ${profile._id} for clean enrollment scenario state`)
+    } finally {
       await context.close()
-      return
     }
-
-    if (profile.profileComplete === false) {
-      console.log('[auth] Admin profile is already incomplete — no reset needed')
-      await context.close()
-      return
-    }
-
-    const updateResponse = await request.post(`${baseUrl}/api/members/me/update`, {
-      headers,
-      data: { data: { profileComplete: false } },
-    })
-    if (!updateResponse.ok()) {
-      throw new Error(`Failed to reset admin profile: ${updateResponse.status()} ${await updateResponse.text()}`)
-    }
-
-    console.log(`[auth] Reset admin profile ${profile._id} to incomplete`)
-    await context.close()
   } finally {
     await browser.close()
   }

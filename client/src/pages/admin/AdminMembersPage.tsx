@@ -44,7 +44,7 @@ export default function AdminMembersPage() {
       setLoading(false)
       
       if (membersList.length > 0) {
-        loadSquareStatusForMembers(token, membersList)
+        loadSquareStatusForMembers(token)
       } else {
         setSquareStatusLoading(false)
       }
@@ -55,11 +55,10 @@ export default function AdminMembersPage() {
     }
   }
 
-  const loadSquareStatusForMembers = async (token: string, membersList: MemberProfileDTO[]) => {
+  const loadSquareStatusForMembers = async (token: string) => {
     try {
       const { activeSubscriberIds, dropInCustomerIds } = await fetchSquareSubscriptionStatus(token)
-      const enrichedMembers = enrichMembersWithSquareStatus(membersList, activeSubscriberIds, dropInCustomerIds)
-      setMembers(enrichedMembers)
+      setMembers((previousMembers) => enrichMembersWithSquareStatus(previousMembers, activeSubscriberIds, dropInCustomerIds))
     } catch (err) {
       console.error('Failed to load Square status:', err)
     } finally {

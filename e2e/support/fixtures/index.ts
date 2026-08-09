@@ -14,6 +14,8 @@ import { IntroClassFixture } from './intro-class-fixture'
 
 export interface TestFixtures {
   introClass: IntroClassFixture
+  cleanupTestVariations(): Promise<number>
+  deleteSquareCustomerByEmail(email: string): Promise<boolean>
 }
 
 /**
@@ -52,6 +54,12 @@ export function createTestFixtures(): TestFixtures {
     get introClass(): IntroClassFixture {
       _introClass ??= new IntroClassFixture(getClient(), getIntroClassCatalogId())
       return _introClass
+    },
+    async cleanupTestVariations(): Promise<number> {
+      return getClient().cleanupTestVariations()
+    },
+    async deleteSquareCustomerByEmail(email: string): Promise<boolean> {
+      return getClient().deleteCustomerByEmail(email)
     },
   }
 }

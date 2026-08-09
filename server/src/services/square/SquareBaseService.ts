@@ -14,6 +14,7 @@ export abstract class SquareBaseService {
 
   protected logError(error: unknown): void {
     const summary = error instanceof Error ? error.message : String(error)
+    if (summary.includes('CUSTOMER_NOT_FOUND')) return
     console.error(`[${this.constructor.name}] ${summary}`)
   }
 }
