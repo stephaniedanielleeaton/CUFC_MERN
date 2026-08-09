@@ -79,6 +79,10 @@ Given('I am on the home page', async function (this: PlaywrightWorld) {
   await this.page.goto(BASE_URL)
 })
 
+When('I navigate to the dashboard', async function (this: PlaywrightWorld) {
+  await this.page.goto(`${BASE_URL}/dashboard`)
+})
+
 When('I select the first available intro class', async function (this: PlaywrightWorld) {
   const classList = this.page.getByRole('list', { name: 'Available Intro Classes' })
   try {
@@ -184,7 +188,7 @@ When('I view the intro class offerings', async function (this: PlaywrightWorld) 
 // Authenticated enrollment steps
 
 Then('I should be redirected to the Auth0 login page', async function (this: PlaywrightWorld) {
-  await this.page.waitForURL(/auth0\.com/, { timeout: 15000 })
+  await expect.poll(() => this.page.url(), { timeout: 15000 }).toContain('auth0.com')
 })
 
 When('I complete the Auth0 login', async function (this: PlaywrightWorld) {

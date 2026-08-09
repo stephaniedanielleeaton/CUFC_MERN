@@ -3,6 +3,13 @@ Feature: New Member Enrollment
   As a prospective member browsing the site
   I want to enroll in an intro class
 
+  Scenario: Unauthenticated user signs in from the dashboard and returns to the dashboard
+    Given the enrollment test account is clean
+    When I navigate to the dashboard
+    Then I should be redirected to the Auth0 login page
+    When I complete the Auth0 login
+    Then I should be on the dashboard
+
   Scenario: User enrolls in an intro class as a guest user
     Given an existing intro class is available with 5 spots
     And I am on the home page
