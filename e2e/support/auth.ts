@@ -1,7 +1,6 @@
 import { chromium } from 'playwright'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
-import { createTestFixtures } from './fixtures'
 
 export const ADMIN_STORAGE_STATE = path.join(__dirname, '..', '.auth', 'admin.json')
 
@@ -38,8 +37,14 @@ export function isAdminStateValid(baseUrl: string): boolean {
   return typeof authEntry?.expiresAt === 'number' && authEntry.expiresAt > Math.floor(Date.now() / 1000) + 60
 }
 
-function getAdminAccessToken(baseUrl: string): string | null {
+export function getAdminAccessToken(baseUrl: string): string | null {
   return getAdminAuth0CacheEntry(baseUrl)?.body?.access_token ?? null
+}
+
+export async function ensureAdminAuth(baseUrl: string): Promise<void> {
+  if (!fs.existsSync(ADMIN_STORAGE_STATE) || !isAdminStateValid(baseUrl)) {
+    await setupAdminAuth(baseUrl)
+  }
 }
 
 export async function performAuth0Login(
@@ -84,66 +89,6 @@ export async function setupAdminAuth(baseUrl: string): Promise<void> {
 
     await context.storageState({ path: ADMIN_STORAGE_STATE })
     console.log('[auth] Admin session cached.')
-  } finally {
-    await browser.close()
-  }
-}
-
-export async function cleanEnrollmentTestAccount(baseUrl: string): Promise<void> {
-  const email = process.env.E2E_ADMIN_EMAIL
-  const password = process.env.E2E_ADMIN_PASSWORD
-
-  if (!email || !password) {
-    console.log('[auth] Admin credentials not set — skipping enrollment test account cleanup')
-    return
-  }
-
-  if (!fs.existsSync(ADMIN_STORAGE_STATE) || !isAdminStateValid(baseUrl)) {
-    await setupAdminAuth(baseUrl)
-  }
-
-  const browser = await chromium.launch({
-    headless: false,
-    channel: 'chrome',
-    args: ['--disable-blink-features=AutomationControlled'],
-  })
-
-  try {
-    const accessToken = getAdminAccessToken(baseUrl)
-    if (!accessToken) {
-      throw new Error('Cached admin access token not found')
-    }
-
-    await createTestFixtures().deleteSquareCustomerByEmail(email)
-
-    const context = await browser.newContext({ storageState: ADMIN_STORAGE_STATE })
-    try {
-      const request = context.request
-      const headers = { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' }
-
-      const profileResponse = await request.get(`${baseUrl}/api/members/me`, { headers })
-      if (!profileResponse.ok()) {
-        throw new Error(`Failed to fetch admin profile: ${profileResponse.status()} ${await profileResponse.text()}`)
-      }
-
-      const profileBody = await profileResponse.json() as { profile: { _id: string; profileComplete?: boolean; squareCustomerId?: string } | null }
-
-      if (!profileBody.profile) {
-        console.log('[auth] Admin profile not found — no profile cleanup needed')
-        return
-      }
-
-      const profile = profileBody.profile
-
-      const deleteResponse = await request.delete(`${baseUrl}/api/admin/members/${profile._id}`, { headers })
-      if (!deleteResponse.ok() && deleteResponse.status() !== 404) {
-        throw new Error(`Failed to delete admin profile: ${deleteResponse.status()} ${await deleteResponse.text()}`)
-      }
-
-      console.log(`[auth] Deleted admin profile ${profile._id} for clean enrollment scenario state`)
-    } finally {
-      await context.close()
-    }
   } finally {
     await browser.close()
   }

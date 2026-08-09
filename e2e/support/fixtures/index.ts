@@ -7,13 +7,17 @@
 
 export { SquareTestClient } from './square-client'
 export { IntroClassFixture } from './intro-class-fixture'
+export { EnrollmentAccountFixture } from './enrollment-account-fixture'
 export type { IntroClassVariation, CreatedIntroClass } from './intro-class-fixture'
 
+import { BASE_URL } from '../config'
 import { SquareTestClient } from './square-client'
 import { IntroClassFixture } from './intro-class-fixture'
+import { EnrollmentAccountFixture } from './enrollment-account-fixture'
 
 export interface TestFixtures {
   introClass: IntroClassFixture
+  enrollmentAccount: EnrollmentAccountFixture
   cleanupTestVariations(): Promise<number>
   deleteSquareCustomerByEmail(email: string): Promise<boolean>
 }
@@ -24,6 +28,7 @@ export interface TestFixtures {
  */
 export function createTestFixtures(): TestFixtures {
   let _introClass: IntroClassFixture | null = null
+  let _enrollmentAccount: EnrollmentAccountFixture | null = null
 
   const getClient = (): SquareTestClient => {
     const accessToken = process.env.SQUARE_ACCESS_TOKEN
@@ -54,6 +59,13 @@ export function createTestFixtures(): TestFixtures {
     get introClass(): IntroClassFixture {
       _introClass ??= new IntroClassFixture(getClient(), getIntroClassCatalogId())
       return _introClass
+    },
+    get enrollmentAccount(): EnrollmentAccountFixture {
+      _enrollmentAccount ??= new EnrollmentAccountFixture({
+        baseUrl: BASE_URL,
+        squareClient: getClient(),
+      })
+      return _enrollmentAccount
     },
     async cleanupTestVariations(): Promise<number> {
       return getClient().cleanupTestVariations()

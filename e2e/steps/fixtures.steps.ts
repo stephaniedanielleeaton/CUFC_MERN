@@ -5,8 +5,6 @@
 import { Given, When, Then } from '@cucumber/cucumber'
 import { expect } from '@playwright/test'
 import { PlaywrightWorld } from '../support/world'
-import { BASE_URL } from '../support/config'
-import { cleanEnrollmentTestAccount } from '../support/auth'
 
 /**
  * Add a test variation to the existing intro class catalog item.
@@ -28,8 +26,12 @@ Given(
  * test variations won't be recognized by the webhook.
  * Example: Given an existing intro class is available with 5 spots
  */
-Given('the enrollment test account is clean', async function () {
-  await cleanEnrollmentTestAccount(BASE_URL)
+Given('the enrollment test account is clean', async function (this: PlaywrightWorld) {
+  await this.fixtures.enrollmentAccount.clean()
+})
+
+Given('the enrollment test account has a completed profile', async function (this: PlaywrightWorld) {
+  this.testAccountEmail = await this.fixtures.enrollmentAccount.createCompletedProfile()
 })
 
 Given(
