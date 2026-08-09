@@ -10,6 +10,14 @@ Feature: New Member Enrollment
     When I complete the Auth0 login
     Then I should be on the dashboard
 
+  Scenario: Signed-in user with no profile must create a profile before enrolling
+    Given the enrollment test account is clean
+    When I navigate to the dashboard
+    Then I should be redirected to the Auth0 login page
+    When I complete the Auth0 login
+    Then I should be asked to create my profile
+    And I should not see dashboard enrollment options
+
   Scenario: User enrolls in an intro class as a guest user
     Given an existing intro class is available with 5 spots
     And I am on the home page

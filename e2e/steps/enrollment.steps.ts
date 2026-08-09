@@ -278,6 +278,16 @@ Then('I should be on the dashboard', async function (this: PlaywrightWorld) {
   await expect(this.page).toHaveURL(`${BASE_URL}/dashboard`, { timeout: 15000 })
 })
 
+Then('I should be asked to create my profile', async function (this: PlaywrightWorld) {
+  await expect(this.page.getByRole('heading', { name: /Welcome to CUFC!/i })).toBeVisible({ timeout: 15000 })
+  await expect(this.page.getByRole('button', { name: /Create Profile/i })).toBeVisible()
+})
+
+Then('I should not see dashboard enrollment options', async function (this: PlaywrightWorld) {
+  await expect(this.page.getByRole('heading', { name: 'Class Enrollment' })).toBeHidden()
+  await expect(this.page.getByText('Sign Up For An Intro Class')).toBeHidden()
+})
+
 When('I choose to sign up for an intro class from the dashboard', async function (this: PlaywrightWorld) {
   await this.page.getByText('Sign Up For An Intro Class').click()
 })
