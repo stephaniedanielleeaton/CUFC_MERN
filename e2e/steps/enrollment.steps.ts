@@ -149,6 +149,25 @@ When('I fill in the guest profile form with valid details', async function (this
   await this.page.locator('[name="zip"]').fill('20001')
 })
 
+When('I fill in the guest profile form with the sign-in email', async function (this: PlaywrightWorld) {
+  const email = process.env.E2E_ADMIN_EMAIL
+  if (!email) {
+    throw new Error('Missing E2E_ADMIN_EMAIL env var')
+  }
+
+  this.testAccountEmail = email
+  await this.page.locator('[name="displayFirstName"]').fill('Linked')
+  await this.page.locator('[name="displayLastName"]').fill('Guest')
+  await this.page.locator('[name="legalFirstName"]').fill('Linked')
+  await this.page.locator('[name="legalLastName"]').fill('Guest')
+  await this.page.locator('[name="email"]').fill(email)
+  await this.page.locator('[name="dateOfBirth"]').fill('1990-01-15')
+  await this.page.locator('[name="street"]').fill('123 Test Street')
+  await this.page.locator('[name="city"]').fill('Washington')
+  await this.page.locator('[name="state"]').fill('DC')
+  await this.page.locator('[name="zip"]').fill('20001')
+})
+
 Then('I should be redirected to a checkout page', async function (this: PlaywrightWorld) {
   const appOrigin = new URL(BASE_URL).origin
   await this.page.waitForURL(
