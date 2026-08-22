@@ -181,7 +181,7 @@ Feature: New Member Enrollment
     And I confirm the deletion
     Then the test account should no longer appear in the results
 
-  Scenario: User chooses to enroll into an antro class from the front page, resumes pending enrollment after sign-in and completes checkout
+  Scenario: User chooses to enroll into an an intro class from the front page, resumes pending enrollment after sign-in and completes checkout
     Given the enrollment test account is clean
     And an existing intro class is available with 5 spots
     And I am on the home page
