@@ -1,6 +1,7 @@
 import { chromium } from 'playwright'
 import * as path from 'node:path'
 import * as fs from 'node:fs'
+import { TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD } from './config'
 
 export const ADMIN_STORAGE_STATE = path.join(__dirname, '..', '.auth', 'admin.json')
 
@@ -67,13 +68,6 @@ export async function performAuth0Login(
 }
 
 export async function setupAdminAuth(baseUrl: string): Promise<void> {
-  const email = process.env.E2E_ADMIN_EMAIL
-  const password = process.env.E2E_ADMIN_PASSWORD
-
-  if (!email || !password) {
-    throw new Error('Missing required env vars: E2E_ADMIN_EMAIL, E2E_ADMIN_PASSWORD')
-  }
-
   fs.mkdirSync(path.dirname(ADMIN_STORAGE_STATE), { recursive: true })
 
   const browser = await chromium.launch({
@@ -85,7 +79,7 @@ export async function setupAdminAuth(baseUrl: string): Promise<void> {
   const page = await context.newPage()
 
   try {
-    await performAuth0Login(page, baseUrl, email, password)
+    await performAuth0Login(page, baseUrl, TEST_ADMIN_EMAIL, TEST_ADMIN_PASSWORD)
 
     await context.storageState({ path: ADMIN_STORAGE_STATE })
     console.log('[auth] Admin session cached.')

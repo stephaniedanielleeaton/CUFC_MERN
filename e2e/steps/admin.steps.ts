@@ -1,7 +1,37 @@
 import { Given, When, Then } from '@cucumber/cucumber'
 import { expect } from '@playwright/test'
 import { PlaywrightWorld } from '../support/world'
-import { BASE_URL } from '../support/config'
+import { BASE_URL, TEST_MEMBER_EMAIL } from '../support/config'
+
+Given('the enrollment test account has a completed profile', async function (this: PlaywrightWorld) {
+  this.testAccountEmail = TEST_MEMBER_EMAIL
+  await this.initAdmin()
+  await this.adminPage!.goto(`${BASE_URL}/admin/members`)
+  await this.adminPage!.getByTestId('member-search-input').waitFor({ state: 'visible', timeout: 30000 })
+
+  await this.adminPage!.getByRole('button', { name: '+ Add Member' }).click()
+  await this.adminPage!.locator('#newMemberFirstName').fill('Test')
+  await this.adminPage!.locator('#newMemberLastName').fill('User')
+  await this.adminPage!.locator('#newMemberEmail').fill(TEST_MEMBER_EMAIL)
+  await this.adminPage!.getByRole('button', { name: 'Add Member', exact: true }).click()
+
+  await this.adminPage!.getByTestId('status-filter-all').click()
+  await this.adminPage!.getByTestId('member-search-input').fill(TEST_MEMBER_EMAIL)
+  const memberCard = this.adminPage!.getByTestId('member-card').first()
+  await memberCard.waitFor({ state: 'visible', timeout: 10000 })
+  await memberCard.click()
+
+  await this.adminPage!.getByRole('textbox', { name: 'Legal First Name' }).fill('Test')
+  await this.adminPage!.getByRole('textbox', { name: 'Legal Last Name' }).fill('User')
+  await this.adminPage!.getByRole('textbox', { name: 'Date of Birth' }).fill('1990-01-15')
+  await this.adminPage!.getByRole('textbox', { name: 'Street' }).fill('123 Test Street')
+  await this.adminPage!.getByRole('textbox', { name: 'City' }).fill('Washington')
+  await this.adminPage!.getByRole('textbox', { name: 'State' }).fill('DC')
+  await this.adminPage!.getByRole('textbox', { name: 'ZIP' }).fill('20001')
+  await this.adminPage!.getByText('Profile complete', { exact: true }).click()
+  await this.adminPage!.getByRole('button', { name: 'Save Changes' }).click()
+  await expect(this.adminPage!.getByText('Changes saved')).toBeVisible({ timeout: 10000 })
+})
 
 Given('I am logged in as an admin', async function (this: PlaywrightWorld) {
   await this.initAdmin()

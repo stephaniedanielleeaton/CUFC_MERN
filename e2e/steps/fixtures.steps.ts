@@ -30,10 +30,6 @@ Given('the enrollment test account is clean', async function (this: PlaywrightWo
   await this.fixtures.enrollmentAccount.clean()
 })
 
-Given('the enrollment test account has a completed profile', async function (this: PlaywrightWorld) {
-  this.testAccountEmail = await this.fixtures.enrollmentAccount.createCompletedProfile()
-})
-
 Given(
   'an existing intro class is available with {int} spots',
   async function (this: PlaywrightWorld, spots: number) {

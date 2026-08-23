@@ -2,7 +2,7 @@ import { Given, When, Then } from '@cucumber/cucumber'
 import { expect } from '@playwright/test'
 import type { Page } from 'playwright'
 import { PlaywrightWorld } from '../support/world'
-import { BASE_URL } from '../support/config'
+import { BASE_URL, TEST_MEMBER_EMAIL, TEST_MEMBER_PASSWORD } from '../support/config'
 
 async function getAccessToken(page: Page): Promise<string> {
   const token = await page.evaluate(() => {
@@ -150,11 +150,7 @@ When('I fill in the guest profile form with valid details', async function (this
 })
 
 When('I fill in the guest profile form with the sign-in email', async function (this: PlaywrightWorld) {
-  const email = process.env.E2E_ADMIN_EMAIL
-  if (!email) {
-    throw new Error('Missing E2E_ADMIN_EMAIL env var')
-  }
-
+  const email = TEST_MEMBER_EMAIL
   this.testAccountEmail = email
   await this.page.locator('[name="displayFirstName"]').fill('Linked')
   await this.page.locator('[name="displayLastName"]').fill('Guest')
@@ -211,20 +207,13 @@ Then('I should be redirected to the Auth0 login page', async function (this: Pla
 })
 
 When('I complete the Auth0 login', async function (this: PlaywrightWorld) {
-  const email = process.env.E2E_ADMIN_EMAIL
-  const password = process.env.E2E_ADMIN_PASSWORD
-  
-  if (!email || !password) {
-    throw new Error('Missing E2E_ADMIN_EMAIL or E2E_ADMIN_PASSWORD env vars')
-  }
-  
   // Store the email for later verification
-  this.testAccountEmail = email
+  this.testAccountEmail = TEST_MEMBER_EMAIL
   
   // We are already on the Auth0 login page, so fill the form directly.
   // (Don't navigate home — that would lose the returnTo intent set by the app.)
-  await this.page.locator('input[name="username"], #username').fill(email)
-  await this.page.locator('input[name="password"], #password').fill(password)
+  await this.page.locator('input[name="username"], #username').fill(TEST_MEMBER_EMAIL)
+  await this.page.locator('input[name="password"], #password').fill(TEST_MEMBER_PASSWORD)
   await this.page.locator('button[name="action"]').click()
   
   console.log('\n[auth] Complete any MFA prompt in the browser window (up to 2 minutes)...\n')
