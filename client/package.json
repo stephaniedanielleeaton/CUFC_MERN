@@ -15,9 +15,10 @@
     "@cufc/shared": "*",
     "@fortawesome/fontawesome-free": "^7.0.0",
     "lucide-react": "^0.522.0",
+    "nodemailer": "9.0.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.22.0"
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
