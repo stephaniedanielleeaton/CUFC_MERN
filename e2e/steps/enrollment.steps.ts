@@ -85,32 +85,14 @@ When('I navigate to the dashboard', async function (this: PlaywrightWorld) {
 
 When('I select the first available intro class', async function (this: PlaywrightWorld) {
   const classList = this.page.getByRole('list', { name: 'Available Intro Classes' })
-  try {
-    await classList.waitFor({ state: 'visible', timeout: 15000 })
-  } catch {
-    const errorMsg = await this.page.locator('text=Unable to load class information').isVisible()
-    const noClasses = await this.page.locator('text=No class dates are available').isVisible()
-    const spinner = await this.page.locator('.animate-spin').isVisible()
-    let diagnosis: string
-    if (errorMsg) {
-      diagnosis = 'component shows API error state'
-    } else if (noClasses) {
-      diagnosis = 'API returned no variations'
-    } else if (spinner) {
-      diagnosis = 'component is stuck in loading state (check Auth0 authLoading / profileLoading)'
-    } else {
-      diagnosis = 'unknown — class list, error, and spinner all not found'
-    }
-    throw new Error(`Class list not visible: ${diagnosis}`)
-  }
-  const firstItem = classList.locator('li').first()
-  // Use the fixture's variation name as the source of truth for later assertions.
-  // Fallback to the DOM text only if the fixture was not set up in this scenario.
   const variationName = this.createdIntroClass?.variations[0]?.name
-  this.selectedVariationName = variationName ??
-    (await firstItem.locator('[class*="font-medium"]').textContent())?.trim() ??
-    undefined
-  await firstItem.click()
+  if (!variationName) {
+    throw new Error('No scenario-created intro class variation is available to select')
+  }
+
+  await classList.waitFor({ state: 'visible', timeout: 15000 })
+  await classList.locator('li', { hasText: variationName }).getByRole('button').click()
+  this.selectedVariationName = variationName
 })
 
 When('I select the {string} intro class', async function (this: PlaywrightWorld, className: string) {

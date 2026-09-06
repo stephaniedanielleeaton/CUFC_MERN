@@ -33,8 +33,8 @@ Given('the enrollment test account is clean', async function (this: PlaywrightWo
 Given(
   'an existing intro class is available with {int} spots',
   async function (this: PlaywrightWorld, spots: number) {
-    this.createdIntroClass = await this.fixtures.introClass.useExistingVariation(spots)
-    console.log(`[fixtures] Using existing variation: ${this.createdIntroClass.variations[0]?.name}`)
+    this.createdIntroClass = await this.fixtures.introClass.addEnrollmentVariation(spots)
+    console.log(`[fixtures] Added enrollment variation: ${this.createdIntroClass.variations[0]?.id}`)
   }
 )
 

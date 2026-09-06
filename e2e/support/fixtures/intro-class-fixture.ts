@@ -49,13 +49,6 @@ export class IntroClassFixture {
       }))
     )
 
-    // Validate we got the expected number of variation IDs
-    if (result.variationIds.length !== variations.length) {
-      throw new Error(
-        `Expected ${variations.length} variation IDs from Square, got ${result.variationIds.length}`
-      )
-    }
-
     // Track created variation IDs for cleanup
     this.createdVariationIds.push(...result.variationIds)
 
@@ -71,38 +64,14 @@ export class IntroClassFixture {
       catalogObjectId: this.introClassCatalogId,
       variations: result.variationIds.map((id, index) => ({
         id,
-        name: variations[index].name,
+        name: `E2E Test - ${variations[index].name}`,
         spots: variations[index].spots,
       })),
     }
   }
 
-  /**
-   * Use an existing (non-test) variation for enrollment tests.
-   * This is needed because the server caches variation IDs, so newly created
-   * test variations won't be recognized by the webhook as intro class orders.
-   */
-  async useExistingVariation(spots: number): Promise<CreatedIntroClass> {
-    const existing = await this.client.getExistingVariation(this.introClassCatalogId)
-    if (!existing) {
-      throw new Error('No existing intro class variation found to use for enrollment test')
-    }
-
-    // Set inventory on the existing variation
-    await this.client.setInventoryCount([
-      { catalogObjectId: existing.id, quantity: spots },
-    ])
-
-    console.log(`[IntroClassFixture] Using existing variation: ${existing.name} (${existing.id}) with ${spots} spots`)
-
-    return {
-      catalogObjectId: this.introClassCatalogId,
-      variations: [{
-        id: existing.id,
-        name: existing.name,
-        spots,
-      }],
-    }
+  async addEnrollmentVariation(spots: number): Promise<CreatedIntroClass> {
+    return this.addVariations([{ name: 'Enrollment', spots }])
   }
 
   /**

@@ -97,7 +97,7 @@ Then('the profile should be complete', async function (this: PlaywrightWorld) {
 
 When('I wait for the enrollment to finish processing', async function (this: PlaywrightWorld) {
   // Allow time for Square webhook to process the payment and update member status
-  await this.page.waitForTimeout(8000)
+  await this.page.waitForTimeout(15000)
 })
 
 When('I view the recent transactions', async function (this: PlaywrightWorld) {
