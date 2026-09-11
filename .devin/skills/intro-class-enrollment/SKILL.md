@@ -1,4 +1,5 @@
 ---
+name: intro-class-enrollment
 description: Intro class enrollment flow documentation - how users enroll in intro classes
 ---
 
