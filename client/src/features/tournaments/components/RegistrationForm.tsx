@@ -119,7 +119,8 @@ export function RegistrationForm({
     formData.email.trim() !== '' &&
     selectedEvents.length > 0 &&
     formData.dataSubmissionAgreement &&
-    (!formData.isMinor || (formData.guardianFirstName.trim() !== '' && formData.guardianLastName.trim() !== ''));
+    (!formData.isMinor || (formData.guardianFirstName.trim() !== '' && formData.guardianLastName.trim() !== '')) &&
+    (useLegalName || (formData.preferredFirstName.trim() !== '' && formData.preferredLastName.trim() !== ''));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -194,9 +195,12 @@ export function RegistrationForm({
             required
           />
         </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Also used as your display name on scoreboards and results unless a display name is provided below. Names are submitted exactly as entered.
+        </p>
       </fieldset>
 
-      {/* Preferred Name Toggle */}
+      {/* Display Name Toggle */}
       <div>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -205,15 +209,15 @@ export function RegistrationForm({
             onChange={() => setUseLegalName(!useLegalName)}
             className="h-4 w-4 text-navy rounded border-gray-300 focus:ring-navy"
           />
-          <span className="text-sm text-gray-600">Use a different preferred name</span>
+          <span className="text-sm text-gray-600">Use a different display name</span>
         </label>
       </div>
 
-      {/* Preferred Name (if different) */}
+      {/* Display Name (if different) */}
       {!useLegalName && (
         <fieldset>
           <legend className="block text-sm font-medium text-gray-700 mb-2">
-            Preferred Name
+            Display Name
           </legend>
           <div className="grid grid-cols-2 gap-4">
             <input
@@ -222,8 +226,9 @@ export function RegistrationForm({
               value={formData.preferredFirstName}
               onChange={handleChange}
               placeholder="First name"
-              aria-label="Preferred first name"
+              aria-label="Display first name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
+              required
             />
             <input
               type="text"
@@ -231,8 +236,9 @@ export function RegistrationForm({
               value={formData.preferredLastName}
               onChange={handleChange}
               placeholder="Last name"
-              aria-label="Preferred last name"
+              aria-label="Display last name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
+              required
             />
           </div>
         </fieldset>

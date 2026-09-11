@@ -26,7 +26,6 @@ interface UpdateResult {
 
 export class IntroClassEnrollmentService {
   private readonly client: SquareClient;
-  private introClassVariationIds: Set<string> | null = null;
 
   constructor() {
     this.client = new SquareClient({
@@ -68,10 +67,6 @@ export class IntroClassEnrollmentService {
   }
 
   private async getIntroClassVariationIds(): Promise<Set<string>> {
-    if (this.introClassVariationIds) {
-      return this.introClassVariationIds;
-    }
-
     try {
       const catalogObject = await squareCatalogService.getObjectById(INTRO_CLASS_CATALOG_OBJECT_ID);
       if (catalogObject?.type !== 'ITEM') {
@@ -79,10 +74,9 @@ export class IntroClassEnrollmentService {
       }
 
       const variations = catalogObject.itemData?.variations ?? [];
-      this.introClassVariationIds = new Set(
+      return new Set(
         variations.map(v => v.id).filter((id): id is string => !!id)
       );
-      return this.introClassVariationIds;
     } catch (error) {
       console.error('[IntroClassEnrollmentService] Failed to get intro class variations:', error);
       return new Set();
