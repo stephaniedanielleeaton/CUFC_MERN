@@ -1,4 +1,4 @@
-@enrollment @fixtures
+@enrollment @fixtures @test-account
 Feature: New Member Enrollment
   As a prospective member browsing the site
   I want to enroll in an intro class

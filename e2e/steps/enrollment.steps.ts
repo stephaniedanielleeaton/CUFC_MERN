@@ -5,55 +5,15 @@ import { PlaywrightWorld } from '../support/world'
 import { BASE_URL, TEST_MEMBER_EMAIL, TEST_MEMBER_PASSWORD } from '../support/config'
 
 async function fillRequiredProfileFields(page: Page): Promise<void> {
-  const firstNameInput = page.locator('[name="displayFirstName"]')
-  if (await firstNameInput.inputValue() === '') {
-    await firstNameInput.fill('Test')
-  }
-
-  const lastNameInput = page.locator('[name="displayLastName"]')
-  if (await lastNameInput.inputValue() === '') {
-    await lastNameInput.fill('User')
-  }
-
-  const legalFirstInput = page.locator('[name="legalFirstName"]')
-  if (await legalFirstInput.inputValue() === '') {
-    await legalFirstInput.fill('Test')
-  }
-
-  const legalLastInput = page.locator('[name="legalLastName"]')
-  if (await legalLastInput.inputValue() === '') {
-    await legalLastInput.fill('User')
-  }
-
-  const dateOfBirthInput = page.locator('[name="dateOfBirth"]')
-  if (await dateOfBirthInput.inputValue() === '') {
-    await dateOfBirthInput.fill('1990-01-15')
-  }
-
-  const streetInput = page.locator('[name="street"]')
-  if (await streetInput.inputValue() === '') {
-    await streetInput.fill('123 Test Street')
-  }
-
-  const cityInput = page.locator('[name="city"]')
-  if (await cityInput.inputValue() === '') {
-    await cityInput.fill('Washington')
-  }
-
-  const stateInput = page.locator('[name="state"]')
-  if (await stateInput.inputValue() === '') {
-    await stateInput.fill('DC')
-  }
-
-  const zipInput = page.locator('[name="zip"]')
-  if (await zipInput.inputValue() === '') {
-    await zipInput.fill('20001')
-  }
-
-  const emailInput = page.locator('[name="email"]')
-  if (await emailInput.inputValue() === '') {
-    await emailInput.fill('columbusunitedfencingclub@gmail.com')
-  }
+  await page.locator('[name="displayFirstName"]').fill('Test')
+  await page.locator('[name="displayLastName"]').fill('User')
+  await page.locator('[name="legalFirstName"]').fill('Test')
+  await page.locator('[name="legalLastName"]').fill('User')
+  await page.locator('[name="dateOfBirth"]').fill('1990-01-15')
+  await page.locator('[name="street"]').fill('123 Test Street')
+  await page.locator('[name="city"]').fill('Washington')
+  await page.locator('[name="state"]').fill('DC')
+  await page.locator('[name="zip"]').fill('20001')
 }
 
 Given('I am on the home page', async function (this: PlaywrightWorld) {
@@ -210,54 +170,7 @@ When('I complete my profile', async function (this: PlaywrightWorld) {
   const profileHeading = this.page.getByRole('heading', { name: /Complete Your Profile/i })
   await profileHeading.waitFor({ state: 'visible', timeout: 15000 })
   
-  // Fill in required profile fields
-  // Check if fields are empty before filling (profile may already have some data)
-  const firstNameInput = this.page.locator('[name="displayFirstName"]')
-  if (await firstNameInput.inputValue() === '') {
-    await firstNameInput.fill('Test')
-  }
-  
-  const lastNameInput = this.page.locator('[name="displayLastName"]')
-  if (await lastNameInput.inputValue() === '') {
-    await lastNameInput.fill('User')
-  }
-  
-  const legalFirstInput = this.page.locator('[name="legalFirstName"]')
-  if (await legalFirstInput.inputValue() === '') {
-    await legalFirstInput.fill('Test')
-  }
-  
-  const legalLastInput = this.page.locator('[name="legalLastName"]')
-  if (await legalLastInput.inputValue() === '') {
-    await legalLastInput.fill('User')
-  }
-  
-  const dobInput = this.page.locator('[name="dateOfBirth"]')
-  if (await dobInput.inputValue() === '') {
-    await dobInput.fill('1990-01-15')
-  }
-  
-  const streetInput = this.page.locator('[name="street"]')
-  if (await streetInput.inputValue() === '') {
-    await streetInput.fill('123 Test Street')
-  }
-  
-  const cityInput = this.page.locator('[name="city"]')
-  if (await cityInput.inputValue() === '') {
-    await cityInput.fill('Washington')
-  }
-  
-  const stateInput = this.page.locator('[name="state"]')
-  if (await stateInput.inputValue() === '') {
-    await stateInput.fill('DC')
-  }
-  
-  const zipInput = this.page.locator('[name="zip"]')
-  if (await zipInput.inputValue() === '') {
-    await zipInput.fill('20001')
-  }
-  
-  // Submit the form
+  await fillRequiredProfileFields(this.page)
   await this.page.getByRole('button', { name: /Continue to Checkout/i }).click()
 })
 

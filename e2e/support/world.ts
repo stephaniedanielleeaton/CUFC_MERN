@@ -52,15 +52,6 @@ export class PlaywrightWorld extends World {
   }
 
   async cleanup(): Promise<void> {
-    // Clean up test data created during this scenario (only if fixtures were used)
-    if (this.createdIntroClass) {
-      await this.fixtures.introClass.cleanup()
-    }
-
-    if (this.testAccountEmail) {
-      await this.fixtures.deleteSquareCustomerByEmail(this.testAccountEmail)
-    }
-
     await this.adminPage?.close()
     await this.adminContext?.close()
     await this.context?.close()
