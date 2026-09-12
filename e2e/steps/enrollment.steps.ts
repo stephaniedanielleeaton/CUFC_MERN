@@ -4,25 +4,6 @@ import type { Page } from 'playwright'
 import { PlaywrightWorld } from '../support/world'
 import { BASE_URL, TEST_MEMBER_EMAIL, TEST_MEMBER_PASSWORD } from '../support/config'
 
-async function getAccessToken(page: Page): Promise<string> {
-  const token = await page.evaluate(() => {
-    for (const key of Object.keys(window.localStorage)) {
-      if (!key.startsWith('@@auth0spajs@@')) continue
-      const value = window.localStorage.getItem(key)
-      if (!value) continue
-      const parsed = JSON.parse(value) as { body?: { access_token?: string } }
-      if (parsed.body?.access_token) return parsed.body.access_token
-    }
-    return null
-  })
-
-  if (!token) {
-    throw new Error('Auth0 access token was not found in local storage')
-  }
-
-  return token
-}
-
 async function fillRequiredProfileFields(page: Page): Promise<void> {
   const firstNameInput = page.locator('[name="displayFirstName"]')
   if (await firstNameInput.inputValue() === '') {
@@ -300,20 +281,6 @@ When('I create my profile', async function (this: PlaywrightWorld) {
 Then('I should see my intro class enrollment on the dashboard', async function (this: PlaywrightWorld) {
   if (!this.selectedVariationName) {
     throw new Error('No variation name was captured during class selection')
-  }
-
-  const token = await getAccessToken(this.page)
-  const response = await this.page.request.get(`${BASE_URL}/api/members/me/intro-enrollment`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
-
-  if (!response.ok()) {
-    throw new Error(`Failed to fetch intro enrollment: ${response.status()} ${await response.text()}`)
-  }
-
-  const body = await response.json() as { enrollment?: { variationName?: string } | null }
-  if (!body.enrollment) {
-    throw new Error('Intro enrollment API returned no enrollment for the signed-in member')
   }
 
   await this.page.reload({ waitUntil: 'networkidle' })

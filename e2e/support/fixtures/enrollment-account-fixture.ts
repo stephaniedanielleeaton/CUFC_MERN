@@ -25,7 +25,13 @@ export class EnrollmentAccountFixture {
     const email = TEST_MEMBER_EMAIL
 
     await ensureAdminAuth(this.baseUrl)
-    await this.squareClient.deleteCustomerByEmail(email)
+    const squareCustomerDeleted = await this.squareClient.deleteCustomerByEmail(email)
+    if (!squareCustomerDeleted) {
+      const existingCustomer = await this.squareClient.searchCustomerByEmail(email)
+      if (existingCustomer) {
+        throw new Error(`Failed to delete Square customer ${existingCustomer.id} for enrollment test cleanup`)
+      }
+    }
 
     const apiContext = await this.createAdminApiContext()
     try {

@@ -1,6 +1,6 @@
 import { Before, After, BeforeAll, setDefaultTimeout } from '@cucumber/cucumber'
 import { PlaywrightWorld } from './world'
-import { createTestFixtures } from './fixtures'
+import { TestFixtures } from './fixtures'
 
 setDefaultTimeout(150000)
 
@@ -14,7 +14,7 @@ BeforeAll(async function () {
     return
   }
 
-  const deleted = await createTestFixtures().cleanupTestVariations()
+  const deleted = await new TestFixtures().cleanupTestVariations()
   if (deleted > 0) {
     console.log(`[hooks] Cleaned up ${deleted} stale test variation(s)`)
   }

@@ -15,22 +15,20 @@ import { SquareTestClient } from './square-client'
 import { IntroClassFixture } from './intro-class-fixture'
 import { EnrollmentAccountFixture } from './enrollment-account-fixture'
 
-export interface TestFixtures {
-  introClass: IntroClassFixture
-  enrollmentAccount: EnrollmentAccountFixture
-  cleanupTestVariations(): Promise<number>
-  deleteSquareCustomerByEmail(email: string): Promise<boolean>
-}
-
 /**
- * Creates test fixtures lazily - only validates env vars when fixtures are actually used.
- * This allows scenarios that don't need fixtures to run without Square credentials.
+ * Scenario-scoped fixture access. Square dependencies are initialized only when a
+ * scenario uses them, so unrelated scenarios do not require Square credentials.
  */
-export function createTestFixtures(): TestFixtures {
-  let _introClass: IntroClassFixture | null = null
-  let _enrollmentAccount: EnrollmentAccountFixture | null = null
+export class TestFixtures {
+  private squareClient: SquareTestClient | null = null
+  private introClassFixture: IntroClassFixture | null = null
+  private enrollmentAccountFixture: EnrollmentAccountFixture | null = null
 
-  const getClient = (): SquareTestClient => {
+  private getSquareClient(): SquareTestClient {
+    if (this.squareClient) {
+      return this.squareClient
+    }
+
     const accessToken = process.env.SQUARE_ACCESS_TOKEN
     const locationId = process.env.SQUARE_RETAIL_LOCATION_ID
 
@@ -40,14 +38,16 @@ export function createTestFixtures(): TestFixtures {
       )
     }
 
-    return new SquareTestClient({
+    this.squareClient = new SquareTestClient({
       accessToken,
       environment: 'sandbox',
       locationId,
     })
+
+    return this.squareClient
   }
 
-  const getIntroClassCatalogId = (): string => {
+  private getIntroClassCatalogId(): string {
     const catalogId = process.env.INTRO_CLASS_CATALOG_OBJECT_ID
     if (!catalogId) {
       throw new Error('Missing required env var: INTRO_CLASS_CATALOG_OBJECT_ID')
@@ -55,23 +55,27 @@ export function createTestFixtures(): TestFixtures {
     return catalogId
   }
 
-  return {
-    get introClass(): IntroClassFixture {
-      _introClass ??= new IntroClassFixture(getClient(), getIntroClassCatalogId())
-      return _introClass
-    },
-    get enrollmentAccount(): EnrollmentAccountFixture {
-      _enrollmentAccount ??= new EnrollmentAccountFixture({
-        baseUrl: BASE_URL,
-        squareClient: getClient(),
-      })
-      return _enrollmentAccount
-    },
-    async cleanupTestVariations(): Promise<number> {
-      return getClient().cleanupTestVariations()
-    },
-    async deleteSquareCustomerByEmail(email: string): Promise<boolean> {
-      return getClient().deleteCustomerByEmail(email)
-    },
+  get introClass(): IntroClassFixture {
+    this.introClassFixture ??= new IntroClassFixture(
+      this.getSquareClient(),
+      this.getIntroClassCatalogId()
+    )
+    return this.introClassFixture
+  }
+
+  get enrollmentAccount(): EnrollmentAccountFixture {
+    this.enrollmentAccountFixture ??= new EnrollmentAccountFixture({
+      baseUrl: BASE_URL,
+      squareClient: this.getSquareClient(),
+    })
+    return this.enrollmentAccountFixture
+  }
+
+  async cleanupTestVariations(): Promise<number> {
+    return this.getSquareClient().cleanupTestVariations()
+  }
+
+  async deleteSquareCustomerByEmail(email: string): Promise<boolean> {
+    return this.getSquareClient().deleteCustomerByEmail(email)
   }
 }
