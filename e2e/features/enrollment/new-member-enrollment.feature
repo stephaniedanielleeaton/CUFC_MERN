@@ -20,13 +20,13 @@ Feature: New Member Enrollment
 
   Scenario: Signed-in user with a completed profile enrolls from the dashboard
     Given the enrollment test account has a completed profile
-    And an existing intro class is available with 5 spots
+    And an enrollment intro class is available with 5 spots
     When I navigate to the dashboard
     Then I should be redirected to the Auth0 login page
     When I complete the Auth0 login
     And I choose to sign up for an intro class from the dashboard
     And I select the first available intro class
-    And I click "Enroll Now"
+    And I begin intro class enrollment
     Then I should be redirected to a checkout page
     When I complete the Square sandbox checkout
     Then I should be on the dashboard
@@ -38,14 +38,14 @@ Feature: New Member Enrollment
     When I delete the test account from admin
 
   Scenario: User enrolls in an intro class as a guest user
-    Given an existing intro class is available with 5 spots
+    Given an enrollment intro class is available with 5 spots
     And I am on the home page
     When I select the first available intro class
-    And I click "Enroll Now"
-    And I click "Continue as Guest"
+    And I begin intro class enrollment
+    And I continue enrollment as a guest
     Then I should see a popup titled "Create Your Profile"
     When I fill in the guest profile form with valid details
-    And I click "Create Profile & Continue"
+    And I create my guest profile and continue
     Then I should be redirected to a checkout page
     When I complete the Square sandbox checkout
     Then I should be back on the home page
@@ -55,14 +55,14 @@ Feature: New Member Enrollment
 
   Scenario: Guest enrollment links to the same member after sign-in
     Given the enrollment test account is clean
-    And an existing intro class is available with 5 spots
+    And an enrollment intro class is available with 5 spots
     And I am on the home page
     When I select the first available intro class
-    And I click "Enroll Now"
-    And I click "Continue as Guest"
+    And I begin intro class enrollment
+    And I continue enrollment as a guest
     Then I should see a popup titled "Create Your Profile"
     When I fill in the guest profile form with the sign-in email
-    And I click "Create Profile & Continue"
+    And I create my guest profile and continue
     Then I should be redirected to a checkout page
     When I complete the Square sandbox checkout
     Then I should be back on the home page
@@ -77,9 +77,9 @@ Feature: New Member Enrollment
 
   Scenario: Signed-in user with incomplete profile attempts to sign up on the front page, is redirected to the dashboard to complete profile and enrollment
     Given the enrollment test account is clean
-    And an existing intro class is available with 5 spots
+    And an enrollment intro class is available with 5 spots
     And I am on the home page
-    When I click "Sign In"
+    When I sign in from the home page
     Then I should be redirected to the Auth0 login page
     When I complete the Auth0 login
     Then I should be back on the home page
@@ -91,7 +91,7 @@ Feature: New Member Enrollment
     Then I should be on the dashboard
     When I choose to sign up for an intro class from the dashboard
     And I select the first available intro class
-    And I click "Enroll Now"
+    And I begin intro class enrollment
     Then I should be redirected to a checkout page
     When I complete the Square sandbox checkout
     Then I should be on the dashboard
@@ -104,11 +104,11 @@ Feature: New Member Enrollment
 
   Scenario: User with a completed profile starts intro class enrollment while signed out, signs in, and completes checkout
     Given the enrollment test account has a completed profile
-    And an existing intro class is available with 5 spots
+    And an enrollment intro class is available with 5 spots
     And I am on the home page
     When I select the first available intro class
-    And I click "Enroll Now"
-    And I click "Sign In to Continue"
+    And I begin intro class enrollment
+    And I sign in to continue enrollment
     Then I should be redirected to the Auth0 login page
     When I complete the Auth0 login
     Then I should be redirected to a checkout page
@@ -123,11 +123,11 @@ Feature: New Member Enrollment
 
   Scenario: User chooses to enroll into an an intro class from the front page, resumes pending enrollment after sign-in and completes checkout
     Given the enrollment test account is clean
-    And an existing intro class is available with 5 spots
+    And an enrollment intro class is available with 5 spots
     And I am on the home page
     When I select the first available intro class
-    And I click "Enroll Now"
-    And I click "Sign In to Continue"
+    And I begin intro class enrollment
+    And I sign in to continue enrollment
     Then I should be redirected to the Auth0 login page
     When I complete the Auth0 login
     Then I should be on the pending enrollment page

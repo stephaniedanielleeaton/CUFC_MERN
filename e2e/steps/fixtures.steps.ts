@@ -20,18 +20,12 @@ Given(
   }
 )
 
-/**
- * Use an existing intro class variation for enrollment tests.
- * This is needed because the server caches variation IDs, so newly created
- * test variations won't be recognized by the webhook.
- * Example: Given an existing intro class is available with 5 spots
- */
 Given('the enrollment test account is clean', async function (this: PlaywrightWorld) {
   await this.fixtures.enrollmentAccount.clean()
 })
 
 Given(
-  'an existing intro class is available with {int} spots',
+  'an enrollment intro class is available with {int} spots',
   async function (this: PlaywrightWorld, spots: number) {
     this.createdIntroClass = await this.fixtures.introClass.addEnrollmentVariation(spots)
     console.log(`[fixtures] Added enrollment variation: ${this.createdIntroClass.variations[0]?.id}`)

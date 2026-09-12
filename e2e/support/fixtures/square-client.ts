@@ -149,44 +149,6 @@ export class SquareTestClient {
   }
 
   /**
-   * Get existing variations from a catalog item.
-   * Returns the first variation that is NOT a test variation (doesn't start with "E2E Test").
-   */
-  async getExistingVariation(itemId: string): Promise<{ id: string; name: string } | null> {
-    const response = await fetch(`${this.baseUrl}/catalog/object/${itemId}`, {
-      method: 'GET',
-      headers: this.headers,
-    })
-
-    if (!response.ok) {
-      return null
-    }
-
-    const data = await response.json() as {
-      object?: {
-        item_data?: {
-          variations?: { id: string; item_variation_data?: { name: string } }[]
-        }
-      }
-    }
-
-    const variations = data.object?.item_data?.variations ?? []
-    // Find a non-test variation (one that doesn't start with "E2E Test")
-    const existingVariation = variations.find(
-      v => v.item_variation_data?.name && !v.item_variation_data.name.startsWith('E2E Test')
-    )
-
-    if (!existingVariation) {
-      return null
-    }
-
-    return {
-      id: existingVariation.id,
-      name: existingVariation.item_variation_data?.name ?? '',
-    }
-  }
-
-  /**
    * Add variations to an existing catalog item.
    * First retrieves the item, then upserts with the new variations added.
    */

@@ -83,8 +83,24 @@ When('I select the {string} intro class', async function (this: PlaywrightWorld,
   await classButton.click()
 })
 
-When('I click {string}', async function (this: PlaywrightWorld, label: string) {
-  await this.page.getByRole('button', { name: label }).click()
+When('I begin intro class enrollment', async function (this: PlaywrightWorld) {
+  await this.page.getByRole('button', { name: 'Enroll Now' }).click()
+})
+
+When('I continue enrollment as a guest', async function (this: PlaywrightWorld) {
+  await this.page.getByRole('button', { name: 'Continue as Guest' }).click()
+})
+
+When('I create my guest profile and continue', async function (this: PlaywrightWorld) {
+  await this.page.getByRole('button', { name: 'Create Profile & Continue' }).click()
+})
+
+When('I sign in from the home page', async function (this: PlaywrightWorld) {
+  await this.page.getByRole('button', { name: 'Sign In' }).click()
+})
+
+When('I sign in to continue enrollment', async function (this: PlaywrightWorld) {
+  await this.page.getByRole('button', { name: 'Sign In to Continue' }).click()
 })
 
 Then('I should see a popup titled {string}', async function (this: PlaywrightWorld, title: string) {
