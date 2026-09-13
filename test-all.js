@@ -6,14 +6,15 @@
  * 4. Shuts down the server
  */
 const { spawn, execSync } = require('node:child_process')
+const { config } = require('dotenv')
 
-function runTest(root, baseUrl, timeoutMs) {
+function runTest(root, baseUrl, environment, timeoutMs) {
   return new Promise((resolve, reject) => {
     const child = spawn('npm', ['run', 'test:e2e'], {
       shell: true,
       stdio: 'inherit',
       cwd: root,
-      env: { ...process.env, BASE_URL: baseUrl }
+      env: { ...environment, BASE_URL: baseUrl }
     })
 
     const timeout = setTimeout(() => {
@@ -32,11 +33,21 @@ function runTest(root, baseUrl, timeoutMs) {
     })
   })
 }
-const { realpathSync } = require('node:fs')
+const { realpathSync, existsSync } = require('node:fs')
+const { join } = require('node:path')
 
 const POLL_INTERVAL_MS = 500
 const TIMEOUT_MS = 60000
 const BUILD_TIMEOUT_MS = 3 * 60 * 1000
+const REQUIRED_E2E_ENVIRONMENT = [
+  'E2E_TEST_EMAIL',
+  'E2E_TEST_PASSWORD',
+  'E2E_ADMIN_EMAIL',
+  'E2E_ADMIN_PASSWORD',
+  'SQUARE_ACCESS_TOKEN',
+  'SQUARE_RETAIL_LOCATION_ID',
+  'INTRO_CLASS_CATALOG_OBJECT_ID',
+]
 
 async function waitForApi(baseUrl, timeoutMs) {
   const healthUrl = `${baseUrl}/api/health`
@@ -68,15 +79,40 @@ function buildClient(root) {
   console.log('Client build complete.')
 }
 
+function loadE2eEnvironment(root) {
+  const environmentPath = join(root, 'e2e', '.env.test')
+  if (!existsSync(environmentPath)) {
+    throw new Error(`Missing E2E environment file: ${environmentPath}`)
+  }
+
+  const result = config({ path: environmentPath, override: true })
+  if (result.error) {
+    throw result.error
+  }
+  for (const name of REQUIRED_E2E_ENVIRONMENT) {
+    if (!process.env[name]) {
+      throw new Error(`Missing required E2E environment variable: ${name}`)
+    }
+  }
+  const squareEnvironment = process.env.SQUARE_ENVIRONMENT ?? 'sandbox'
+  if (squareEnvironment !== 'sandbox') {
+    throw new Error('E2E tests require SQUARE_ENVIRONMENT=sandbox')
+  }
+  process.env.SQUARE_ENVIRONMENT = squareEnvironment
+
+  return { ...process.env, NODE_ENV: 'test' }
+}
+
 async function main() {
   const root = realpathSync.native(__dirname)
+  const environment = loadE2eEnvironment(root)
 
   console.log('Starting API server...')
   const apiServer = spawn('npm', ['run', 'dev:server'], {
     shell: true,
     stdio: 'pipe',
     cwd: root,
-    env: { ...process.env, NODE_ENV: 'test' }
+    env: environment,
   })
 
   apiServer.stdout.on('data', d => process.stdout.write(d))
@@ -110,7 +146,7 @@ async function main() {
     console.log('API ready.\n')
 
     const TEST_TIMEOUT_MS = 10 * 60 * 1000
-    await runTest(root, baseUrl, TEST_TIMEOUT_MS)
+    await runTest(root, baseUrl, environment, TEST_TIMEOUT_MS)
   } catch (err) {
     console.error('\nTests failed:', err.message)
     exitCode = 1

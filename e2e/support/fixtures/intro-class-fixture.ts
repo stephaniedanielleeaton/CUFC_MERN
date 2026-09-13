@@ -88,14 +88,19 @@ export class IntroClassFixture {
    * Only deletes variations we created, not the original catalog item.
    */
   async cleanup(): Promise<void> {
+    const failedVariationIds: string[] = []
     for (const id of this.createdVariationIds) {
       try {
         await this.client.deleteCatalogObject(id)
         console.log(`[IntroClassFixture] Deleted test variation: ${id}`)
       } catch (error) {
-        console.warn(`[IntroClassFixture] Failed to delete variation ${id}:`, error)
+        failedVariationIds.push(id)
       }
     }
     this.createdVariationIds.length = 0
+
+    if (failedVariationIds.length > 0) {
+      throw new Error(`Failed to delete test variations: ${failedVariationIds.join(', ')}`)
+    }
   }
 }

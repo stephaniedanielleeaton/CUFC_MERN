@@ -258,7 +258,8 @@ export class SquareTestClient {
     })
 
     if (!response.ok) {
-      return []
+      const error = await response.json()
+      throw new Error(`Square catalog search failed: ${JSON.stringify(error)}`)
     }
 
     const data = await response.json() as {
@@ -286,18 +287,21 @@ export class SquareTestClient {
       'E2E Test'
     )
 
-    let deleted = 0
+    const failedVariationIds: string[] = []
     for (const obj of testObjects) {
       try {
         await this.deleteCatalogObject(obj.id)
         console.log(`[SquareTestClient] Deleted stale test variation: ${obj.name} (${obj.id})`)
-        deleted++
       } catch (error) {
-        console.warn(`[SquareTestClient] Failed to delete ${obj.id}:`, error)
+        failedVariationIds.push(obj.id)
       }
     }
 
-    return deleted
+    if (failedVariationIds.length > 0) {
+      throw new Error(`Failed to delete stale test variations: ${failedVariationIds.join(', ')}`)
+    }
+
+    return testObjects.length
   }
 
   /**
@@ -319,7 +323,8 @@ export class SquareTestClient {
     })
 
     if (!response.ok) {
-      return null
+      const error = await response.json()
+      throw new Error(`Square customer search failed: ${JSON.stringify(error)}`)
     }
 
     const data = await response.json() as { customers?: { id: string }[] }

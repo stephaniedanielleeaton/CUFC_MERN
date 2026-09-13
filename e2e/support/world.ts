@@ -2,7 +2,7 @@ import { World, setWorldConstructor, IWorldOptions } from '@cucumber/cucumber'
 import { Browser, BrowserContext, Page, chromium } from 'playwright'
 import * as fs from 'node:fs'
 import { ADMIN_STORAGE_STATE, isAdminStateValid, setupAdminAuth } from './auth'
-import { BASE_URL } from './config'
+import { BASE_URL, TEST_MEMBER_EMAIL } from './config'
 import { TestFixtures, CreatedIntroClass } from './fixtures'
 
 export class PlaywrightWorld extends World {
@@ -12,7 +12,7 @@ export class PlaywrightWorld extends World {
   adminContext?: BrowserContext
   adminPage?: Page
   useAdminAuth: boolean = false
-  testAccountEmail?: string
+  testAccountEmail: string = TEST_MEMBER_EMAIL
   selectedVariationName?: string
 
   // Test fixtures for Square data setup

@@ -25,5 +25,5 @@ After({ tags: '@fixtures' }, async function (this: PlaywrightWorld) {
 })
 
 After({ tags: '@test-account' }, async function (this: PlaywrightWorld) {
-  await this.fixtures.deleteSquareCustomerByEmail(this.testAccountEmail!)
+  await this.fixtures.enrollmentAccount.cleanByEmail(this.testAccountEmail)
 })

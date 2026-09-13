@@ -22,16 +22,11 @@ export class EnrollmentAccountFixture {
   }
 
   async clean(): Promise<void> {
-    const email = TEST_MEMBER_EMAIL
+    await this.cleanByEmail(TEST_MEMBER_EMAIL)
+  }
 
+  async cleanByEmail(email: string): Promise<void> {
     await ensureAdminAuth(this.baseUrl)
-    const squareCustomerDeleted = await this.squareClient.deleteCustomerByEmail(email)
-    if (!squareCustomerDeleted) {
-      const existingCustomer = await this.squareClient.searchCustomerByEmail(email)
-      if (existingCustomer) {
-        throw new Error(`Failed to delete Square customer ${existingCustomer.id} for enrollment test cleanup`)
-      }
-    }
 
     const apiContext = await this.createAdminApiContext()
     try {
@@ -44,17 +39,24 @@ export class EnrollmentAccountFixture {
       const profile = membersBody.members.find(member => member.personalInfo?.email === email)
       if (!profile) {
         console.log('[fixtures] Enrollment test profile not found — no profile cleanup needed')
-        return
-      }
+      } else {
+        const deleteResponse = await apiContext.delete(`/api/admin/members/${profile._id}`)
+        if (!deleteResponse.ok() && deleteResponse.status() !== 404) {
+          throw new Error(`Failed to delete enrollment test profile: ${deleteResponse.status()} ${await deleteResponse.text()}`)
+        }
 
-      const deleteResponse = await apiContext.delete(`/api/admin/members/${profile._id}`)
-      if (!deleteResponse.ok() && deleteResponse.status() !== 404) {
-        throw new Error(`Failed to delete enrollment test profile: ${deleteResponse.status()} ${await deleteResponse.text()}`)
+        console.log(`[fixtures] Deleted enrollment test profile ${profile._id}`)
       }
-
-      console.log(`[fixtures] Deleted enrollment test profile ${profile._id}`)
     } finally {
       await apiContext.dispose()
+    }
+
+    const squareCustomerDeleted = await this.squareClient.deleteCustomerByEmail(email)
+    if (!squareCustomerDeleted) {
+      const existingCustomer = await this.squareClient.searchCustomerByEmail(email)
+      if (existingCustomer) {
+        throw new Error(`Failed to delete Square customer ${existingCustomer.id} for enrollment test cleanup`)
+      }
     }
   }
 
