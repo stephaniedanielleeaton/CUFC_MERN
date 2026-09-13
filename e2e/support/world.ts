@@ -25,7 +25,7 @@ export class PlaywrightWorld extends World {
   }
 
   async init(): Promise<void> {
-    this.browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--disable-blink-features=AutomationControlled'] })
+    this.browser = await chromium.launch({ channel: 'chrome', headless: false, args: ['--disable-blink-features=AutomationControlled'] })
     if (this.useAdminAuth && !fs.existsSync(ADMIN_STORAGE_STATE)) {
       await this.browser.close()
       throw new Error(`Admin auth required but storage state not found at ${ADMIN_STORAGE_STATE}`)
