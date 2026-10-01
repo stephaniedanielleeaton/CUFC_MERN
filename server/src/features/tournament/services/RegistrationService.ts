@@ -160,10 +160,6 @@ export class RegistrationService {
     return false;
   }
 
-  async getRegistrantsByTournament(m2TournamentId: number): Promise<RegistrantDto[]> {
-    return registrantDAO.findByM2TournamentId(m2TournamentId);
-  }
-
   async getRegistrantsByUser(auth0Id: string): Promise<RegistrantDto[]> {
     return registrantDAO.findByAuth0Id(auth0Id);
   }

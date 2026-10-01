@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useScheduleData } from '../hooks/useScheduleData.ts'
 import { useUserRoles } from '../hooks/useUserRoles'
+import { useAuthenticatedFetch } from '../hooks/useAuthenticatedFetch'
 import { SmallHero } from '../components/common/SmallHero'
 import { ScheduleModal } from '../components/schedule'
 import type { ScheduleItem, Event, Closure } from '../types/ScheduleTypes'
@@ -26,6 +27,7 @@ export default function SchedulePage() {
   const { scheduleItems, upcomingEvents, upcomingClosures, isLoading, error, refresh } = useScheduleData()
   const roles = useUserRoles()
   const isAdmin = roles.includes('club-admin')
+  const authFetch = useAuthenticatedFetch()
 
   const [showModal, setShowModal] = useState(false)
   const [modalType, setModalType] = useState<ModalType>('schedule')
@@ -68,7 +70,7 @@ export default function SchedulePage() {
         ? `/api/schedule/${endpoint}/${editingItem._id}`
         : `/api/schedule/${endpoint}`
       
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method: editingItem ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -88,7 +90,7 @@ export default function SchedulePage() {
     if (!confirm(`Are you sure you want to delete this ${type} item?`)) return
     try {
       const endpoint = getEndpoint(type)
-      const response = await fetch(`/api/schedule/${endpoint}/${item._id}`, { method: 'DELETE' })
+      const response = await authFetch(`/api/schedule/${endpoint}/${item._id}`, { method: 'DELETE' })
       
       if (!response.ok) throw new Error('Failed to delete')
       

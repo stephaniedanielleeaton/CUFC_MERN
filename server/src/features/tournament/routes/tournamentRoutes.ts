@@ -77,25 +77,6 @@ router.get('/:m2TournamentId', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/tournaments/:m2TournamentId/registrants
- * Get registrants for a tournament (admin only in future)
- */
-router.get('/:m2TournamentId/registrants', async (req: Request, res: Response) => {
-  try {
-    const m2TournamentId = Number.parseInt(req.params.m2TournamentId, 10);
-    if (Number.isNaN(m2TournamentId)) {
-      return res.status(400).json({ error: 'Invalid tournament ID' });
-    }
-
-    const registrants = await registrationService.getRegistrantsByTournament(m2TournamentId);
-    res.json(registrants);
-  } catch (error) {
-    console.error('Error fetching registrants:', error);
-    res.status(500).json({ error: 'Failed to fetch registrants' });
-  }
-});
-
-/**
  * GET /api/tournaments/user/has-registration/:m2TournamentId
  * Check if user has existing paid registration for a tournament
  */

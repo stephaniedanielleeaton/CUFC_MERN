@@ -2,10 +2,11 @@ import { Router } from 'express'
 import { ScheduleItem } from '../models/ScheduleItem'
 import { Event } from '../models/Event'
 import { Closure } from '../models/Closure'
+import { checkJwt, requireRole } from '../middleware/auth'
 
 const router = Router()
 
-// Get all schedule data
+// Get all schedule data - public, powers the /schedule page for all visitors
 router.get('/', async (_req, res) => {
   try {
     const [scheduleItems, upcomingEvents, upcomingClosures] = await Promise.all([
@@ -19,8 +20,8 @@ router.get('/', async (_req, res) => {
   }
 })
 
-// Schedule Items CRUD
-router.post('/schedule-items', async (req, res) => {
+// Schedule Items CRUD - admin only
+router.post('/schedule-items', checkJwt, requireRole('club-admin'), async (req, res) => {
   try {
     console.log('Creating schedule item:', req.body)
     const item = new ScheduleItem(req.body)
@@ -32,7 +33,7 @@ router.post('/schedule-items', async (req, res) => {
   }
 })
 
-router.put('/schedule-items/:id', async (req, res) => {
+router.put('/schedule-items/:id', checkJwt, requireRole('club-admin'), async (req, res) => {
   try {
     const item = await ScheduleItem.findByIdAndUpdate(req.params.id, req.body, { new: true })
     if (!item) return res.status(404).json({ message: 'Schedule item not found' })
@@ -42,7 +43,7 @@ router.put('/schedule-items/:id', async (req, res) => {
   }
 })
 
-router.delete('/schedule-items/:id', async (req, res) => {
+router.delete('/schedule-items/:id', checkJwt, requireRole('club-admin'), async (req, res) => {
   try {
     const item = await ScheduleItem.findByIdAndDelete(req.params.id)
     if (!item) return res.status(404).json({ message: 'Schedule item not found' })
@@ -52,8 +53,8 @@ router.delete('/schedule-items/:id', async (req, res) => {
   }
 })
 
-// Events CRUD
-router.post('/events', async (req, res) => {
+// Events CRUD - admin only
+router.post('/events', checkJwt, requireRole('club-admin'), async (req, res) => {
   try {
     console.log('Creating event:', req.body)
     const event = new Event(req.body)
@@ -65,7 +66,7 @@ router.post('/events', async (req, res) => {
   }
 })
 
-router.put('/events/:id', async (req, res) => {
+router.put('/events/:id', checkJwt, requireRole('club-admin'), async (req, res) => {
   try {
     const event = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true })
     if (!event) return res.status(404).json({ message: 'Event not found' })
@@ -75,7 +76,7 @@ router.put('/events/:id', async (req, res) => {
   }
 })
 
-router.delete('/events/:id', async (req, res) => {
+router.delete('/events/:id', checkJwt, requireRole('club-admin'), async (req, res) => {
   try {
     const event = await Event.findByIdAndDelete(req.params.id)
     if (!event) return res.status(404).json({ message: 'Event not found' })
@@ -85,8 +86,8 @@ router.delete('/events/:id', async (req, res) => {
   }
 })
 
-// Closures CRUD
-router.post('/closures', async (req, res) => {
+// Closures CRUD - admin only
+router.post('/closures', checkJwt, requireRole('club-admin'), async (req, res) => {
   try {
     console.log('Creating closure:', req.body)
     const closure = new Closure(req.body)
@@ -98,7 +99,7 @@ router.post('/closures', async (req, res) => {
   }
 })
 
-router.put('/closures/:id', async (req, res) => {
+router.put('/closures/:id', checkJwt, requireRole('club-admin'), async (req, res) => {
   try {
     const closure = await Closure.findByIdAndUpdate(req.params.id, req.body, { new: true })
     if (!closure) return res.status(404).json({ message: 'Closure not found' })
@@ -108,7 +109,7 @@ router.put('/closures/:id', async (req, res) => {
   }
 })
 
-router.delete('/closures/:id', async (req, res) => {
+router.delete('/closures/:id', checkJwt, requireRole('club-admin'), async (req, res) => {
   try {
     const closure = await Closure.findByIdAndDelete(req.params.id)
     if (!closure) return res.status(404).json({ message: 'Closure not found' })
