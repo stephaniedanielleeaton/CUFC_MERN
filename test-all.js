@@ -7,6 +7,7 @@
  */
 const { spawn, execSync } = require('node:child_process')
 const { config } = require('dotenv')
+const { assertE2eEnvironmentAllowed } = require('./e2e/environment-guard')
 
 function runTest(root, baseUrl, environment, timeoutMs) {
   return new Promise((resolve, reject) => {
@@ -106,6 +107,7 @@ function loadE2eEnvironment(root) {
 async function main() {
   const root = realpathSync.native(__dirname)
   const environment = loadE2eEnvironment(root)
+  assertE2eEnvironmentAllowed(environment)
 
   console.log('Starting API server...')
   const apiServer = spawn('npm', ['run', 'dev:server'], {

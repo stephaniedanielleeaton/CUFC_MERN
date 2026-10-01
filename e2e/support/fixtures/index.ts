@@ -1,6 +1,6 @@
 /**
  * E2E Test Fixtures
- * 
+ *
  * These fixtures interact directly with Square's API to set up test data.
  * They do not touch production server code.
  */

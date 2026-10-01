@@ -1,6 +1,6 @@
 /**
  * High-level fixture for managing intro class test data.
- * 
+ *
  * Works with the EXISTING intro class catalog item by:
  * 1. Adding test variations to it
  * 2. Setting inventory on those variations
