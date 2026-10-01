@@ -9,10 +9,8 @@ export interface RegistrationRequestDto {
   legalLastName: string;
   email: string;
   phoneNumber?: string;
+  dateOfBirth: string;
   clubAffiliation?: ClubAffiliationDto;
-  isMinor: boolean;
-  guardianFirstName?: string;
-  guardianLastName?: string;
   isRequestedAlternativeQualification?: boolean;
 }
 

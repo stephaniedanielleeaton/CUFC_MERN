@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useSessionGuard } from './hooks/useSessionGuard'
 import { MemberProfileProvider } from './context/ProfileContext'
-import { ToastProvider } from './components/common/Toast'
 import Navbar from './components/navbar/Navbar'
 import { Footer } from './components/layout/Footer'
 import { SubFooter } from './components/layout/SubFooter'
@@ -30,9 +29,8 @@ function App() {
   useSessionGuard()
 
   return (
-    <ToastProvider>
-      <MemberProfileProvider>
-        <div className="flex flex-col min-h-screen">
+    <MemberProfileProvider>
+      <div className="flex flex-col min-h-screen">
         <Navbar />
         <main className="flex-grow bg-gray-50">
           <Routes>
@@ -64,9 +62,8 @@ function App() {
         </main>
         <Footer />
         <SubFooter />
-        </div>
-      </MemberProfileProvider>
-    </ToastProvider>
+      </div>
+    </MemberProfileProvider>
   )
 }
 

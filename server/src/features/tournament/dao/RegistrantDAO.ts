@@ -14,9 +14,6 @@ export interface CreateRegistrantData {
   email: string;
   phoneNumber?: string;
   clubAffiliation?: ClubAffiliationDto;
-  isMinor: boolean;
-  guardianFirstName?: string;
-  guardianLastName?: string;
   paymentId: string;
   baseFeeChargedInCents: number;
   userId?: string;

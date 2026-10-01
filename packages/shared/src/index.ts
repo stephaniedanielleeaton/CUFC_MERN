@@ -1,6 +1,7 @@
 // Runtime values (contains classes, consts, or functions)
 export * from './types/MemberStatus.js';
 export * from './types/MemberUpdateData.js';
+export * from './utils/age.js';
 
 // Export types as runtime values (they're interfaces/type aliases, no runtime code)
 export * from './types/MemberCheckIn.js';

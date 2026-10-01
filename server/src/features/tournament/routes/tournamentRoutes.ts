@@ -143,8 +143,6 @@ router.get('/user/profile-data', checkJwt, async (req: Request, res: Response) =
       legalLastName: profile.personalInfo?.legalLastName,
       email: profile.personalInfo?.email,
       phoneNumber: profile.personalInfo?.phone,
-      guardianFirstName: profile.guardian?.firstName,
-      guardianLastName: profile.guardian?.lastName,
     });
   } catch (error) {
     console.error('Error fetching profile data:', error);
