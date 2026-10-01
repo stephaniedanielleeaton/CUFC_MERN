@@ -15,6 +15,7 @@ import { EmailList } from '../../../models/EmailList';
 import { memberProfileService } from '../../../services/memberProfileService';
 import { emailService } from '../../../services/emailService';
 import { env } from '../../../config/env';
+import { calculateAge, MINIMUM_MEMBER_AGE } from '@cufc/shared';
 
 function escapeHtml(input: string | undefined | null): string {
   if (!input) return '';
@@ -44,9 +45,6 @@ export interface SubmitRegistrationData {
   email: string;
   phoneNumber?: string;
   clubAffiliation?: ClubAffiliationDto;
-  isMinor: boolean;
-  guardianFirstName?: string;
-  guardianLastName?: string;
   baseFeeChargedInCents: number;
   userId?: string;
   auth0Id?: string;
@@ -69,6 +67,9 @@ export class RegistrationService {
     // Validate that selected events are not at capacity
     this.validateEventCapacity(tournament.events, request.selectedEvents);
 
+    // Minors are not permitted to register for or attend events
+    this.validateMinimumAge(request.dateOfBirth);
+
     let userId: string | undefined;
     let hasExistingRegistration = false;
     if (auth0Id) {
@@ -90,9 +91,6 @@ export class RegistrationService {
       email: request.email,
       phoneNumber: request.phoneNumber,
       clubAffiliation: request.clubAffiliation,
-      isMinor: request.isMinor,
-      guardianFirstName: request.guardianFirstName,
-      guardianLastName: request.guardianLastName,
       baseFeeChargedInCents: baseFeeToCharge,
       userId,
       auth0Id,
@@ -256,6 +254,21 @@ export class RegistrationService {
     }
   }
 
+  private validateMinimumAge(dateOfBirth: string): void {
+    if (!dateOfBirth?.trim()) {
+      throw new RegistrationError('Date of birth is required', 400);
+    }
+
+    const dob = new Date(dateOfBirth);
+    if (Number.isNaN(dob.getTime())) {
+      throw new RegistrationError('Invalid date of birth', 400);
+    }
+
+    if (calculateAge(dob) < MINIMUM_MEMBER_AGE) {
+      throw new RegistrationError(`Participants must be at least ${MINIMUM_MEMBER_AGE} years old to register.`, 400);
+    }
+  }
+
   private validateEventCapacity(events: EventDto[], selectedEvents: SelectedEventDto[]): void {
     const eventMap = new Map(events.map(e => [e.m2EventId, e]));
 
@@ -308,9 +321,6 @@ export class RegistrationService {
             <strong>Legal Name:</strong> ${escapeHtml(`${registrant.legalFirstName} ${registrant.legalLastName}`)}<br/>
             <strong>Email:</strong> ${escapeHtml(registrant.email)}<br/>
             <strong>Phone:</strong> ${escapeHtml(registrant.phoneNumber || 'N/A')}
-            ${registrant.guardianFirstName
-              ? `<br/><strong>Guardian Name:</strong> ${escapeHtml(`${registrant.guardianFirstName} ${registrant.guardianLastName || ''}`.trim())}`
-              : ''}
           </p>
 
           <p><strong>Registered Events:</strong></p>
