@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { checkJwt, requireRole } from '../middleware/auth';
+import { checkJwt, checkJwtFromQuery, requireRole } from '../middleware/auth';
 import { emailService, BatchProgress } from '../services/emailService';
 import { SendToListRequest } from '@cufc/shared';
 import { randomUUID } from 'node:crypto';
@@ -61,21 +61,12 @@ router.post('/send-to-list', checkJwt, requireRole('club-admin'), async (req: Re
  * GET /api/email/send-to-list/stream?jobId=xxx&token=xxx
  * SSE endpoint for streaming email send progress
  */
-router.get('/send-to-list/stream', (req: Request, res: Response) => {
+router.get('/send-to-list/stream', checkJwtFromQuery, requireRole('club-admin'), (req: Request, res: Response) => {
   const jobId = req.query.jobId as string;
-  const token = req.query.token as string;
 
   if (!jobId) {
     return res.status(400).json({ error: 'jobId query parameter is required' });
   }
-
-  if (!token) {
-    return res.status(401).json({ error: 'Token is required' });
-  }
-
-  // Verify token using auth0
-  // Note: In production, you should validate the JWT properly
-  // For now, we accept the token from query param
 
   // Set up SSE headers
   res.setHeader('Content-Type', 'text/event-stream');

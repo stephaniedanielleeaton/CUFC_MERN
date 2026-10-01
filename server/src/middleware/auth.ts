@@ -53,3 +53,18 @@ export function checkJwtOptional(req: Request, res: Response, next: NextFunction
     next();
   });
 }
+
+/**
+ * Same verification as checkJwt, but reads the token from a `token` query param
+ * instead of the Authorization header. Needed for endpoints opened via
+ * EventSource (SSE), which can't set custom headers.
+ */
+export function checkJwtFromQuery(req: Request, res: Response, next: NextFunction) {
+  if (!req.headers.authorization) {
+    const token = req.query.token;
+    if (typeof token === 'string' && token) {
+      req.headers.authorization = `Bearer ${token}`;
+    }
+  }
+  checkJwt(req, res, next);
+}

@@ -36,11 +36,6 @@ export class RegistrantDAO {
     return doc ? mapRegistrantToDetailDto(doc) : null;
   }
 
-  async findByM2TournamentId(m2TournamentId: number): Promise<RegistrantDto[]> {
-    const docs = await Registrant.find({ m2TournamentId, isPaid: true }).sort({ createdAt: -1 });
-    return docs.map(mapRegistrantToDto);
-  }
-
   async findByAuth0Id(auth0Id: string): Promise<RegistrantDto[]> {
     const docs = await Registrant.find({ auth0Id, isPaid: true }).sort({ createdAt: -1 });
     return docs.map(mapRegistrantToDto);

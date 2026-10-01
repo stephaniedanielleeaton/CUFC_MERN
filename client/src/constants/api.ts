@@ -49,7 +49,6 @@ export const API_ENDPOINTS = {
   },
   EMAIL_LISTS: {
     ROOT: '/api/email-lists',
-    SUMMARIES: '/api/email-lists/summaries',
     ALL_MEMBERS: '/api/email-lists/members/all',
     PROMOTIONAL_EMAILS: '/api/email-lists/promotional/emails',
   },
