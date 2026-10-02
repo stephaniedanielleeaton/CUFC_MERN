@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 import type { SelectedEventDto, RegistrationRequestDto, MemberProfileDTO } from '@cufc/shared';
+import { isAtLeastMinimumAge, MINIMUM_MEMBER_AGE } from '@cufc/shared';
 import { useClubs } from '../hooks/useClubs';
 
 interface RegistrationFormProps {
@@ -21,10 +22,8 @@ interface FormData {
   legalLastName: string;
   email: string;
   phoneNumber: string;
+  dateOfBirth: string;
   clubId: string;
-  isMinor: boolean;
-  guardianFirstName: string;
-  guardianLastName: string;
   dataSubmissionAgreement: boolean;
 }
 
@@ -35,10 +34,8 @@ const initialFormData: FormData = {
   legalLastName: '',
   email: '',
   phoneNumber: '',
+  dateOfBirth: '',
   clubId: '',
-  isMinor: false,
-  guardianFirstName: '',
-  guardianLastName: '',
   dataSubmissionAgreement: false,
 };
 
@@ -71,10 +68,8 @@ export function RegistrationForm({
         preferredLastName: hasPreferredName ? (profile.displayLastName ?? '') : '',
         email: profile.personalInfo?.email ?? '',
         phoneNumber: profile.personalInfo?.phone ?? '',
+        dateOfBirth: profile.personalInfo?.dateOfBirth?.slice(0, 10) ?? '',
         clubId: '',
-        isMinor: false,
-        guardianFirstName: profile.guardian?.firstName ?? '',
-        guardianLastName: profile.guardian?.lastName ?? '',
         dataSubmissionAgreement: false,
       });
       setUseLegalName(!hasPreferredName);
@@ -104,10 +99,8 @@ export function RegistrationForm({
       legalLastName: formData.legalLastName,
       email: formData.email,
       phoneNumber: formData.phoneNumber,
+      dateOfBirth: formData.dateOfBirth,
       clubAffiliation: selectedClub ? { m2ClubId: selectedClub.m2ClubId, name: selectedClub.name } : undefined,
-      isMinor: formData.isMinor,
-      guardianFirstName: formData.isMinor ? formData.guardianFirstName : undefined,
-      guardianLastName: formData.isMinor ? formData.guardianLastName : undefined,
     };
     
     onSubmit(request);
@@ -117,18 +110,18 @@ export function RegistrationForm({
     formData.legalFirstName.trim() !== '' &&
     formData.legalLastName.trim() !== '' &&
     formData.email.trim() !== '' &&
+    formData.dateOfBirth.trim() !== '' &&
+    isAtLeastMinimumAge(formData.dateOfBirth) &&
     selectedEvents.length > 0 &&
     formData.dataSubmissionAgreement &&
-    (!formData.isMinor || (formData.guardianFirstName.trim() !== '' && formData.guardianLastName.trim() !== ''));
+    (useLegalName || (formData.preferredFirstName.trim() !== '' && formData.preferredLastName.trim() !== ''));
+
+  const dobError = formData.dateOfBirth.trim() !== '' && !isAtLeastMinimumAge(formData.dateOfBirth)
+    ? `Participants must be at least ${MINIMUM_MEMBER_AGE} years old to register.`
+    : undefined;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm">
-          {error}
-        </div>
-      )}
-
       {/* Sign In Prompt - Not authenticated */}
       {!isAuthenticated && (
         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -200,9 +193,12 @@ export function RegistrationForm({
             required
           />
         </div>
+        <p className="text-xs text-gray-500 mt-2">
+          Also used as your display name on scoreboards and results unless a display name is provided below. Names are submitted exactly as entered.
+        </p>
       </fieldset>
 
-      {/* Preferred Name Toggle */}
+      {/* Display Name Toggle */}
       <div>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -211,15 +207,15 @@ export function RegistrationForm({
             onChange={() => setUseLegalName(!useLegalName)}
             className="h-4 w-4 text-navy rounded border-gray-300 focus:ring-navy"
           />
-          <span className="text-sm text-gray-600">Use a different preferred name</span>
+          <span className="text-sm text-gray-600">Use a different display name</span>
         </label>
       </div>
 
-      {/* Preferred Name (if different) */}
+      {/* Display Name (if different) */}
       {!useLegalName && (
         <fieldset>
           <legend className="block text-sm font-medium text-gray-700 mb-2">
-            Preferred Name
+            Display Name
           </legend>
           <div className="grid grid-cols-2 gap-4">
             <input
@@ -228,8 +224,9 @@ export function RegistrationForm({
               value={formData.preferredFirstName}
               onChange={handleChange}
               placeholder="First name"
-              aria-label="Preferred first name"
+              aria-label="Display first name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
+              required
             />
             <input
               type="text"
@@ -237,8 +234,9 @@ export function RegistrationForm({
               value={formData.preferredLastName}
               onChange={handleChange}
               placeholder="Last name"
-              aria-label="Preferred last name"
+              aria-label="Display last name"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
+              required
             />
           </div>
         </fieldset>
@@ -277,6 +275,31 @@ export function RegistrationForm({
         />
       </div>
 
+      {/* Date of Birth */}
+      <div>
+        <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-2">
+          Date of Birth <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="date"
+          id="dateOfBirth"
+          name="dateOfBirth"
+          value={formData.dateOfBirth}
+          onChange={handleChange}
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-navy focus:border-navy ${
+            dobError ? 'border-red-500' : 'border-gray-300'
+          }`}
+          required
+        />
+        {dobError ? (
+          <p className="text-xs text-red-600 mt-1">{dobError}</p>
+        ) : (
+          <p className="text-xs text-gray-500 mt-1">
+            Participants must be at least {MINIMUM_MEMBER_AGE} years old to compete.
+          </p>
+        )}
+      </div>
+
       {/* Club Affiliation */}
       <div>
         <label htmlFor="clubId" className="block text-sm font-medium text-gray-700 mb-2">
@@ -297,54 +320,6 @@ export function RegistrationForm({
           ))}
         </select>
       </div>
-
-      {/* Minor */}
-      <div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            name="isMinor"
-            checked={formData.isMinor}
-            onChange={handleChange}
-            className="h-4 w-4 text-navy rounded border-gray-300 focus:ring-navy"
-          />
-          <span className="text-sm text-gray-600">Registrant is a minor (ages 16-17)</span>
-        </label>
-        <p className="text-xs text-gray-500 mt-1 ml-6">
-          Participants must be at least 16 years old to compete.
-        </p>
-      </div>
-
-      {/* Guardian Info (if minor) */}
-      {formData.isMinor && (
-        <fieldset>
-          <legend className="block text-sm font-medium text-gray-700 mb-2">
-            Parent/Guardian Name <span className="text-red-500">*</span>
-          </legend>
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              type="text"
-              name="guardianFirstName"
-              value={formData.guardianFirstName}
-              onChange={handleChange}
-              placeholder="First name"
-              aria-label="Guardian first name"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
-              required
-            />
-            <input
-              type="text"
-              name="guardianLastName"
-              value={formData.guardianLastName}
-              onChange={handleChange}
-              placeholder="Last name"
-              aria-label="Guardian last name"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-navy focus:border-navy"
-              required
-            />
-          </div>
-        </fieldset>
-      )}
 
       {/* Data Submission Consent */}
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -374,6 +349,11 @@ export function RegistrationForm({
       </div>
 
       {/* Submit */}
+      {error && (
+        <div className="bg-red-50 text-red-700 p-4 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
       <button
         type="submit"
         disabled={!isValid || loading}

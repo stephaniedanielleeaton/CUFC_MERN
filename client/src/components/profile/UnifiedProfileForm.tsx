@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
 import { useMemberProfile } from '../../context/ProfileContext'
-import { useToast } from '../common/Toast'
 import { TextInput } from '../common/TextInput'
 import { API_ENDPOINTS } from '../../constants/api'
+import { isAtLeastMinimumAge, MINIMUM_MEMBER_AGE } from '@cufc/shared'
 import type { MemberProfileDTO } from '@cufc/shared'
 
 export interface ProfileFormData {
@@ -20,9 +20,6 @@ export interface ProfileFormData {
   state: string
   zip: string
   country: string
-  isMinor: boolean
-  guardianFirstName: string
-  guardianLastName: string
 }
 
 export type ValidationErrors = Record<string, string>
@@ -41,9 +38,6 @@ const INITIAL_FORM_DATA: ProfileFormData = {
   state: '',
   zip: '',
   country: 'USA',
-  isMinor: false,
-  guardianFirstName: '',
-  guardianLastName: '',
 }
 
 function validateRequired(value: string, fieldName: string): string | undefined {
@@ -53,22 +47,7 @@ function validateRequired(value: string, fieldName: string): string | undefined 
 function validateAge(dateOfBirth: string): string | undefined {
   if (!dateOfBirth.trim()) return 'Date of birth is required.'
 
-  const dob = new Date(dateOfBirth)
-  const today = new Date()
-  const hasHadBirthdayThisYear = today >= new Date(today.getFullYear(), dob.getMonth(), dob.getDate())
-  const age = today.getFullYear() - dob.getFullYear() - (hasHadBirthdayThisYear ? 0 : 1)
-
-  return age < 16 ? 'Members must be at least 16 years old.' : undefined
-}
-
-function validateGuardian(formData: ProfileFormData, errors: ValidationErrors): void {
-  if (!formData.isMinor) return
-
-  const guardianFirstError = validateRequired(formData.guardianFirstName, 'Guardian first name')
-  const guardianLastError = validateRequired(formData.guardianLastName, 'Guardian last name')
-
-  if (guardianFirstError) errors.guardianFirstName = guardianFirstError
-  if (guardianLastError) errors.guardianLastName = guardianLastError
+  return isAtLeastMinimumAge(dateOfBirth) ? undefined : `Members must be at least ${MINIMUM_MEMBER_AGE} years old.`
 }
 
 function validateProfile(formData: ProfileFormData): ValidationErrors {
@@ -95,8 +74,6 @@ function validateProfile(formData: ProfileFormData): ValidationErrors {
   const ageError = validateAge(formData.dateOfBirth)
   if (ageError) errors.dateOfBirth = ageError
 
-  validateGuardian(formData, errors)
-
   return errors
 }
 
@@ -119,12 +96,6 @@ function buildPayload(formData: ProfileFormData) {
         country: formData.country.trim(),
       },
     },
-    ...(formData.isMinor ? {
-      guardian: {
-        firstName: formData.guardianFirstName.trim(),
-        lastName: formData.guardianLastName.trim(),
-      },
-    } : {}),
     profileComplete: true,
   }
 }
@@ -145,9 +116,6 @@ function profileToFormData(profile: MemberProfileDTO | null): ProfileFormData {
     state: profile.personalInfo?.address?.state || '',
     zip: profile.personalInfo?.address?.zip || '',
     country: profile.personalInfo?.address?.country || 'USA',
-    isMinor: !!(profile.guardian?.firstName || profile.guardian?.lastName),
-    guardianFirstName: profile.guardian?.firstName || '',
-    guardianLastName: profile.guardian?.lastName || '',
   }
 }
 
@@ -170,8 +138,7 @@ export function UnifiedProfileForm({
 }: Readonly<UnifiedProfileFormProps>) {
   const { getAccessTokenSilently, user } = useAuth0()
   const { refreshProfile } = useMemberProfile()
-  const { showToast } = useToast()
-  
+
   const [formData, setFormData] = useState<ProfileFormData>(() => 
     existingProfile ? profileToFormData(existingProfile) : INITIAL_FORM_DATA
   )
@@ -202,13 +169,6 @@ export function UnifiedProfileForm({
         return next
       })
     }
-  }
-
-  const handleMinorToggle = (isMinor: boolean) => {
-    if (isMinor) {
-      showToast('Please note: fencers must be 16 years of age or older to participate.', 'warning')
-    }
-    setFormData(prev => ({ ...prev, isMinor }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -314,32 +274,6 @@ export function UnifiedProfileForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Minor toggle */}
-      <div>
-        <p className="text-xs font-medium text-gray-600 mb-2">Who is this profile for?</p>
-        <div className="flex gap-3">
-          {[
-            { value: false, label: 'Myself' },
-            { value: true, label: 'A minor / dependent (16+)' }
-          ].map((opt) => (
-            <label
-              key={String(opt.value)}
-              className={`flex-1 flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
-                formData.isMinor === opt.value ? 'border-navy bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <input
-                type="radio"
-                name="profileFor"
-                checked={formData.isMinor === opt.value}
-                onChange={() => handleMinorToggle(opt.value)}
-              />
-              <span className="text-sm font-medium text-gray-800">{opt.label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
       {/* Name fields */}
       <div className="grid grid-cols-2 gap-3">
         <TextInput
@@ -408,29 +342,12 @@ export function UnifiedProfileForm({
         value={formData.dateOfBirth}
         onChange={handleChange}
         error={errors.dateOfBirth}
+        disabled={mode === 'edit'}
       />
-
-      {/* Guardian (if minor) */}
-      {formData.isMinor && (
-        <div className="space-y-3 p-3 bg-gray-50 rounded-lg">
-          <p className="text-xs font-medium text-gray-600">Guardian / Parent Information</p>
-          <div className="grid grid-cols-2 gap-3">
-            <TextInput
-              label="Guardian First Name"
-              name="guardianFirstName"
-              value={formData.guardianFirstName}
-              onChange={handleChange}
-              error={errors.guardianFirstName}
-            />
-            <TextInput
-              label="Guardian Last Name"
-              name="guardianLastName"
-              value={formData.guardianLastName}
-              onChange={handleChange}
-              error={errors.guardianLastName}
-            />
-          </div>
-        </div>
+      {mode === 'edit' && (
+        <p className="text-xs text-gray-500">
+          Date of birth can't be changed here. Contact the club if it needs to be corrected.
+        </p>
       )}
 
       {/* Address */}

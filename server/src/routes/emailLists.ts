@@ -22,20 +22,6 @@ router.get('/', checkJwt, requireRole('club-admin'), async (_req: Request, res: 
 });
 
 /**
- * GET /api/email-lists/summaries
- * Returns id, name, and size of each email list
- */
-router.get('/summaries', async (_req: Request, res: Response) => {
-  try {
-    const summaries = await emailListService.getEmailListSummaries();
-    res.json(summaries);
-  } catch (error) {
-    console.error('Error in GET /email-lists/summaries:', error);
-    res.status(500).json({ error: 'Failed to retrieve email list summaries' });
-  }
-});
-
-/**
  * GET /api/email-lists/members/all
  * Returns all member emails from member profiles as a special list
  */

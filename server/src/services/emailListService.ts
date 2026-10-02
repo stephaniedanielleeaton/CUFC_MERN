@@ -1,16 +1,10 @@
 import { emailListDAO } from '../dao/emailListDAO';
-import { EmailListSummaryDTO } from '../types/dtos/emailList';
 
 /**
  * Service for email list business logic
  * Uses DAO for data access and returns DTOs
  */
 export class EmailListService {
-
-  async getEmailListSummaries(): Promise<EmailListSummaryDTO[]> {
-    return emailListDAO.getAllListSummary();
-  }
-
 
   async addEmailToPromotionalList(email: string): Promise<void> {
     try {

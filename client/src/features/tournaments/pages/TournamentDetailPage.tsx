@@ -64,8 +64,8 @@ export default function TournamentDetailPage() {
     try {
       const response = await register(request);
       globalThis.location.href = response.paymentUrl;
-    } catch {
-      // Error is handled by useRegistration hook
+    } catch (err) {
+      // Error is handled by useRegistration hook and displayed in RegistrationForm
     }
   };
 

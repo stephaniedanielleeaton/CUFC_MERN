@@ -9,11 +9,13 @@ import {
   ClubAffiliationDto,
   RegistrationRequestDto,
   RegistrationResponseDto,
+  EventDto,
 } from '../dto';
 import { EmailList } from '../../../models/EmailList';
 import { memberProfileService } from '../../../services/memberProfileService';
 import { emailService } from '../../../services/emailService';
 import { env } from '../../../config/env';
+import { calculateAge, MINIMUM_MEMBER_AGE } from '@cufc/shared';
 
 function escapeHtml(input: string | undefined | null): string {
   if (!input) return '';
@@ -41,11 +43,8 @@ export interface SubmitRegistrationData {
   legalFirstName: string;
   legalLastName: string;
   email: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   clubAffiliation?: ClubAffiliationDto;
-  isMinor: boolean;
-  guardianFirstName?: string;
-  guardianLastName?: string;
   baseFeeChargedInCents: number;
   userId?: string;
   auth0Id?: string;
@@ -64,6 +63,12 @@ export class RegistrationService {
     if (!tournament) {
       throw new RegistrationError('Tournament not found', 404);
     }
+
+    // Validate that selected events are not at capacity
+    this.validateEventCapacity(tournament.events, request.selectedEvents);
+
+    // Minors are not permitted to register for or attend events
+    this.validateMinimumAge(request.dateOfBirth);
 
     let userId: string | undefined;
     let hasExistingRegistration = false;
@@ -86,9 +91,6 @@ export class RegistrationService {
       email: request.email,
       phoneNumber: request.phoneNumber,
       clubAffiliation: request.clubAffiliation,
-      isMinor: request.isMinor,
-      guardianFirstName: request.guardianFirstName,
-      guardianLastName: request.guardianLastName,
       baseFeeChargedInCents: baseFeeToCharge,
       userId,
       auth0Id,
@@ -156,10 +158,6 @@ export class RegistrationService {
     }
 
     return false;
-  }
-
-  async getRegistrantsByTournament(m2TournamentId: number): Promise<RegistrantDto[]> {
-    return registrantDAO.findByM2TournamentId(m2TournamentId);
   }
 
   async getRegistrantsByUser(auth0Id: string): Promise<RegistrantDto[]> {
@@ -252,6 +250,39 @@ export class RegistrationService {
     }
   }
 
+  private validateMinimumAge(dateOfBirth: string): void {
+    if (!dateOfBirth?.trim()) {
+      throw new RegistrationError('Date of birth is required', 400);
+    }
+
+    const dob = new Date(dateOfBirth);
+    if (Number.isNaN(dob.getTime())) {
+      throw new RegistrationError('Invalid date of birth', 400);
+    }
+
+    if (calculateAge(dob) < MINIMUM_MEMBER_AGE) {
+      throw new RegistrationError(`Participants must be at least ${MINIMUM_MEMBER_AGE} years old to register.`, 400);
+    }
+  }
+
+  private validateEventCapacity(events: EventDto[], selectedEvents: SelectedEventDto[]): void {
+    const eventMap = new Map(events.map(e => [e.m2EventId, e]));
+
+    for (const selected of selectedEvents) {
+      const event = eventMap.get(selected.m2EventId);
+      if (!event) {
+        throw new RegistrationError(`Event ${selected.eventName} not found in tournament`, 400);
+      }
+
+      if (event.participantsCap && event.participantsCount >= event.participantsCap) {
+        throw new RegistrationError(
+          `Event "${event.eventName}" is at capacity (${event.participantsCount}/${event.participantsCap}). Please select a different event.`,
+          400
+        );
+      }
+    }
+  }
+
   private generatePaymentId(m2TournamentId: number): string {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
@@ -286,9 +317,6 @@ export class RegistrationService {
             <strong>Legal Name:</strong> ${escapeHtml(`${registrant.legalFirstName} ${registrant.legalLastName}`)}<br/>
             <strong>Email:</strong> ${escapeHtml(registrant.email)}<br/>
             <strong>Phone:</strong> ${escapeHtml(registrant.phoneNumber || 'N/A')}
-            ${registrant.guardianFirstName
-              ? `<br/><strong>Guardian Name:</strong> ${escapeHtml(`${registrant.guardianFirstName} ${registrant.guardianLastName || ''}`.trim())}`
-              : ''}
           </p>
 
           <p><strong>Registered Events:</strong></p>

@@ -12,11 +12,8 @@ export interface CreateRegistrantData {
   legalFirstName: string;
   legalLastName: string;
   email: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   clubAffiliation?: ClubAffiliationDto;
-  isMinor: boolean;
-  guardianFirstName?: string;
-  guardianLastName?: string;
   paymentId: string;
   baseFeeChargedInCents: number;
   userId?: string;
@@ -37,11 +34,6 @@ export class RegistrantDAO {
   async findByPaymentId(paymentId: string): Promise<RegistrantDetailDto | null> {
     const doc = await Registrant.findOne({ paymentId });
     return doc ? mapRegistrantToDetailDto(doc) : null;
-  }
-
-  async findByM2TournamentId(m2TournamentId: number): Promise<RegistrantDto[]> {
-    const docs = await Registrant.find({ m2TournamentId, isPaid: true }).sort({ createdAt: -1 });
-    return docs.map(mapRegistrantToDto);
   }
 
   async findByAuth0Id(auth0Id: string): Promise<RegistrantDto[]> {

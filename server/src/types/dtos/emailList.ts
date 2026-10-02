@@ -4,12 +4,6 @@ export interface EmailList {
   emails: string[];
 }
 
-export interface EmailListSummaryDTO {
-  id: string;
-  name: string;
-  size: number;
-}
-
 export interface AddEmailRequest {
   email: string;
 }

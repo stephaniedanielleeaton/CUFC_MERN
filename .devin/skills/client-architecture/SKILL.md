@@ -1,4 +1,5 @@
 ---
+name: client-architecture
 description: Client architecture guide - folder structure, patterns, and conventions
 ---
 

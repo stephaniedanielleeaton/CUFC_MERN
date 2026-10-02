@@ -42,7 +42,7 @@ export async function submitRegistration(
     let message = 'Failed to submit registration';
     try {
       const error = await res.json();
-      message = error.message || message;
+      message = error.error || message;
     } catch {
       // Response wasn't JSON, use default message
     }

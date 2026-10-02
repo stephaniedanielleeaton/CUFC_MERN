@@ -33,11 +33,8 @@ export interface RegistrantDetailDto extends RegistrantDto {
   preferredLastName: string;
   legalFirstName: string;
   legalLastName: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   clubAffiliation?: ClubAffiliationDto;
-  isMinor: boolean;
-  guardianFirstName?: string;
-  guardianLastName?: string;
   squareOrderId?: string;
   auth0Id?: string;
   isRequestedAlternativeQualification: boolean;

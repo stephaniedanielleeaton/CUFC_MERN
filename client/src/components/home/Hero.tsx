@@ -1,8 +1,15 @@
+import { ChevronDown } from 'lucide-react'
 import { SquareButton } from '../common/SquareButton'
 import { useJoinNavigation } from '../../hooks/useJoinNavigation'
 
+const INTRO_SECTION_ID = 'intro-classes'
+
 export default function Hero() {
   const { handleJoinClick } = useJoinNavigation()
+
+  const handleScrollToClasses = () => {
+    document.getElementById(INTRO_SECTION_ID)?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   return (
     <section className="w-full">
@@ -34,6 +41,19 @@ export default function Hero() {
               </SquareButton>
             </div>
           </div>
+        </div>
+        <div className="absolute inset-x-0 bottom-4 flex flex-col items-center gap-1 px-4">
+          <button
+            type="button"
+            onClick={handleScrollToClasses}
+            className="flex flex-col items-center gap-1 text-white drop-shadow-lg animate-bounce hover:opacity-80 transition-opacity"
+            aria-label="Scroll down to see intro class schedule"
+          >
+            <span className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-center">
+              Scroll down to see intro class schedule
+            </span>
+            <ChevronDown size={28} />
+          </button>
         </div>
       </div>
     </section>

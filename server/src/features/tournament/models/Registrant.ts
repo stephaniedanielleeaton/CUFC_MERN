@@ -33,11 +33,8 @@ export interface IRegistrant extends Document {
   legalFirstName: string;
   legalLastName: string;
   email: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   clubAffiliation?: IClubAffiliation;
-  isMinor: boolean;
-  guardianFirstName?: string;
-  guardianLastName?: string;
   paymentId: string;
   squareOrderId?: string;
   isPaid?: boolean;
@@ -89,9 +86,6 @@ export function mapRegistrantToDetailDto(doc: IRegistrant): RegistrantDetailDto 
       m2ClubId: doc.clubAffiliation.m2ClubId,
       name: doc.clubAffiliation.name,
     } as ClubAffiliationDto : undefined,
-    isMinor: doc.isMinor,
-    guardianFirstName: doc.guardianFirstName,
-    guardianLastName: doc.guardianLastName,
     squareOrderId: doc.squareOrderId,
     auth0Id: doc.auth0Id,
     isRequestedAlternativeQualification: doc.isRequestedAlternativeQualification ?? false,
@@ -108,11 +102,8 @@ const RegistrantSchema = new Schema<IRegistrant>({
   legalFirstName: { type: String, required: true },
   legalLastName: { type: String, required: true },
   email: { type: String, required: true, index: true },
-  phoneNumber: { type: String, required: true },
+  phoneNumber: { type: String },
   clubAffiliation: ClubAffiliationSchema,
-  isMinor: { type: Boolean, required: true },
-  guardianFirstName: String,
-  guardianLastName: String,
   paymentId: { type: String, required: true, unique: true, index: true },
   squareOrderId: { type: String, index: true },
   isPaid: { type: Boolean, default: false, index: true },

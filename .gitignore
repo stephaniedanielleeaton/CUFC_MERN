@@ -31,3 +31,8 @@ e2e/reports/
 
 # Misc
 *.tsbuildinfo
+e2e/.env.test
+.gitignore
+e2e/.auth/admin.json
+e2e/reports/cucumber-report.json
+e2e/reports/cucumber-report.html
