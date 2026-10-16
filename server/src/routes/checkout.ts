@@ -27,14 +27,14 @@ router.post('/intro', checkJwt, async (req: Request<{}, {}, IntroClassCheckoutRe
     }
 
     if (!profile.profileComplete) {
-      console.error(`[Checkout] Incomplete profile attempted checkout: ${memberProfileId}, displayName: ${profile.displayFirstName} ${profile.displayLastName}`);
+      console.error(`[Checkout] Incomplete profile attempted checkout: ${memberProfileId}`);
       return res.status(400).json({ 
         error: 'Profile must be complete before checkout. Please complete your profile first.',
         code: 'PROFILE_INCOMPLETE'
       });
     }
 
-    console.log(`[Checkout] Creating checkout for ${profile.displayFirstName} ${profile.displayLastName} (${profile.personalInfo?.email})`);
+    console.log(`[Checkout] Creating checkout for profile: ${memberProfileId}`);
 
     const checkoutUrl = await squareCheckoutService.createPaymentLink(
       catalogObjectId, 
@@ -76,14 +76,14 @@ router.post('/intro-guest', async (req: Request<{}, {}, IntroClassCheckoutReques
     }
 
     if (!profile.profileComplete) {
-      console.error(`[Checkout] Guest checkout - incomplete profile: ${memberProfileId}, displayName: ${profile.displayFirstName} ${profile.displayLastName}`);
+      console.error(`[Checkout] Guest checkout - incomplete profile: ${memberProfileId}`);
       return res.status(400).json({ 
         error: 'Profile must be complete before checkout. Please complete your profile first.',
         code: 'PROFILE_INCOMPLETE'
       });
     }
 
-    console.log(`[Checkout] Guest checkout for ${profile.displayFirstName} ${profile.displayLastName} (${profile.personalInfo?.email})`);
+    console.log(`[Checkout] Guest checkout for profile: ${memberProfileId}`);
 
     const checkoutUrl = await squareCheckoutService.createPaymentLink(
       catalogObjectId, 

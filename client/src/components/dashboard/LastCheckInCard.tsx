@@ -3,7 +3,7 @@ import { useAuth0 } from '@auth0/auth0-react'
 import { Clock } from 'lucide-react'
 import { fetchLastCheckIn, type LastCheckInDTO } from '../../services/dashboardService'
 
-export function LastCheckInCard({ memberProfileId }: Readonly<{ memberProfileId: string }>) {
+export function LastCheckInCard() {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0()
   const [lastCheckIn, setLastCheckIn] = useState<LastCheckInDTO | null>(null)
   const [loading, setLoading] = useState(true)
@@ -11,7 +11,7 @@ export function LastCheckInCard({ memberProfileId }: Readonly<{ memberProfileId:
 
   useEffect(() => {
     async function loadLastCheckIn() {
-      if (!memberProfileId || !isAuthenticated) {
+      if (!isAuthenticated) {
         setLoading(false)
         return
       }
@@ -19,7 +19,7 @@ export function LastCheckInCard({ memberProfileId }: Readonly<{ memberProfileId:
       setError(null)
       try {
         const token = await getAccessTokenSilently()
-        const data = await fetchLastCheckIn(token, memberProfileId)
+        const data = await fetchLastCheckIn(token)
         setLastCheckIn(data)
       } catch {
         setError("Failed to load check-in history.")
@@ -28,7 +28,7 @@ export function LastCheckInCard({ memberProfileId }: Readonly<{ memberProfileId:
       }
     }
     loadLastCheckIn()
-  }, [memberProfileId, isAuthenticated, getAccessTokenSilently])
+  }, [isAuthenticated, getAccessTokenSilently])
 
   let content
   if (loading) {

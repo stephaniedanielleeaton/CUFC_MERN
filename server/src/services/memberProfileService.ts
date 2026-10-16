@@ -81,7 +81,7 @@ export async function createProfileForUser(
   if (!email) throw new Error('Email is required to create a member profile');
 
   const existingProfile = await memberProfileDAO.findByEmailUnlinked(email);
-  console.log(`[createProfileForUser] Looking for existing profile with email: ${email}, found: ${existingProfile ? existingProfile._id : 'none'}`);
+  console.log(`[createProfileForUser] Looking for existing unlinked profile, found: ${existingProfile ? existingProfile._id : 'none'}`);
 
   if (existingProfile) {
     return linkAndUpdateExistingProfile(existingProfile, auth0Id, email, initialData);
@@ -187,12 +187,12 @@ export async function findAndLinkByEmail(auth0Id: string, email: string): Promis
   const existingProfile = await memberProfileDAO.findByEmailUnlinked(normalizedEmail);
 
   if (!existingProfile) {
-    console.log(`[findAndLinkByEmail] No unlinked profile found for email: ${normalizedEmail}`);
+    console.log('[findAndLinkByEmail] No unlinked profile found for provided email');
     return null;
   }
 
   // Link the auth0Id to the existing profile
-  console.log(`[findAndLinkByEmail] Linking auth0Id ${auth0Id} to existing profile ${existingProfile._id} with email ${normalizedEmail}`);
+  console.log(`[findAndLinkByEmail] Linking auth0Id ${auth0Id} to existing profile ${existingProfile._id}`);
 
   const linked = await memberProfileDAO.linkAuth0Id(existingProfile._id, auth0Id);
 
