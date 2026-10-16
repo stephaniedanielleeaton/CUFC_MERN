@@ -114,5 +114,5 @@ export async function createMember(
     throw new Error('Failed to create member')
   }
   const result = await response.json()
-  return result.data
+  return result.data.profile
 }

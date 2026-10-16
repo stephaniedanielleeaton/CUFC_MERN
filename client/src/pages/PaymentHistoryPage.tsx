@@ -24,7 +24,7 @@ function formatDate(dateStr?: string): string {
 
 function TransactionsList({ transactions }: Readonly<{ transactions: Transaction[] }>) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid="transaction-list">
       {transactions.map((tx) => (
         <div
           key={tx.id}
@@ -33,7 +33,7 @@ function TransactionsList({ transactions }: Readonly<{ transactions: Transaction
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium text-gray-900">
-                {tx.lineItems.map((li) => li.name).filter(Boolean).join(', ') || 'Payment'}
+                {tx.lineItems?.map((li) => [li.name, li.variationName].filter(Boolean).join(' - ')).filter(Boolean).join(', ') || 'Payment'}
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 {formatDate(tx.createdAt)}

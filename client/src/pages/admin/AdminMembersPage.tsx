@@ -44,7 +44,7 @@ export default function AdminMembersPage() {
       setLoading(false)
       
       if (membersList.length > 0) {
-        loadSquareStatusForMembers(token, membersList)
+        loadSquareStatusForMembers(token)
       } else {
         setSquareStatusLoading(false)
       }
@@ -55,11 +55,10 @@ export default function AdminMembersPage() {
     }
   }
 
-  const loadSquareStatusForMembers = async (token: string, membersList: MemberProfileDTO[]) => {
+  const loadSquareStatusForMembers = async (token: string) => {
     try {
       const { activeSubscriberIds, dropInCustomerIds } = await fetchSquareSubscriptionStatus(token)
-      const enrichedMembers = enrichMembersWithSquareStatus(membersList, activeSubscriberIds, dropInCustomerIds)
-      setMembers(enrichedMembers)
+      setMembers((previousMembers) => enrichMembersWithSquareStatus(previousMembers, activeSubscriberIds, dropInCustomerIds))
     } catch (err) {
       console.error('Failed to load Square status:', err)
     } finally {
@@ -95,7 +94,8 @@ export default function AdminMembersPage() {
       .filter((m) => {
         const firstName = m.displayFirstName || ""
         const lastName = m.displayLastName || ""
-        const matchesSearch = `${firstName} ${lastName}`.toLowerCase().includes(searchQueryLower)
+        const email = m.personalInfo?.email || ""
+        const matchesSearch = `${firstName} ${lastName} ${email}`.toLowerCase().includes(searchQueryLower)
         
         const lastCheckIn = lastCheckInMap[String(m._id)]
         const isCheckedInToday = !!lastCheckIn && new Date(lastCheckIn).toDateString() === todayDateString
@@ -273,6 +273,7 @@ export default function AdminMembersPage() {
                   <button
                     key={status}
                     onClick={toggleStatus}
+                    data-testid={`status-filter-${status.toLowerCase()}`}
                     className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                       index > 0 ? 'border-l border-light-gray' : ''
                     } ${
@@ -287,6 +288,7 @@ export default function AdminMembersPage() {
               })}
               <button
                 onClick={() => setStatusFilter([])}
+                data-testid="status-filter-all"
                 className={`px-3 py-1.5 text-sm font-medium border-l border-light-gray transition-colors ${
                   statusFilter.length === 0
                     ? 'bg-medium-pink text-white'
