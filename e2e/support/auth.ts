@@ -57,8 +57,13 @@ export async function performAuth0Login(
   await page.goto(baseUrl)
   await page.getByRole('button', { name: 'Sign In' }).click()
   await page.waitForURL(/auth0\.com/, { timeout: 15000 })
-  await page.locator('input[name="username"], #username').fill(email)
-  await page.locator('input[name="password"], #password').fill(password)
+  const usernameInput = page.locator('#username')
+  await usernameInput.fill(email)
+  await usernameInput.press('Enter')
+
+  const passwordInput = page.locator('#password')
+  await passwordInput.waitFor({ state: 'visible', timeout: 15000 })
+  await passwordInput.fill(password)
   await page.locator('button[name="action"]').click()
 
   console.log('\n[auth] Complete any MFA prompt in the browser window (up to 2 minutes)...\n')
