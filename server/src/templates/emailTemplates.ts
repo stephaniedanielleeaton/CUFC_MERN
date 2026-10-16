@@ -136,7 +136,7 @@ function wrapLynxCup(message: string): string {
         <p style="
           margin: 0 0 10px 0; 
           font-size: 14px; 
-          color: #0F1B26;
+          color: #ffffff;
         ">
           Columbus United Fencing Club<br/>
           6475 E Main St. #111<br/>
@@ -146,7 +146,7 @@ function wrapLynxCup(message: string): string {
           <a href="https://www.columbusunitedfencing.com/unsubscribe" 
              style="
                text-decoration: underline;
-               color: blue;
+               color: #ffffff;
              ">
             Click here to unsubscribe from promotional emails
           </a>
