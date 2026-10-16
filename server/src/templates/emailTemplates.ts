@@ -96,7 +96,7 @@ function wrapLynxCup(message: string): string {
         border-radius: 8px 8px 0 0;
         border-bottom: 2px solid #511F33;
       ">
-        <img src="https://www.columbusunitedfencing.com/assets/lynxcupnoyear.png"
+        <img src="https://www.columbusunitedfencing.com/lynxcupnoyear.png"
              alt="Lynx Cup 2026"
              style="
                max-width: 100%;
