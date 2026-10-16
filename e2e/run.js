@@ -13,7 +13,7 @@ const args = process.argv.slice(2).join(' ')
 
 const envTestPath = join(realCwd, '.env.test')
 if (existsSync(envTestPath)) {
-  config({ path: envTestPath, override: true })
+  config({ path: envTestPath })
 }
 assertE2eEnvironmentAllowed()
 
