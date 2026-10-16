@@ -39,11 +39,6 @@ router.post('/', async (req: SquareWebhookRequest, res: Response<WebhookResponse
     const signature = req.headers['x-square-hmacsha256-signature'] as string;
     const rawBody = req.rawBody;
 
-    console.log('[Square Webhook] Headers:', JSON.stringify(req.headers, null, 2));
-    console.log('[Square Webhook] Signature header:', signature);
-    console.log('[Square Webhook] Raw body exists:', !!rawBody);
-    console.log('[Square Webhook] Raw body length:', rawBody?.length);
-
     if (!rawBody) {
       console.warn('[Square Webhook] Missing raw body');
       return res.status(401).json({ error: 'Missing raw body' });
@@ -55,10 +50,8 @@ router.post('/', async (req: SquareWebhookRequest, res: Response<WebhookResponse
     }
 
     const webhookUrl = `https://${req.headers.host}${req.originalUrl}`;
-    console.log('[Square Webhook] Webhook URL:', webhookUrl);
 
     const isValid = squareWebhookService.verifyWebhookSignature(rawBody, signature, webhookUrl);
-    console.log('[Square Webhook] Signature valid:', isValid);
 
     if (!isValid) {
       console.warn('[Square Webhook] Invalid signature');

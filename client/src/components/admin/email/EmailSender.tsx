@@ -1,4 +1,4 @@
-import { useState, useRef, FormEvent, useCallback } from 'react'
+import { useState, useRef, FormEvent, useCallback, useMemo } from 'react'
 import type { SendToListRequest } from '@cufc/shared'
 import type { BatchProgress } from '../../../services/adminEmailService'
 import { RecipientListSelector } from './RecipientListSelector'
@@ -137,6 +137,16 @@ export function EmailSender({ recipientLists, onSend, onSendWithStreaming }: Ema
   const additionalEmailsRequired = selectedLists.length === 0
   const viewState = getViewState()
 
+  const recipientCount = useMemo(() => {
+    const emails = new Set<string>()
+    for (const listId of selectedLists) {
+      const list = recipientLists.find((l) => l.id === listId)
+      list?.emails.forEach((email) => emails.add(email.trim().toLowerCase()))
+    }
+    parseAdditionalEmails().forEach((email) => emails.add(email.toLowerCase()))
+    return emails.size
+  }, [selectedLists, recipientLists, parseAdditionalEmails])
+
   const renderContent = () => {
     switch (viewState) {
       case 'result':
@@ -202,7 +212,7 @@ export function EmailSender({ recipientLists, onSend, onSendWithStreaming }: Ema
               isLoading={isLoading}
             />
 
-            <SendButton isLoading={isLoading} />
+            <SendButton isLoading={isLoading} recipientCount={recipientCount} />
           </form>
         )
     }

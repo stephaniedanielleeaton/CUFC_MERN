@@ -214,22 +214,14 @@ export class RegistrationService {
       : typeof error === 'object' && error !== null
         ? JSON.stringify(error)
         : String(error);
-    const subject = `[ALERT] M2 Registration Failed - ${registrant.displayName}`;
-    const message = `
-      <h2>M2 Registration Failed</h2>
-      <p><strong>Registrant:</strong> ${registrant.displayName}</p>
-      <p><strong>Email:</strong> ${registrant.email}</p>
-      <p><strong>Tournament:</strong> ${registrant.tournamentName}</p>
-      <p><strong>Events:</strong> ${registrant.selectedEvents.map(e => e.eventName).join(', ')}</p>
-      <p><strong>Error:</strong> ${errorMessage}</p>
-      <p>Please manually add this registrant to M2.</p>
-    `;
 
-    try {
-      console.error('M2 failure alert:', subject, message);
-    } catch (emailError) {
-      console.error('Failed to send M2 failure alert email:', emailError);
-    }
+    // Intentionally logs only the registrant ID, not name/email - avoid PII in logs.
+    // TODO: this only logs the failure; it was never wired up to actually send an
+    // alert email (unlike sendRegistrationAlert). An admin currently has to notice
+    // this in the logs and look up the registrant by ID to manually add them to M2.
+    console.error(
+      `[RegistrationService] M2 post failed for registrant ${registrant.id} (tournament: ${registrant.tournamentName}): ${errorMessage}`
+    );
   }
 
   private async addToTournamentEmailList(registrant: RegistrantDetailDto): Promise<void> {
