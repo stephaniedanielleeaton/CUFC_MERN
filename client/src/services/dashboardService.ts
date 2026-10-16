@@ -25,10 +25,9 @@ export async function fetchMemberSubscriptions(
 }
 
 export async function fetchLastCheckIn(
-  token: string,
-  memberProfileId: string
+  token: string
 ): Promise<LastCheckInDTO | null> {
-  const res = await fetch(`${API_ENDPOINTS.MEMBERS.LAST_CHECKIN}?memberProfileId=${memberProfileId}`, {
+  const res = await fetch(API_ENDPOINTS.MEMBERS.LAST_CHECKIN, {
     headers: { Authorization: `Bearer ${token}` }
   })
   const data = await res.json()

@@ -180,8 +180,13 @@ class MemberService {
     return attendanceService.getMemberHistory(profile._id.toString());
   }
 
-  async getLastCheckIn(memberProfileId: string) {
-    return attendanceService.getLastCheckIn(memberProfileId);
+  async getLastCheckIn(auth0Id: string) {
+    const profile = await memberProfileService.getByAuth0Id(auth0Id);
+    if (!profile?._id) {
+      return { timestamp: null };
+    }
+
+    return attendanceService.getLastCheckIn(profile._id.toString());
   }
 
 }

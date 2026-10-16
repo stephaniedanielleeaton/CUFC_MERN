@@ -221,7 +221,7 @@ export default function DashboardPage() {
           <h2 className="text-sm font-semibold tracking-wide px-1">
             Last Check-in
           </h2>
-          <LastCheckInCard memberProfileId={profile._id ?? ""} />
+          <LastCheckInCard />
         </div>
       </div>
     </div>

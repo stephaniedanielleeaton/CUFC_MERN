@@ -11,7 +11,7 @@ router.get('/me', checkJwt, async (req: Request, res: Response) => {
     const auth0Id = getAuth0Id(req);
     const email = getAuth0Email(req);
     
-    console.log(`[Members] GET /me - auth0Id: ${auth0Id}, email: ${email}`);
+    console.log(`[Members] GET /me - auth0Id: ${auth0Id}`);
     
     if (!auth0Id) {
       console.warn('[Members] GET /me - No auth0Id in token');
@@ -22,12 +22,12 @@ router.get('/me', checkJwt, async (req: Request, res: Response) => {
     let profile = await memberService.getProfileByAuth0Id(auth0Id);
     
     if (profile) {
-      console.log(`[Members] GET /me - Found profile by auth0Id: ${profile._id}, name: ${profile.displayFirstName} ${profile.displayLastName}`);
+      console.log(`[Members] GET /me - Found profile by auth0Id: ${profile._id}`);
     }
     
     // If not found, try to find by email and link the auth0Id
     if (!profile && email) {
-      console.log(`[Members] GET /me - No profile found by auth0Id, attempting email link for: ${email}`);
+      console.log('[Members] GET /me - No profile found by auth0Id, attempting email link');
       profile = await memberService.findAndLinkByEmail(auth0Id, email);
       if (profile) {
         console.log(`[Members] GET /me - Linked existing profile by email: ${profile._id}`);
@@ -35,7 +35,7 @@ router.get('/me', checkJwt, async (req: Request, res: Response) => {
     }
     
     if (!profile) {
-      console.log(`[Members] GET /me - No profile found for auth0Id: ${auth0Id}, email: ${email}`);
+      console.log(`[Members] GET /me - No profile found for auth0Id: ${auth0Id}`);
     }
     
     res.json({ profile });
@@ -55,7 +55,7 @@ router.post('/me', checkJwt, async (req: Request<{}, {}, GuestProfileInput>, res
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    console.log(`[Members] POST /me - Request body: displayName=${req.body.displayFirstName} ${req.body.displayLastName}, email=${req.body.personalInfo?.email}, profileComplete=${req.body.profileComplete}`);
+    console.log(`[Members] POST /me - Creating profile for auth0Id ${auth0Id}, profileComplete=${req.body.profileComplete}`);
 
     const existing = await memberService.getProfileByAuth0Id(auth0Id);
     if (existing) {
@@ -65,7 +65,7 @@ router.post('/me', checkJwt, async (req: Request<{}, {}, GuestProfileInput>, res
 
     const profile = await memberService.createProfile(auth0Id, req.body);
 
-    console.log(`[Members] POST /me - Profile created successfully: ${profile._id}, name: ${profile.displayFirstName} ${profile.displayLastName}`);
+    console.log(`[Members] POST /me - Profile created successfully: ${profile._id}`);
 
     res.status(201).json(profile);
   } catch (error) {
@@ -77,7 +77,7 @@ router.post('/me', checkJwt, async (req: Request<{}, {}, GuestProfileInput>, res
 // POST /api/members/guest - Create a guest profile (no auth required)
 router.post('/guest', async (req: Request<{}, {}, GuestProfileInput>, res: Response) => {
   try {
-    console.log(`[Members] POST /guest - Creating guest profile: ${req.body.displayFirstName} ${req.body.displayLastName}, email: ${req.body.personalInfo?.email}`);
+    console.log('[Members] POST /guest - Creating guest profile');
 
     // Validate required fields
     if (!req.body.displayFirstName || !req.body.displayLastName) {
@@ -91,7 +91,7 @@ router.post('/guest', async (req: Request<{}, {}, GuestProfileInput>, res: Respo
 
     const { profile, isExisting } = await memberService.createGuestProfile(req.body);
     
-    console.log(`[Members] POST /guest - Guest profile ${isExisting ? 'found (existing)' : 'created'}: ${profile._id}, name: ${profile.displayFirstName} ${profile.displayLastName}, profileComplete: ${profile.profileComplete}`);
+    console.log(`[Members] POST /guest - Guest profile ${isExisting ? 'found (existing)' : 'created'}: ${profile._id}, profileComplete: ${profile.profileComplete}`);
 
     if (isExisting) {
       return res.status(200).json({ profile, profileAlreadyExists: true });
@@ -157,15 +157,15 @@ router.post('/me/update', checkJwt, async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/members/last-checkin - Get last check-in for a member
+// GET /api/members/last-checkin - Get last check-in for the current user
 router.get('/last-checkin', checkJwt, async (req: Request, res: Response) => {
   try {
-    const memberProfileId = req.query.memberProfileId as string;
-    if (!memberProfileId) {
-      return res.json({ lastCheckIn: null });
+    const auth0Id = getAuth0Id(req);
+    if (!auth0Id) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const lastCheckIn = await memberService.getLastCheckIn(memberProfileId);
+    const lastCheckIn = await memberService.getLastCheckIn(auth0Id);
     res.json({ lastCheckIn });
   } catch (error) {
     console.error(error);
