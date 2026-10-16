@@ -6,6 +6,7 @@
  * 4. Shuts down the server
  */
 const { spawn, execSync } = require('node:child_process')
+const net = require('node:net')
 const { config } = require('dotenv')
 const { assertE2eEnvironmentAllowed } = require('./e2e/environment-guard')
 
@@ -69,6 +70,20 @@ async function waitForApi(baseUrl, timeoutMs) {
   throw new Error(`Timed out waiting for API health check at ${healthUrl}`)
 }
 
+function assertPortAvailable(port) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer()
+    server.once('error', error => {
+      if (error.code === 'EADDRINUSE') {
+        reject(new Error(`Port ${port} is already in use. Stop the existing server before running local E2E tests.`))
+        return
+      }
+      reject(error)
+    })
+    server.listen(port, () => server.close(resolve))
+  })
+}
+
 function buildClient(root) {
   console.log('Building shared package and client...')
   execSync('npm run build --workspace=@cufc/shared && npm run build --workspace=client', {
@@ -109,6 +124,7 @@ async function main() {
   const environment = loadE2eEnvironment(root)
   assertE2eEnvironmentAllowed(environment)
 
+  await assertPortAvailable(3000)
   console.log('Starting API server...')
   const apiServer = spawn('npm', ['run', 'dev:server'], {
     shell: true,
