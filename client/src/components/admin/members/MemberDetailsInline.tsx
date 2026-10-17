@@ -242,7 +242,7 @@ export default function MemberDetailsInline({ member, onSubmit, onDelete, saveSt
               {showTransactions ? "Hide transactions" : "View last 3 months"}
             </button>
             {showTransactions && (
-              <div className="mt-3 space-y-2">
+              <div data-testid="transaction-list" className="mt-3 space-y-2">
                 {transactionContent}
               </div>
             )}
