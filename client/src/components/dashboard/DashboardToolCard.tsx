@@ -29,7 +29,8 @@ export function DashboardToolCard({ label, icon, disabled = false, disabledReaso
 
   return (
     <div
-    onClick={ disabled ? undefined : onClick}
+      data-testid={`tool-card-${label.toLowerCase().replace(/\s+/g, '-')}`}
+      onClick={ disabled ? undefined : onClick}
       className={`flex items-center justify-between px-2 py-2 rounded-md transition ${
         disabled
           ? "bg-gray-50 cursor-not-allowed"
