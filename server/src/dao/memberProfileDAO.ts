@@ -108,7 +108,11 @@ export async function findAllWithSquareCustomerId(): Promise<{ memberId: string;
 export async function findAllEmails(): Promise<string[]> {
   await dbConnect();
   const profiles = await MemberProfile.find(
-    { 'personalInfo.email': { $exists: true, $ne: null } },
+    {
+      'personalInfo.email': { $exists: true, $ne: null },
+      memberStatus: { $in: ['Enrolled', 'Full', 'Staff'] },
+      isArchived: { $ne: true },
+    },
     { 'personalInfo.email': 1 }
   );
 
