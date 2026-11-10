@@ -157,8 +157,8 @@ When('I complete the Auth0 login', async function (this: PlaywrightWorld) {
   
   console.log('\n[auth] Complete any MFA prompt in the browser window (up to 2 minutes)...\n')
   const appOrigin = new URL(BASE_URL).origin
-  await this.page.waitForURL(url => url.origin === appOrigin, { timeout: 120000 })
-  await this.page.waitForLoadState('networkidle')
+  await expect.poll(() => new URL(this.page.url()).origin, { timeout: 120000 }).toBe(appOrigin)
+  await this.page.waitForLoadState('domcontentloaded')
 })
 
 Then('I should be on the pending enrollment page', async function (this: PlaywrightWorld) {

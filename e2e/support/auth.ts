@@ -76,7 +76,7 @@ export async function setupAdminAuth(baseUrl: string): Promise<void> {
   fs.mkdirSync(path.dirname(ADMIN_STORAGE_STATE), { recursive: true })
 
   const browser = await chromium.launch({
-    headless: false,
+    headless: true,
     channel: 'chrome',
     args: ['--disable-blink-features=AutomationControlled'],
   })

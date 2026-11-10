@@ -31,6 +31,7 @@ Given('the enrollment test account has a completed profile', async function (thi
   await this.adminPage!.locator('#newMemberEmail').fill(TEST_MEMBER_EMAIL)
   await this.adminPage!.getByRole('button', { name: 'Add Member', exact: true }).click()
 
+  await expect(this.adminPage!.getByRole('heading', { name: 'New Member' })).toBeHidden({ timeout: 30000 })
   await this.adminPage!.getByTestId('status-filter-all').click()
   await this.adminPage!.getByTestId('member-search-input').fill(TEST_MEMBER_EMAIL)
   const memberCard = await testAccountMemberCard(this)

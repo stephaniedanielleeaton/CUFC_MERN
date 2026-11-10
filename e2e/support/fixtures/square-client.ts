@@ -148,6 +148,61 @@ export class SquareTestClient {
     }
   }
 
+  async waitForVariations(itemId: string, variationIds: string[]): Promise<void> {
+    const timeoutAt = Date.now() + 30000
+
+    while (Date.now() < timeoutAt) {
+      const response = await fetch(`${this.baseUrl}/catalog/object/${itemId}`, {
+        method: 'GET',
+        headers: this.headers,
+      })
+      if (!response.ok) {
+        throw new Error(`Failed to read catalog item while waiting for fixture propagation: ${response.status}`)
+      }
+
+      const data = await response.json() as {
+        object?: { item_data?: { variations?: { id: string }[] } }
+      }
+      const visibleIds = new Set(data.object?.item_data?.variations?.map(variation => variation.id) ?? [])
+      if (variationIds.every(variationId => visibleIds.has(variationId))) return
+
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+
+    throw new Error(`Square catalog did not expose fixture variations within 30000ms: ${variationIds.join(', ')}`)
+  }
+
+  async waitForInventoryCounts(adjustments: InventoryAdjustment[]): Promise<void> {
+    const timeoutAt = Date.now() + 30000
+
+    while (Date.now() < timeoutAt) {
+      const response = await fetch(`${this.baseUrl}/inventory/counts/batch-retrieve`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({
+          catalog_object_ids: adjustments.map(adjustment => adjustment.catalogObjectId),
+          location_ids: [this.locationId],
+          states: ['IN_STOCK'],
+        }),
+      })
+      if (!response.ok) {
+        throw new Error(`Failed to read inventory while waiting for fixture propagation: ${response.status}`)
+      }
+
+      const data = await response.json() as {
+        counts?: { catalog_object_id?: string; quantity?: string }[]
+      }
+      const quantities = new Map(
+        (data.counts ?? []).map(count => [count.catalog_object_id, Number(count.quantity ?? '0')])
+      )
+      if (adjustments.every(adjustment => quantities.get(adjustment.catalogObjectId) === adjustment.quantity)) return
+
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+
+    throw new Error('Square inventory did not expose fixture counts within 30000ms')
+  }
+
   /**
    * Add variations to an existing catalog item.
    * First retrieves the item, then upserts with the new variations added.

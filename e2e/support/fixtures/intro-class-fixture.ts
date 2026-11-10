@@ -59,6 +59,8 @@ export class IntroClassFixture {
     }))
 
     await this.client.setInventoryCount(inventoryAdjustments)
+    await this.client.waitForVariations(this.introClassCatalogId, result.variationIds)
+    await this.client.waitForInventoryCounts(inventoryAdjustments)
 
     return {
       catalogObjectId: this.introClassCatalogId,
