@@ -1,4 +1,5 @@
 import type { EventDto, SelectedEventDto } from '@cufc/shared';
+import { Link } from 'react-router-dom';
 import { formatEventDateHeader, formatEventTime } from '../../../utils/dateUtils';
 
 interface EventSelectionProps {
@@ -104,6 +105,14 @@ export function EventSelection({ events, selectedEvents, onSelectionChange, base
                         {event.participantsCap && ` / ${event.participantsCap} max`}
                         {isFull && ' - FULL'}
                       </div>
+                      {isFull && (
+                        <p className="text-sm text-gray-600 mt-2">
+                          To be added to the waitlist, please use the{' '}
+                          <Link to="/contact" className="text-navy underline hover:text-blue-800">
+                            contact page
+                          </Link>.
+                        </p>
+                      )}
                     </div>
                     <div className="text-navy font-semibold whitespace-nowrap">
                       {formatPrice(event.priceInCents)}
